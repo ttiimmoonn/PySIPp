@@ -54,7 +54,7 @@ def stop_test(test):
         ssh.cocon_configure(test_desc,test_var,"PostCoconConf")
     
 
-jsonData = open("/home/vragov/scripts/ecss.3.6.0/transfer/transfer.json").read()
+jsonData = open("/home/vragov/scripts/ecss.3.6.0/oa_exchange/oa_exchange.json").read()
 customSettings = '''
 {
 "SystemVars" : [

@@ -31,16 +31,18 @@ def cocon_configure(test_desc,test_var,mode):
     #Подключиаемся к CoCoN
     CoconCommands = {}
     CoconCommands = test_desc[mode][0]
+
     for KeyCoconCmd in sorted(CoconCommands):
+            #Пропускаем команду через словарь
             CoconCommand = builder.replace_key_value(CoconCommands[KeyCoconCmd], test_var)
             if CoconCommand:
-                ssh_connect = get_ssh_connection(CoconIP,CoconPort,CoconUser,CoconPass)
-                if ssh_connect:
-                    ssh_connect.exec_command(CoconCommand)
-                    time.sleep(0.5)
-                    ssh_connect.close()
-                else:
-                    #Если не удалось подключиться к CoCoN выходим...
-                    exit()
+                    ssh_connect = get_ssh_connection(CoconIP,CoconPort,CoconUser,CoconPass)
+                    if ssh_connect:
+                        ssh_connect.exec_command(CoconCommand)
+                        ssh_connect.close()
+                    else:
+                         #Если не удалось подключиться к CoCoN выходим...
+                         return False
             else:
-                exit ()
+                return False
+
