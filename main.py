@@ -185,6 +185,26 @@ for test in tests:
             #Если есть ошибки при линковке, то выходим
             if not test:
                 continue
+            #Собираем команды для UA.
+            print("[DEBUG] Building of the SIPp commands for the UA...")
+            test = builder.build_sipp_command(test,test_var)
+            #Если есть ошибки при линковке, то выходим
+            if not test:
+                continue
+            #Создаём директорию для логов
+            log_path = str(test_var["%%LOG_PATH"]) + "/" + test_desc["TestName"]
+            print("[DEBUG] Creating the log files.")
+            if not fs.create_log_dir(log_path):
+                #Если не удалось создать директорию, выходим
+                continue
+            #Линкуем лог файлы и UA
+            print("[DEBUG] Linking of the LogFd with the UA object...")
+            for ua in test.UserAgent:
+                log_fd = fs.open_log_file(ua.Name,log_path)
+                if not log_fd :
+                    continue
+                else:
+                    ua.LogFd = log_fd  
             
 for test in tests:
     show_test_info(test)
@@ -192,28 +212,9 @@ for test in tests:
 
 
  
-    #Собираем команды для UA.
-#print("[DEBUG] Building of the SIPp commands for the UA...")
-#tests = builder.build_sipp_command(tests,test_var)
-#Если есть ошибки при линковке, то выходим
-#if not tests:
-#    exit()
 
-#Создаём директорию для логов
-#log_path = str(test_var["%%LOG_PATH"]) + "/" + test_desc["TestName"]
-#print("[DEBUG] Creating the log directory...")
-#if not fs.create_log_dir(log_path):
-    #Если не удалось создать директорию, выходим
-#    exit()
-#Линкуем лог файлы и UA
-#print("[DEBUG] Linking of the LogFd with the UA object...")
-#for test in tests:
-#    for ua in test.UserAgent:
-#        log_fd = fs.open_log_file(ua.Name,log_path)
-#        if not log_fd :
-#            exit()
-#        else:
-#            ua.LogFd = log_fd         
+
+       
     
     exit()    
 
