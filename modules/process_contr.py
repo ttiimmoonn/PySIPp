@@ -16,7 +16,7 @@ def RegisterUser (user, mode="reg"):
             print("    --> Can't start the process {File not found}")
             user.Status = "Registration process not started."
             # Выставляем Status код равный 1
-            user.SetStatusCode(1)
+            user.UserObject.SetStatusCode(1)
             # Удаляем timer
             user.CleanRegistrationTimer()
             return False
