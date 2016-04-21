@@ -30,23 +30,22 @@ def show_test_info (test):
             print("      ",command)
         print("")
 
-def link_user_to_test(tests, users):
+def link_user_to_test(test, users):
     #Массив для использованных id
-    for test in tests:
-        use_id = []
-        for ua in test.UserAgent:
-            if ua.Type == "User":
-                if not int(ua.UserId) in use_id:
-                    use_id.append(int(ua.UserId))
-                    try:
-                        ua.UserObject = users[str(ua.UserId)]
-                    except KeyError:
-                        print("[ERROR] User with id =",ua.UserId,"not found","{ UA :",ua.Name,"}")
-                        return False
-                else:
-                    print("[ERROR] Duplicate UserId:",ua.UserId,"{ UA :",ua.Name,"}")
+    use_id = []
+    for ua in test.UserAgent:
+        if ua.Type == "User":
+            if not int(ua.UserId) in use_id:
+                use_id.append(int(ua.UserId))
+                try:
+                    ua.UserObject = users[str(ua.UserId)]
+                except KeyError:
+                    print("[ERROR] User with id =",ua.UserId,"not found","{ UA :",ua.Name,"}")
                     return False
-    return tests
+            else:
+                print("[ERROR] Duplicate UserId:",ua.UserId,"{ UA :",ua.Name,"}")
+                return False
+    return test
 
 def stop_test(test):
     if "PostCoconConf" in test_desc:
@@ -178,16 +177,20 @@ for test in tests:
             print ("[DEBUG] Parsing UA from the test.")
             test = parser.parse_user_agent(test)
             if not test:
+                #Если неправильное описание юзер агентов, то выходим
                 continue
+            #Линкуем UA с объектами юзеров.
+            print("[DEBUG] Linking the UA object with the User object...")
+            test = link_user_to_test(test, test_users)
+            #Если есть ошибки при линковке, то выходим
+            if not test:
+                continue
+            
+for test in tests:
     show_test_info(test)
 
 
-            #Линкуем UA с объектами юзеров.
-#print("[DEBUG] Linking the UA object with the User object...")
-#tests = link_user_to_test(tests, test_users)
-#Если есть ошибки при линковке, то выходим
-#if not tests:
-#    exit()
+
  
     #Собираем команды для UA.
 #print("[DEBUG] Building of the SIPp commands for the UA...")
