@@ -7,10 +7,15 @@ import json
 import sys
 import time
 import threading
+import argparse
 import math
 from collections import OrderedDict
 
-
+def createParser ():
+    parser = argparse.ArgumentParser()
+    parser.add_argument ('-t', '--test_config', type=argparse.FileType(),required=True)
+    parser.add_argument ('-c', '--custom_config', type=argparse.FileType(),required=True)
+    return parser
 
 def show_test_info (test):
     print("TestName:    ",test.Name)
@@ -53,30 +58,14 @@ def stop_test(test):
         #Переменные для настройки соединения с CoCoN
         ssh.cocon_configure(test_desc,test_var,"PostCoconConf")
     
-
-jsonData = open("/home/vragov/scripts/ecss.3.6.0/test/transfer.json").read()
-customSettings = '''
-{
-"SystemVars" : [
-    {
-        "%%SIPP_PATH" : "/home/vragov/sipp/sipp-3.4.1/sipp",
-        "%%SRC_PATH" : "/home/vragov/scripts/ecss.3.6.0",
-        "%%TEMP_PATH" : "/home/vragov/scripts/ecss.3.6.0/temp",
-        "%%REG_XML" : "./xml/reg_user.xml",
-        "%%SF_XML" : "./xml/send_sf.xml",
-        "%%LOG_PATH" : "/home/vragov/scripts/ecss.3.6.0/temp/log",
-        "%%IP" : "192.168.118.249",
-        "%%SERV_IP" : "192.168.118.245",
-        "%%EXTER_IP" : "192.168.118.245",
-        "%%EXTER_PORT" : "5015",
-        "%%DEV_USER" : "admin",
-        "%%DEV_PASS" : "password",
-        "%%DEV_DOM" : "pv.ssw2"
-    }
-]
-}
-'''
-
+#Парсим аргументы командной строки
+arg_parser = createParser()
+namespace = arg_parser.parse_args()
+#Забираем описание теста и общие настройки
+jsonData = namespace.test_config.read()
+customSettings = namespace.custom_config.read()
+namespace.test_config.close()
+namespace.custom_config.close()
 #Декларируем массив для юзеров
 test_users = {}
 #декларируем массив для тестов
@@ -223,7 +212,7 @@ for test in tests:
                 time.sleep(sleep_time)
                 continue
             elif key == "StartUA":
-                #Парсим Юзер агентов 
+		#Парсим Юзер агентов 
                 print ("[DEBUG] Parsing UA from the test.")
                 test = parser.parse_user_agent(test,item[key])
                 if not test:
