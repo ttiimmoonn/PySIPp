@@ -161,29 +161,8 @@ for key in test_users:
         test_users[key].UnRegCommand = command
     else:
         exit()
-
-#Собираем команды для UA.
-print("[DEBUG] Building of the SIPp commands for the UA...")
-tests = builder.build_sipp_command(tests,test_var)
-#Если есть ошибки при линковке, то выходим
-if not tests:
-    exit()
-
-#Создаём директорию для логов
-log_path = str(test_var["%%LOG_PATH"]) + "/" + test_desc["TestName"]
-print("[DEBUG] Creating the log directory...")
-if not fs.create_log_dir(log_path):
-    #Если не удалось создать директорию, выходим
-    exit()
-#Линкуем лог файлы и UA
-print("[DEBUG] Linking of the LogFd with the UA object...")
-for test in tests:
-    for ua in test.UserAgent:
-        log_fd = fs.open_log_file(ua.Name,log_path)
-        if not log_fd :
-            exit()
-        else:
-            ua.LogFd = log_fd
+        
+        
 
 #Если есть настройки для CoCon выполняем их
 if "PreCoconConf" in test_desc:
@@ -201,6 +180,31 @@ if "SSMgmCommands" in test_desc:
 
 #Запускаем процесс тестирования
 for test in tests:
+    
+    #Собираем команды для UA.
+#print("[DEBUG] Building of the SIPp commands for the UA...")
+#tests = builder.build_sipp_command(tests,test_var)
+#Если есть ошибки при линковке, то выходим
+#if not tests:
+#    exit()
+
+#Создаём директорию для логов
+#log_path = str(test_var["%%LOG_PATH"]) + "/" + test_desc["TestName"]
+#print("[DEBUG] Creating the log directory...")
+#if not fs.create_log_dir(log_path):
+    #Если не удалось создать директорию, выходим
+#    exit()
+#Линкуем лог файлы и UA
+#print("[DEBUG] Linking of the LogFd with the UA object...")
+#for test in tests:
+#    for ua in test.UserAgent:
+#        log_fd = fs.open_log_file(ua.Name,log_path)
+#        if not log_fd :
+#            exit()
+#        else:
+#            ua.LogFd = log_fd
+
+    
     threads = []
     #Флаг для выхода из диспетчера при ошибке регистрации
     registration_flag = True
