@@ -195,6 +195,15 @@ for user in test_users:
 for test in tests:
     print("[DEBUG] Start test: ",test.Name)
     for key in test.TestProcedure.keys():
+        if key == "Sleep":
+            try:
+                sleep_time = int(test.TestProcedure[key])
+            except:
+                print("[ERROR] Bag sleep arg. Exit.")
+                exit()
+            print("[DEBUG] Sleep on", sleep_time, "seconds")
+            time.sleep(sleep_time)
+            continue
         if key == "StartUA":
             #Парсим Юзер агентов 
             print ("[DEBUG] Parsing UA from the test.")
