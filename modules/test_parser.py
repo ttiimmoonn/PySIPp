@@ -1,4 +1,5 @@
 import modules.test_class as testClass
+import sys
 def parse_user_info (json_users):
     #Создаём массив для хранения юзеров
     users = {}
@@ -50,6 +51,15 @@ def parse_test_info (json_tests):
             new_test.Description = test["Description"]
         except KeyError:
             new_test.Description = "No description"
+        try:
+            new_test.TestProcedure = test["TestProcedure"]
+        except:
+            print("[ERROR] Wrong Test description. Detail:")
+            print("---> UA has no attribute:",sys.exc_info()[1],"{ Test:",new_test.Name,"}")
+            return False
+        tests.append(new_test)
+    return tests
+def parse_user_agent (test, ua_desc):
         #Пытаемся найти UserAgent в описании теста
         try:
             for ua in test["UA"]:
@@ -103,8 +113,7 @@ def parse_test_info (json_tests):
             print("[ERROR] Wrong test description. Detail:")
             print("---> Test has no attribute:",sys.exc_info()[1])
             return False
-        tests.append(new_test)
-    return tests
+
 def parse_test_var (test_desc):
     #Парсим пользовательские переменные
     test_var = {}

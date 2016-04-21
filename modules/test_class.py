@@ -1,10 +1,11 @@
 import threading
 import modules.process_contr as proc
 class TestClass:
-    Name = None
-    Description = None
     def __init__(self):
         self.UserAgent = []
+        self.Name = None
+        self.Description = None
+        self.TestProcedure = None
 
 class UserAgentClass:
     def __init__(self):

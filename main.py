@@ -8,6 +8,7 @@ import sys
 import time
 import threading
 import math
+from collections import OrderedDict
 
 
 
@@ -54,7 +55,7 @@ def stop_test(test):
         ssh.cocon_configure(test_desc,test_var,"PostCoconConf")
     
 
-jsonData = open("/home/vragov/scripts/ecss.3.6.0/oa_exchange/oa_exchange.json").read()
+jsonData = open("/home/vragov/scripts/ecss.3.6.0/test/transfer.json").read()
 customSettings = '''
 {
 "SystemVars" : [
@@ -98,7 +99,8 @@ if not custom_settings:
 
 print("[DEBUG] Reading JSON script...")
 try:
-    test_desc = json.loads(jsonData)
+    #Загружаем json описание теста
+    test_desc = json.loads(jsonData,object_pairs_hook=OrderedDict)
 except (ValueError, KeyError, TypeError):
     print("[ERROR] Wrong JSON format. Detail:")
     print("--->",sys.exc_info()[1])
@@ -126,13 +128,6 @@ if not tests:
 test_var = parser.parse_test_var(test_desc)
 #Добавляем системные переменные в словарь
 test_var.update(custom_settings)
-
-#Линкуем UA с объектами юзеров.
-print("[DEBUG] Linking the UA object with the User object...")
-tests = link_user_to_test(tests, test_users)
-#Если есть ошибки при линковке, то выходим
-if not tests:
-    exit()
 
 
 #Собираем команды для регистрации абонентов
@@ -172,15 +167,20 @@ if "PreCoconConf" in test_desc:
     #Даём кокону очнуться
     time.sleep(1)
 
-if "SSMgmCommands" in test_desc:
-    print("[DEBUG] Ativation of the ss...")
-    ss_conf = test_desc["SSMgmCommands"][0]
-    print(ss_conf["Activation"])
 
 
 #Запускаем процесс тестирования
 for test in tests:
     
+    print(test.TestProcedure)
+    exit()
+#Линкуем UA с объектами юзеров.
+#print("[DEBUG] Linking the UA object with the User object...")
+#tests = link_user_to_test(tests, test_users)
+#Если есть ошибки при линковке, то выходим
+#if not tests:
+#    exit()
+ 
     #Собираем команды для UA.
 #print("[DEBUG] Building of the SIPp commands for the UA...")
 #tests = builder.build_sipp_command(tests,test_var)
