@@ -12,7 +12,7 @@ def get_ssh_connection(host,port,user,secret):
     try:
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        client.connect(hostname=host, username=user, password=secret, port=port)
+        client.connect(hostname=host, username=user, password=secret, port=port, timeout=10)
         #stdin, stdout, stderr = client.exec_command('/domain/list')
         #data = stdout.read() + stderr.read()
         #data.decode('utf-8')
