@@ -3,91 +3,103 @@ import time
 from datetime import datetime
 
 
-def RegisterUser (ua, mode="reg"):
+def RegisterUser (user, mode="reg"):
     if mode == "reg":
         # Взводим timer 
-        ua.UserObject.SetRegistrationTimer(ua)
+        user.SetRegistrationTimer()
         # Запускаем процесс
-        process = start_ua(ua.UserObject.RegCommand, ua.LogFd)
+        process = start_ua(user.RegCommand, user.RegLogFile)
         if not process:
-            print("    [ERROR] User", ua.UserObject.Number, "not registred. Detail:")
+            print("    [ERROR] User", user.Number, "not registred. Detail:")
             print("    --> Can't start the process {File not found}")
-            ua.UserObject.Status = "Registration process not started."
+            user.Status = "Registration process not started."
             # Выставляем Status код равный 1
-            ua.UserObject.SetStatusCode(1)
+            user.UserObject.SetStatusCode(1)
             # Удаляем timer
-            ua.UserObject.CleanRegistrationTimer()
+            user.CleanRegistrationTimer()
             return False
         else:
-            ua.UserObject.RegProcess = process
+            user.RegProcess = process
 
         try:
-            ua.UserObject.RegProcess.communicate(timeout=5)
-            if ua.UserObject.RegProcess.poll() != 0:
-                ua.UserObject.Status = "Error of registration"
+            user.RegProcess.communicate(timeout=5)
+            if user.RegProcess.poll() != 0:
+                user.Status = "Error of registration"
                 # Cтавим код выхода
-                ua.UserObject.SetStatusCode(ua.UserObject.RegProcess.poll())
+                user.SetStatusCode(user.RegProcess.poll())
                 # Делаем сброс таймера
-                ua.UserObject.CleanRegistrationTimer() 
-                print("    [ERROR] User", ua.UserObject.Number, "not registred. Detail:")
-                print("    --> Registeration failed. The SIPp process return bad exit code.", "ex_code:", ua.UserObject.RegProcess.poll())
+                user.CleanRegistrationTimer() 
+                print("    [ERROR] User", user.Number, "not registred. Detail:")
+                print("    --> Registeration failed. The SIPp process return bad exit code.", "ex_code:", user.RegProcess.poll())
                 return False
             else:
-                ua.UserObject.Status = "Registered"
-                ua.UserObject.SetStatusCode(ua.UserObject.RegProcess.poll()) 
-                print("    [DEBUG] User", ua.UserObject.Number, "registred at", datetime.strftime(datetime.now(), "%H:%M:%S"), "exp time = ", (int(ua.UserObject.Expires) * 2 / 3))
+                user.Status = "Registered"
+                user.SetStatusCode(user.RegProcess.poll()) 
+                print("    [DEBUG] User", user.Number, "registred at", datetime.strftime(datetime.now(), "%H:%M:%S"), "exp time = ", (int(user.Expires) * 2 / 3))
                 return True
         except subprocess.TimeoutExpired:
-            ua.UserObject.RegProcess.kill()
-            ua.UserObject.Status = "Error of registration (timeout)"
-            ua.UserObject.SetStatusCode(2)
-            ua.UserObject.CleanRegistrationTimer()
-            print("    [ERROR] User", ua.UserObject.Number, "not registred. Detail:")
+            user.RegProcess.kill()
+            user.Status = "Error of registration (timeout)"
+            user.SetStatusCode(2)
+            user.CleanRegistrationTimer()
+            print("    [ERROR] User", user.Number, "not registred. Detail:")
             print("    -->Registeration failed. The UA registration process break by timeout.")
             return False
     elif mode == "unreg":
-        ua.UserObject.CleanRegistrationTimer()
+        user.CleanRegistrationTimer()
         try:
-            if ua.UserObject.RegProcess.poll() == None:
-                ua.UserObject.RegProcess.wait()
+            if user.RegProcess.poll() == None:
+                user.RegProcess.wait()
         except AttributeError:
             return False
-        process = start_ua(ua.UserObject.UnRegCommand, ua.LogFd)
+        process = start_ua(user.UnRegCommand, user.RegLogFile)
         if not process:
-            print("    [ERROR] User registration", ua.UserObject.Number, "not dropped. Detail:")
+            print("    [ERROR] User registration", user.Number, "not dropped. Detail:")
             print("    --> Can't start the process {File not found}")
+            #Закрываем лог файл
+            user.RegLogFile.close()
             return False
         else:
-            ua.UserObject.UnRegProcess = process
+            user.UnRegProcess = process
         try:
-            ua.UserObject.UnRegProcess.communicate(timeout=5)
-            if ua.UserObject.UnRegProcess.poll() != 0:
-                ua.UserObject.Status = "Error of drop"
-                print("    [ERROR] User registration", ua.UserObject.Number, "not dropped. Detail:")
+            user.UnRegProcess.communicate(timeout=5)
+            if user.UnRegProcess.poll() != 0:
+                user.Status = "Error of drop"
+                print("    [ERROR] User registration", user.Number, "not dropped. Detail:")
                 print("    --> Drop failed. The SIPp process return bad exit code.")
+                #Закрываем лог файл
+                user.RegLogFile.close()
                 return False
             else:
-                ua.UserObject.Status = "Dropped"
-                print("    [DEBUG] User registration", ua.UserObject.Number, " is dropped.")
+                user.Status = "Dropped"
+                print("    [DEBUG] User registration", user.Number, " is dropped.")
+                #Закрываем лог файл
+                user.RegLogFile.close()
                 return True
         except subprocess.TimeoutExpired:
-            ua.UserObject.UnRegProcess.kill()
-            ua.UserObject.Status = "Error of drop (timeout)"
-            print("    [ERROR] User registration", ua.UserObject.Number, "not dropped. Detail:")
+            user.UnRegProcess.kill()
+            user.Status = "Error of drop (timeout)"
+            print("    [ERROR] User registration", user.Number, "not dropped. Detail:")
             print("    --> Drop failed. The UA registration process break by timeout.")
+            #Закрываем лог файл
+            user.RegLogFile.close()
             return False
     else:
         print("    [ERROR] Bad arg {set registration func}")
         return False
 
-def DropRegistration (test_ua):
+def DropRegistration (users):
     # Делаем сброс регистрации
-    for ua in test_ua:
-        if ua.Type == "User":
-            if ua.UserObject.Status == None or ua.UserObject.Status == "Dropped":
-                continue
-            if not RegisterUser(ua, "unreg"):
-                continue
+    for user in users:
+        if users[user].StatusCode != 0:
+            #Поскольку статус код регистрации не равен нулю
+            #то дропать регистрацию такому юзеру не нужно
+            #Закрываем лог файл и продолжаем перебор юзеров
+            if users[user].RegLogFile != None:
+                users[user].RegLogFile.close()
+            continue
+        if not RegisterUser(users[user], "unreg"):
+            continue
    
 def start_ua (command, fd):
 # Запуск подпроцесса регистрации

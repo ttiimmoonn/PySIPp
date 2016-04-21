@@ -166,11 +166,33 @@ if "PreCoconConf" in test_desc:
     #Даём кокону очнуться
     time.sleep(1)
 
+#Создаём директорию для логов
+log_path = str(test_var["%%LOG_PATH"]) + "/" + test_desc["TestName"]
+print("[DEBUG] Creating the log dir.")
+if not fs.create_log_dir(log_path):
+    #Если не удалось создать директорию, выходим
+    exit()
 
+#Врубаем регистрацию для всех юзеров
+print ("[DEBUG] Starting of the registration...")
+for user in test_users:
+    log_name = "REG_" + str(test_users[user].Number)
+    log_file = fs.open_log_file(log_name,log_path)
+    #Если не удалось создать лог файл, то выходим
+    if not log_file:
+        exit()
+    else:
+        test_users[user].RegLogFile = log_file
+    if not proc.RegisterUser(test_users[user]):
+        #Если регистрация не прошла
+        #Пытаемся разрегистировать тех кого удалось зарегать
+        proc.DropRegistration(test_users)
+        #Выходим
+        exit()
 
 #Запускаем процесс тестирования
 for test in tests:
-    
+    print("[DEBUG] Start test: ",test.Name)
     for key in test.TestProcedure.keys():
         if key == "StartUA":
             #Парсим Юзер агентов 
@@ -190,12 +212,6 @@ for test in tests:
             test = builder.build_sipp_command(test,test_var)
             #Если есть ошибки при линковке, то выходим
             if not test:
-                continue
-            #Создаём директорию для логов
-            log_path = str(test_var["%%LOG_PATH"]) + "/" + test_desc["TestName"]
-            print("[DEBUG] Creating the log files.")
-            if not fs.create_log_dir(log_path):
-                #Если не удалось создать директорию, выходим
                 continue
             #Линкуем лог файлы и UA
             print("[DEBUG] Linking of the LogFd with the UA object...")
@@ -224,16 +240,6 @@ for test in tests:
     #Флаг для выхода из диспетчера при ошибке регистрации
     registration_flag = True
     print("[DEBUG] Start test: ",test.Name)
-
-    #Для юзеров запускаем регистрацию.
-    print ("[DEBUG] Starting of the registration...")
-    for ua in test.UserAgent:
-        if ua.Type == "User":
-            if not proc.RegisterUser(ua):
-                #Если регистрация не прошла начинаем новый тест
-                proc.DropRegistration(test.UserAgent)
-                registration_flag = False
-                break
     #Если регистрация провалилась переходим к следующему тесту
     if not registration_flag:
         continue

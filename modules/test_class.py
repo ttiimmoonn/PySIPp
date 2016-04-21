@@ -59,9 +59,10 @@ class UserClass:
         self.UnRegCommand = None
         self.RegProcess = None
         self.UnRegProcess = None
+        self.RegLogFile = None
         self.UserLock = threading.Lock()  
-    def SetRegistrationTimer(self,ua):    
-        self.Timer = threading.Timer((int(self.Expires) * 2 / 3), proc.RegisterUser, args=(ua,) , kwargs=None)
+    def SetRegistrationTimer(self):    
+        self.Timer = threading.Timer((int(self.Expires) * 2 / 3), proc.RegisterUser, args=(self,) , kwargs=None)
         self.Timer.start()
     def CleanRegistrationTimer(self):
         try:
