@@ -1,5 +1,6 @@
 import subprocess
 import time
+import threading
 from datetime import datetime
 
 
@@ -178,3 +179,60 @@ def start_ua_thread(ua, event_for_stop):
             return False
         commandCount += 1
     return True
+
+def start_process_controller(test):
+    threads = []
+    #Создаём ivent для threads
+    event_for_threads = threading.Event()
+    #Устанавливаем его в true
+    event_for_threads.set()
+   
+    #Начинаем запуск UA по очереди
+    print("[DEBUG] Trying to start UA...")
+    for ua in test.UserAgent:
+        time.sleep(0.5)
+        # Инициализируем новый thread
+        testThread = threading.Thread(target=start_ua_thread, args=(ua,event_for_threads,), name = ua.Name)
+        testThread.setName(ua.Name)
+        # Запускаем новый thread
+        testThread.start()
+        threads.append(testThread)
+        
+    #Включаем цикл опроса статусов процессов.
+    #Включаем флажок для выхода из диспетчера
+    event_for_mgm = True
+    
+    while(event_for_mgm):
+        if event_for_mgm:
+            #Проверяем, что все регистрации живы.
+            for ua in test.UserAgent:
+                if ua.Type == "User":
+                    ex_code = ua.UserObject.ReadStatusCode()
+                    if ex_code != 0:
+                        #Если регистрация отвалилась, останавливаем все thread
+                        event_for_threads.clear()
+                        #Выходим из диспетчера
+                        event_for_mgm = False
+        #Проверяем, что все процессы возращают 0 ex_code
+        if event_for_mgm:
+            for userAgent in test.UserAgent:
+                ex_code = userAgent.ReadStatusCode()
+                if ex_code == None:
+                    continue
+                if int(ex_code) != 0:
+                    #Если процесс отвалился, останавливаем все thread
+                    event_for_threads.clear()
+                    #Выходим из диспетчера
+                    event_for_mgm = False
+                    
+        if event_for_mgm:  
+            #Если все thread завершились то выходим из диспетчера
+            thread_alive_flag = 0                 
+            for thread in threads:                
+                if thread.is_alive():             
+                    thread_alive_flag = 1
+                    break
+            if thread_alive_flag == 0:           
+                event_for_mgm = False
+        time.sleep(0.01)
+    return threads

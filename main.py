@@ -162,7 +162,8 @@ for key in test_users:
 if "PreCoconConf" in test_desc:
     print("[DEBUG] Configuration of the ECSS-10 system...")
     #Переменные для настройки соединения с CoCoN
-    ssh.cocon_configure(test_desc,test_var,"PreCoconConf")
+    if not ssh.cocon_configure(test_desc,test_var,"PreCoconConf"):
+        exit()
     #Даём кокону очнуться
     time.sleep(1)
 
@@ -220,11 +221,39 @@ for test in tests:
                 if not log_fd :
                     continue
                 else:
-                    ua.LogFd = log_fd  
+                    ua.LogFd = log_fd
+            #Если все предварительные процедуры выполнены успешно,
+            #то запускаем процессы
+            threads = proc.start_process_controller(test)
+            #Заводим таймер на 5 сек.
+            print("[DEBUG] Waiting for closing threads...")
+            Timer = 5
+        
+            while Timer != 0:
+                Timer -= 1
+                time.sleep(1)
+                thread_alive_flag = 0
+                for thread in threads:
+                    if thread.is_alive():
+                        thread_alive_flag += 1
+                        print(123)
+                if thread_alive_flag == 0:
+                    break
+
             
+
+#Разрегистрируем юзеров
+print("[DEBUG] Drop registration of users.")
+proc.DropRegistration(test_users)
+#Деконфигурируем ссв и закрываем лог файлы
+stop_test(test)
+print("[DEBUG] exit.")
+
+
+
+
 for test in tests:
     show_test_info(test)
-
 
 
  
@@ -236,86 +265,10 @@ for test in tests:
 
 
     
-    threads = []
-    #Флаг для выхода из диспетчера при ошибке регистрации
-    registration_flag = True
-    print("[DEBUG] Start test: ",test.Name)
-    #Если регистрация провалилась переходим к следующему тесту
-    if not registration_flag:
-        continue
-                
-                
-    #Создаём ivent для threads
-    event_for_threads = threading.Event()
-    #Устанавливаем его в true
-    event_for_threads.set()
-    
-    #Начинаем запуск UA по очереди
-    print("[DEBUG] Trying to start UA...")
-    for ua in test.UserAgent:
-        time.sleep(0.5)
-        # Инициализируем новый thread
-        testThread = threading.Thread(target=proc.start_ua_thread, args=(ua,event_for_threads,), name = ua.Name)
-        testThread.setName(ua.Name)
-        # Запускаем новый thread
-        testThread.start()
-        threads.append(testThread)
+      
         
-    #Включаем цикл опроса статусов процессов.
-    #Включаем флажок для выхода из диспетчера
-    event_for_mgm = True
-    
-    while(event_for_mgm):
-        #Проверяем, что все регистрации живы.
-        for ua in test.UserAgent:
-            if ua.Type == "User":
-                ex_code = ua.UserObject.ReadStatusCode()
-                if ex_code != 0:
-                    #Если регистрация отвалилась, останавливаем все thread
-                    event_for_threads.clear()
-                    #Пытаемся остановить регистрацию
-                    proc.DropRegistration(test.UserAgent)
-                    #Выходим из диспетчера
-                    event_for_mgm = False
-        #Проверяем, что все процессы возращают 0 ex_code
-        if event_for_mgm:
-            for userAgent in test.UserAgent:
-                ex_code = userAgent.ReadStatusCode()
-                if ex_code == None:
-                    continue
-                if int(ex_code) != 0:
-                    #Если процесс отвалился, останавливаем все thread
-                    event_for_threads.clear()
-                    #Пытаемся остановить регистрацию
-                    proc.DropRegistration(test.UserAgent)
-                    #Выходим из диспетчера
-                    event_for_mgm = False
-                    break
-        if event_for_mgm:  
-            #Если все thread завершились кроме основного, то выходим из диспетчера
-            thread_alive_flag = 0                 
-            for thread in threads:                
-                if thread.is_alive():             
-                    thread_alive_flag = 1
-                    break
-            if thread_alive_flag == 0:           
-                event_for_mgm = False
-        time.sleep(0.01)
-    #Заводим таймер на 5 сек.
-    print("[DEBUG] Waiting for closing threads...")
-    Timer = 5
 
-    while Timer != 0:
-        Timer -= 1
-        time.sleep(1)
-        thread_alive_flag = 0
-        for thread in threads:
-            if thread.is_alive():
-                thread_alive_flag += 1
-        if thread_alive_flag == 0:
-            break
-
-    #Рассчитывает результат теста
+   #Рассчитывает результат теста
     result = 0
     for userAgent in test.UserAgent:
         for process in userAgent.Process:
