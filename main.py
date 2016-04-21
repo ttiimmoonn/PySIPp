@@ -194,60 +194,64 @@ for user in test_users:
 #Запускаем процесс тестирования
 for test in tests:
     print("[DEBUG] Start test: ",test.Name)
-    for key in test.TestProcedure.keys():
-        if key == "Sleep":
-            try:
-                sleep_time = int(test.TestProcedure[key])
-            except:
-                print("[ERROR] Bag sleep arg. Exit.")
+    for item in test.TestProcedure:
+        for key in item:
+            if key == "FeatureActivate":
+                print("Yeap")
                 exit()
-            print("[DEBUG] Sleep on", sleep_time, "seconds")
-            time.sleep(sleep_time)
-            continue
-        if key == "StartUA":
-            #Парсим Юзер агентов 
-            print ("[DEBUG] Parsing UA from the test.")
-            test = parser.parse_user_agent(test)
-            if not test:
-                #Если неправильное описание юзер агентов, то выходим
+            elif key == "Sleep":
+                try:
+                    sleep_time = int(item[key])
+                except:
+                    print("[ERROR] Bag sleep arg. Exit.")
+                    exit()
+                print("[DEBUG] Sleep on", sleep_time, "seconds")
+                time.sleep(sleep_time)
                 continue
-            #Линкуем UA с объектами юзеров.
-            print("[DEBUG] Linking the UA object with the User object...")
-            test = link_user_to_test(test, test_users)
-            #Если есть ошибки при линковке, то выходим
-            if not test:
-                continue
-            #Собираем команды для UA.
-            print("[DEBUG] Building of the SIPp commands for the UA...")
-            test = builder.build_sipp_command(test,test_var)
-            #Если есть ошибки при линковке, то выходим
-            if not test:
-                continue
-            #Линкуем лог файлы и UA
-            print("[DEBUG] Linking of the LogFd with the UA object...")
-            for ua in test.UserAgent:
-                log_fd = fs.open_log_file(ua.Name,log_path)
-                if not log_fd :
+            elif key == "StartUA":
+                #Парсим Юзер агентов 
+                print ("[DEBUG] Parsing UA from the test.")
+                test = parser.parse_user_agent(test,item[key])
+                if not test:
+                    #Если неправильное описание юзер агентов, то выходим
                     continue
-                else:
-                    ua.LogFd = log_fd
-            #Если все предварительные процедуры выполнены успешно,
-            #то запускаем процессы
-            threads = proc.start_process_controller(test)
-            #Заводим таймер на 5 сек.
-            print("[DEBUG] Waiting for closing threads...")
-            Timer = 5
-        
-            while Timer != 0:
-                Timer -= 1
-                time.sleep(1)
-                thread_alive_flag = 0
-                for thread in threads:
-                    if thread.is_alive():
-                        thread_alive_flag += 1
-                        print(123)
-                if thread_alive_flag == 0:
-                    break
+                #Линкуем UA с объектами юзеров.
+                print("[DEBUG] Linking the UA object with the User object...")
+                test = link_user_to_test(test, test_users)
+                #Если есть ошибки при линковке, то выходим
+                if not test:
+                    continue
+                #Собираем команды для UA.
+                print("[DEBUG] Building of the SIPp commands for the UA...")
+                test = builder.build_sipp_command(test,test_var)
+                #Если есть ошибки при линковке, то выходим
+                if not test:
+                    continue
+                #Линкуем лог файлы и UA
+                print("[DEBUG] Linking of the LogFd with the UA object...")
+                for ua in test.UserAgent:
+                    log_fd = fs.open_log_file(ua.Name,log_path)
+                    if not log_fd :
+                        continue
+                    else:
+                        ua.LogFd = log_fd
+                #Если все предварительные процедуры выполнены успешно,
+                #то запускаем процессы
+                threads = proc.start_process_controller(test)
+                #Заводим таймер на 5 сек.
+                print("[DEBUG] Waiting for closing threads...")
+                Timer = 5
+            
+                while Timer != 0:
+                    Timer -= 1
+                    time.sleep(1)
+                    thread_alive_flag = 0
+                    for thread in threads:
+                        if thread.is_alive():
+                            thread_alive_flag += 1
+                            print(123)
+                    if thread_alive_flag == 0:
+                        break
 
             
 

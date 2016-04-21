@@ -52,17 +52,17 @@ def parse_test_info (json_tests):
         except KeyError:
             new_test.Description = "No description"
         try:
-            new_test.TestProcedure = test["TestProcedure"][0]
+            new_test.TestProcedure = test["TestProcedure"]
         except:
             print("[ERROR] Wrong Test description. Detail:")
             print("---> UA has no attribute:",sys.exc_info()[1],"{ Test:",new_test.Name,"}")
-            return False
+            return False            
         tests.append(new_test)
     return tests
-def parse_user_agent (test):
+def parse_user_agent (test,ua_desc):
         #Пытаемся найти UserAgent в описании теста
         try:
-            for ua in test.TestProcedure["StartUA"]:
+            for ua in ua_desc:
                 #Создаём нового UserAgent
                 new_ua = testClass.UserAgentClass()
                 #Устанавливаем статус UserAgent
