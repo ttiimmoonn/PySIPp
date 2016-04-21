@@ -168,4 +168,7 @@ def parse_sys_conf (sys_json):
     if not "%%DEV_DOM" in sys_json:
         print("[ERROR] No %%DEV_DOM variable in the system config")
         return False
+    if not "%%SF_XML" in sys_json:
+        print("[ERROR] No %%SF_XML variable in the system config")
+        return False
     return sys_json

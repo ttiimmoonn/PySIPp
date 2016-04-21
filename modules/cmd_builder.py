@@ -1,26 +1,43 @@
+def build_service_feature_command (user, code):
+    #Сборка команды для регистрации
+    command=""
+    command+="%%SIPP_PATH" + " "
+    command+="-sf " + "%%SF_XML" + " "
+    command+="%%EXTER_IP" + ":" + "%%EXTER_PORT" + " "
+    command+="-i " + "%%IP" + " "
+    command+=" -p " + str(user.Port)
+    command+=" -set CDPN " + str(code)
+    command+=" -set CDPNDOM " + str(user.SipDomain)
+    command+=" -set CGPNDOM " + str(user.SipDomain)
+    command+=" -s " + str(user.Login)
+    command+=" -ap " + str(user.Password)
+    command+=" -m 1 "
+    command+=" -timeout 20s"
+    return command    
+    
 def build_reg_command (user,list,mode="reg"):
     #Сборка команды для регистрации
-        command=""
-        command+="%%SIPP_PATH" + " "
-        command+="-sf " + "%%REG_XML" + " "
-        command+="%%EXTER_IP" + ":" + "%%EXTER_PORT" + " "
-        command+="-i " + "%%IP" + " "
-        command+=" -set DOMAIN " + str(user.SipDomain)
-        command+=" -set PORT " + str(user.Port)
-        if mode == "reg":
-            command+=" -set EXPIRES " + str(user.Expires)
-        elif mode == "unreg":
-            command+=" -set EXPIRES " + "0"
-        command+=" -set USER_Q " + str(user.QParam)
-        command+=" -set NUMBER " + str(user.Number)
-        command+=" -s " + str(user.Login) + " -ap " + str(user.Password)
-        command+=" -m 1"
-        command+=" -nostdin"
-        command = replace_key_value(command, list)
-        if command:
-            return command
-        else:
-            return False
+    command=""
+    command+="%%SIPP_PATH" + " "
+    command+="-sf " + "%%REG_XML" + " "
+    command+="%%EXTER_IP" + ":" + "%%EXTER_PORT" + " "
+    command+="-i " + "%%IP" + " "
+    command+=" -set DOMAIN " + str(user.SipDomain)
+    command+=" -set PORT " + str(user.Port)
+    if mode == "reg":
+        command+=" -set EXPIRES " + str(user.Expires)
+    elif mode == "unreg":
+        command+=" -set EXPIRES " + "0"
+    command+=" -set USER_Q " + str(user.QParam)
+    command+=" -set NUMBER " + str(user.Number)
+    command+=" -s " + str(user.Login) + " -ap " + str(user.Password)
+    command+=" -m 1"
+    command+=" -nostdin"
+    command = replace_key_value(command, list)
+    if command:
+        return command
+    else:
+        return False
 def build_sipp_command(test,list):
     for ua in test.UserAgent:
          #Пытаемся достать параметры команды

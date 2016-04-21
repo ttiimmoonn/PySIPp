@@ -2,7 +2,8 @@ import subprocess
 import time
 import threading
 from datetime import datetime
-
+import subprocess
+import shlex
 
 def RegisterUser (user, mode="reg"):
     if mode == "reg":
@@ -104,8 +105,6 @@ def DropRegistration (users):
    
 def start_ua (command, fd):
 # Запуск подпроцесса регистрации
-    import subprocess
-    import shlex
     args = shlex.split(str(command))
     try:
         # Пытаемся создать новый SIPp процесс.

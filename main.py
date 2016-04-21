@@ -63,6 +63,7 @@ customSettings = '''
         "%%SRC_PATH" : "/home/vragov/scripts/ecss.3.6.0",
         "%%TEMP_PATH" : "/home/vragov/scripts/ecss.3.6.0/temp",
         "%%REG_XML" : "./xml/reg_user.xml",
+        "%%SF_XML" : "./xml/send_sf.xml",
         "%%LOG_PATH" : "/home/vragov/scripts/ecss.3.6.0/temp/log",
         "%%IP" : "192.168.118.249",
         "%%SERV_IP" : "192.168.118.245",
@@ -177,8 +178,8 @@ if not fs.create_log_dir(log_path):
 #Врубаем регистрацию для всех юзеров
 print ("[DEBUG] Starting of the registration...")
 for user in test_users:
-    log_name = "REG_" + str(test_users[user].Number)
-    log_file = fs.open_log_file(log_name,log_path)
+    reg_log_name = "REG_" + str(test_users[user].Number)
+    log_file = fs.open_log_file(reg_log_name,log_path)
     #Если не удалось создать лог файл, то выходим
     if not log_file:
         exit()
@@ -196,9 +197,31 @@ for test in tests:
     print("[DEBUG] Start test: ",test.Name)
     for item in test.TestProcedure:
         for key in item:
-            if key == "FeatureActivate":
-                print("Yeap")
-                exit()
+            if key == "ServiceFeature":
+                #Забираем фича-код и юзера с которого его выполнить
+                try:
+                    code = item[key][0]['code']
+                    user_id = str(item[key][0]['userId'])
+                except:
+                    print("[ERROR] Can't get service code or user from \"ServiceFeature\" command")
+                    exit()
+                print ("[DEBUG] Send ServiceFeature code =", code)
+                try:
+                    user = test_users[str(user_id)]
+                except:
+                    print("[ERROR] Can't get User Object with.")
+                    print("    --> ID = ", user_id, "not found.")
+                    exit()
+                #Собираем команду для активации сервис фичи
+                command = builder.build_service_feature_command(user,code)
+                #Прогоняем её через словарь
+                command = builder.replace_key_value(command, test_var)
+                if not command:
+                    exit()
+                else:
+                    import subprocess
+                    proc.start_ua(command,subprocess.DEVNULL )
+                    time.sleep(2)
             elif key == "Sleep":
                 try:
                     sleep_time = int(item[key])
