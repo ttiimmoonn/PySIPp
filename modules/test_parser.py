@@ -52,17 +52,17 @@ def parse_test_info (json_tests):
         except KeyError:
             new_test.Description = "No description"
         try:
-            new_test.TestProcedure = test["TestProcedure"]
+            new_test.TestProcedure = test["TestProcedure"][0]
         except:
             print("[ERROR] Wrong Test description. Detail:")
             print("---> UA has no attribute:",sys.exc_info()[1],"{ Test:",new_test.Name,"}")
             return False
         tests.append(new_test)
     return tests
-def parse_user_agent (test, ua_desc):
+def parse_user_agent (test):
         #Пытаемся найти UserAgent в описании теста
         try:
-            for ua in test["UA"]:
+            for ua in test.TestProcedure["StartUA"]:
                 #Создаём нового UserAgent
                 new_ua = testClass.UserAgentClass()
                 #Устанавливаем статус UserAgent
@@ -107,12 +107,13 @@ def parse_user_agent (test, ua_desc):
                         print("[ERROR] Wrong UA description. Detail:")
                         print("---> UA has no attribute:",sys.exc_info()[1])
                         return False
-                new_test.UserAgent.append(new_ua)
+                test.UserAgent.append(new_ua)
         except KeyError:
             #Если в тесте нет UA, то выходим
             print("[ERROR] Wrong test description. Detail:")
             print("---> Test has no attribute:",sys.exc_info()[1])
             return False
+        return test
 
 def parse_test_var (test_desc):
     #Парсим пользовательские переменные

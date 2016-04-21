@@ -172,9 +172,17 @@ if "PreCoconConf" in test_desc:
 #Запускаем процесс тестирования
 for test in tests:
     
-    print(test.TestProcedure)
-    exit()
-#Линкуем UA с объектами юзеров.
+    for key in test.TestProcedure.keys():
+        if key == "StartUA":
+            #Парсим Юзер агентов 
+            print ("[DEBUG] Parsing UA from the test.")
+            test = parser.parse_user_agent(test)
+            if not test:
+                continue
+    show_test_info(test)
+
+
+            #Линкуем UA с объектами юзеров.
 #print("[DEBUG] Linking the UA object with the User object...")
 #tests = link_user_to_test(tests, test_users)
 #Если есть ошибки при линковке, то выходим
@@ -202,7 +210,10 @@ for test in tests:
 #        if not log_fd :
 #            exit()
 #        else:
-#            ua.LogFd = log_fd
+#            ua.LogFd = log_fd         
+    
+    exit()    
+
 
     
     threads = []
