@@ -139,15 +139,6 @@ for key in test_users:
     else:
         exit()
 
-#Собираем команды для регистрации абонентов
-print("[DEBUG] Building of the registration command for the UA...")
-for key in test_users:
-    command = builder.build_reg_command(test_users[key],test_var)
-    if command:
-        test_users[key].RegCommand = command
-    else:
-        exit()
-
 #Собираем команды для сброса регистрации абонентов
 print("[DEBUG] Building command for the dropping of users registration...")
 for key in test_users:
