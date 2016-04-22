@@ -78,13 +78,16 @@ print("[DEBUG] Reading custom settings...")
 try:
     custom_settings = json.loads(customSettings)
 except (ValueError, KeyError, TypeError):
-    print("[ERROR] Wrong JSON format. Detail:")
+    print("[ERROR] Wrong JSON format of test config. Detail:")
     print("--->",sys.exc_info()[1])
     exit()
-
-custom_settings = parser.parse_sys_conf(custom_settings["SystemVars"][0])
-if not custom_settings:
+try:
+    custom_settings = parser.parse_sys_conf(custom_settings["SystemVars"][0])
+except (KeyError):
+    print("[ERROR] Wrong JSON format of custom config. Detail:")
+    print("--->","Custom config hasn't",sys.exc_info()[1],"attr.")
     exit()
+
 
 
 print("[DEBUG] Reading JSON script...")
@@ -99,9 +102,10 @@ except (ValueError, KeyError, TypeError):
 
 #Парсим юзеров
 print ("[DEBUG] Parsing users from the json string...")
-try:
+if "Users" in test_desc:    
     test_users = parser.parse_user_info(test_desc["Users"])
-except KeyError:
+else:
+    test_users = True
     print("[WARN] Test has no users")
 #Если есть ошибки при парсинге, то выходим
 if not test_users:
@@ -109,7 +113,10 @@ if not test_users:
 
 #Парсим тесты
 print ("[DEBUG] Parsing tests from the json string...")
-tests = parser.parse_test_info(test_desc["Tests"])
+try:
+   tests = parser.parse_test_info(test_desc["Tests"])
+except(KeyError):
+   print("[ERROR] No Test in the test config")
 #Если есть ошибки при парсинге, то выходим
 if not tests:
     exit()
