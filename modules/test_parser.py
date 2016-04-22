@@ -56,7 +56,22 @@ def parse_test_info (json_tests):
         except:
             print("[ERROR] Wrong Test description. Detail:")
             print("---> UA has no attribute:",sys.exc_info()[1],"{ Test:",new_test.Name,"}")
-            return False            
+            return False
+        #Делаем проверку тестовой процедуры:
+        for item in test["TestProcedure"]:
+            if "Sleep" in item:
+                try:
+                    int(item["Sleep"])
+                except:
+                    print("[ERROR] Sleep command must have a int value.")
+                    return False
+            if "ServiceFeature" in item:
+                try:
+                    service_desc = item["ServiceFeature"]
+                    int(service_desc[0]["userId"])
+                except:
+                    print("[ERROR] UserId in ServiceFeature command must have a int value.")
+                    return False   
         tests.append(new_test)
     return tests
 def parse_user_agent (test,ua_desc):

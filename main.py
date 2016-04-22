@@ -119,7 +119,7 @@ except(KeyError):
 #Если есть ошибки при парсинге, то выходим
 if not tests:
     exit()
-
+    
 #Парсим тестовые переменные в словарь
 test_var = parser.parse_test_var(test_desc)
 #Добавляем системные переменные в словарь
@@ -187,12 +187,10 @@ for test in tests:
         for key in item:
             if key == "ServiceFeature":
                 #Забираем фича-код и юзера с которого его выполнить
-                try:
-                    code = item[key][0]['code']
-                    user_id = str(item[key][0]['userId'])
-                except:
-                    print("[ERROR] Can't get service code or user from \"ServiceFeature\" command")
-                    exit()
+                #О наличии данных параметров заботится парсер тестов
+                code = item[key][0]['code']
+                user_id = str(item[key][0]['userId'])
+
                 print ("[DEBUG] Send ServiceFeature code =", code)
                 try:
                     user = test_users[str(user_id)]

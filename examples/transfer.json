@@ -26,6 +26,10 @@
         {
             "Sleep" : "1"
         },
+       
+        {
+            "ServiceFeature" : [{"code":"*21#","userId":"1"}]
+        },
         {
             "Sleep" : "2"
         },
