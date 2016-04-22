@@ -105,10 +105,9 @@ print ("[DEBUG] Parsing users from the json string...")
 if "Users" in test_desc:    
     test_users = parser.parse_user_info(test_desc["Users"])
 else:
-    test_users = True
     print("[WARN] Test has no users")
 #Если есть ошибки при парсинге, то выходим
-if not test_users:
+if test_users == False:
     exit()
 
 #Парсим тесты
@@ -127,25 +126,12 @@ test_var = parser.parse_test_var(test_desc)
 test_var.update(custom_settings)
 
 
-#Собираем команды для регистрации абонентов
-print("[DEBUG] Building of the registration command for the UA...")
-for key in test_users:
-    command = builder.build_reg_command(test_users[key],test_var)
-    if command:
-        test_users[key].RegCommand = command
-    else:
-        exit()
-
-#Собираем команды для сброса регистрации абонентов
-print("[DEBUG] Building command for the dropping of users registration...")
-for key in test_users:
-    command = builder.build_reg_command(test_users[key],test_var,"unreg")
-    if command:
-        test_users[key].UnRegCommand = command
-    else:
-        exit()
-        
-        
+#Создаём директорию для логов
+log_path = str(test_var["%%LOG_PATH"]) + "/" + test_desc["TestName"]
+print("[DEBUG] Creating the log dir.")
+if not fs.create_log_dir(log_path):
+    #Если не удалось создать директорию, выходим
+    exit()
 
 #Если есть настройки для CoCon выполняем их
 if "PreCoconConf" in test_desc:
@@ -156,29 +142,43 @@ if "PreCoconConf" in test_desc:
     #Даём кокону очнуться
     time.sleep(1)
 
-#Создаём директорию для логов
-log_path = str(test_var["%%LOG_PATH"]) + "/" + test_desc["TestName"]
-print("[DEBUG] Creating the log dir.")
-if not fs.create_log_dir(log_path):
-    #Если не удалось создать директорию, выходим
-    exit()
 
-#Врубаем регистрацию для всех юзеров
-print ("[DEBUG] Starting of the registration...")
-for user in test_users:
-    reg_log_name = "REG_" + str(test_users[user].Number)
-    log_file = fs.open_log_file(reg_log_name,log_path)
-    #Если не удалось создать лог файл, то выходим
-    if not log_file:
-        exit()
-    else:
-        test_users[user].RegLogFile = log_file
-    if not proc.RegisterUser(test_users[user]):
-        #Если регистрация не прошла
-        #Пытаемся разрегистировать тех кого удалось зарегать
-        proc.DropRegistration(test_users)
-        #Выходим
-        exit()
+if len(test_users) != 0:
+    #Собираем команды для регистрации абонентов
+    print("[DEBUG] Building of the registration command for the UA...")
+    for key in test_users:
+        command = builder.build_reg_command(test_users[key],test_var)
+        if command:
+            test_users[key].RegCommand = command
+        else:
+            exit()
+
+    #Собираем команды для сброса регистрации абонентов
+    print("[DEBUG] Building command for the dropping of users registration...")
+    for key in test_users:
+        command = builder.build_reg_command(test_users[key],test_var,"unreg")
+        if command:
+            test_users[key].UnRegCommand = command
+        else:
+            exit()
+    #Врубаем регистрацию для всех юзеров
+    print ("[DEBUG] Starting of the registration...")
+    for user in test_users:
+        reg_log_name = "REG_" + str(test_users[user].Number)
+        log_file = fs.open_log_file(reg_log_name,log_path)
+        #Если не удалось создать лог файл, то выходим
+        if not log_file:
+            exit()
+        else:
+            test_users[user].RegLogFile = log_file
+        if not proc.RegisterUser(test_users[user]):
+            #Если регистрация не прошла
+            #Пытаемся разрегистировать тех кого удалось зарегать
+            proc.DropRegistration(test_users)
+            #Выходим
+            exit()
+        
+
 
 #Запускаем процесс тестирования
 for test in tests:

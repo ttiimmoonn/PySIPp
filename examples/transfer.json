@@ -1,47 +1,5 @@
 {
 "TestName" : "transfer_test",
-"Users": [
-    {
-    "UserId" : "1",
-    "Number" : "157",
-    "Login" : "157",
-    "Password" : "123",
-    "SipDomain" : "pv.ssw2",
-    "Expires" : "3600",
-    "Port" : "10106",
-    "QParam" : "0.5"
-    },
-    {
-    "UserId" : "2",
-    "Number" : "158",
-    "Login" : "158",
-    "Password" : "123",
-    "SipDomain" : "pv.ssw2",
-    "Expires" : "3600",
-    "Port" : "10107",
-    "QParam" : "1"
-    },
-    {
-    "UserId" : "3",
-    "Number" : "159",
-    "Login" : "159",
-    "Password" : "123",
-    "SipDomain" : "pv.ssw2",
-    "Expires" : "3600",
-    "Port" : "10108",
-    "QParam" : "1"
-    },
-    {
-    "UserId" : "4",
-    "Number" : "155",
-    "Login" : "155",
-    "Password" : "123",
-    "SipDomain" : "pv.ssw2",
-    "Expires" : "3600",
-    "Port" : "10109",
-    "QParam" : "1"
-    }
-],
 
 "UserVar" : [
     {
@@ -50,36 +8,12 @@
 
 "PreCoconConf" : [
     {
-        "command1" : "/domain/%%DEV_DOM/ss/enable %%1 chold",
-        "command2" : "/domain/%%DEV_DOM/ss/enable %%2 chold",
-        "command3" : "/domain/%%DEV_DOM/ss/enable %%3 chold",
-        "command4" : "/domain/%%DEV_DOM/ss/enable %%4 chold",
-        "command5" : "/domain/%%DEV_DOM/ss/activate %%1 chold",
-        "command6" : "/domain/%%DEV_DOM/ss/activate %%2 chold",
-        "command7" : "/domain/%%DEV_DOM/ss/activate %%3 chold",
-        "command8" : "/domain/%%DEV_DOM/ss/activate %%4 chold",
-        "command9" : "/domain/%%DEV_DOM/ss/enable %%1 ctr",
-        "command10" : "/domain/%%DEV_DOM/ss/enable %%2 ctr",
-        "command11" : "/domain/%%DEV_DOM/ss/enable %%3 ctr",
-        "command12" : "/domain/%%DEV_DOM/ss/enable %%4 ctr",
-        "command13" : "/domain/%%DEV_DOM/ss/activate %%1 ctr",
-        "command14" : "/domain/%%DEV_DOM/ss/activate %%2 ctr",
-        "command15" : "/domain/%%DEV_DOM/ss/activate %%3 ctr",
-        "command16" : "/domain/%%DEV_DOM/ss/activate %%4 ctr"
- 
+
     }
 ],
 
 "PostCoconConf" : [
     {
-        "command1" : "/domain/%%DEV_DOM/ss/deactivate %%1 chold",
-        "command2" : "/domain/%%DEV_DOM/ss/deactivate %%2 chold",
-        "command3" : "/domain/%%DEV_DOM/ss/deactivate %%3 chold",
-        "command4" : "/domain/%%DEV_DOM/ss/deactivate %%4 chold",
-        "command5" : "/domain/%%DEV_DOM/ss/disable %%1 chold",
-        "command6" : "/domain/%%DEV_DOM/ss/disable %%2 chold",
-        "command7" : "/domain/%%DEV_DOM/ss/disable %%3 chold",
-        "command8" : "/domain/%%DEV_DOM/ss/disable %%4 chold"
     }
 ],
 
@@ -96,82 +30,36 @@
             "Sleep" : "2"
         },
         {
-            "ServiceFeature" : [{"code":"*21*100#","userId":"1"}]
-        },
-        {
-            "ServiceFeature" : [{"code":"*21*102#","userId":"1"}]
-        },
-        {
-            "ServiceFeature" : [{"code":"#21#","userId":"1"}]
-        },
-        {
             "StartUA" : [
             {
-                "Type" : "User",
-                "UserId" : "1",
+                "Type" : "Trunk",
+                "Port" : "5028",
                 "Name" : "UAS1_UN_TRANS",
                 "Commands" : [
-                {
-                    "SourceFile" : "transfer/unattended_transfer.xml",
-                    "Options" : "-m 1  -set REFERNUM %%2 -set REFERDOM pv.ssw2",
-                    "SippType" : "uas",
-                    "Timeout" : "60s"
-                },
-                {
-                    "SourceFile" : "transfer/unattended_transfer.xml",
-                    "Options" : "-m 1  -set REFERNUM %%2 -set REFERDOM pv.ssw2",
-                    "SippType" : "uas",
-                    "Timeout" : "60s"
-                },
                 {
                     "SourceFile" : "transfer/unattended_transfer.xml",
                     "Options" : "-m 1  -set REFERNUM 100 -set REFERDOM pv.ssw2",
                     "SippType" : "uas",
                     "Timeout" : "60s"
+                },
+                {
+                    "SourceFile" : "transfer/unattended_transfer.xml",
+                    "Options" : "-m 1  -set REFERNUM 102 -set REFERDOM pv.ssw2",
+                    "SippType" : "uas",
+                    "Timeout" : "60s"
+                },
+                {
+                    "SourceFile" : "transfer/unattended_transfer.xml",
+                    "Options" : "-m 1  -set REFERNUM 103 -set REFERDOM pv.ssw2",
+                    "SippType" : "uas",
+                    "Timeout" : "60s"
                 }
                             ]
 
-            },
-            {
-                "Type" : "User",
-                "UserId" : "2",
-                "Name" : "UAS2_UN_TRANS",
-                "Commands" : [
-                {
-                    "SourceFile" : "transfer/unattended_transfer.xml",
-                    "Options" : "-m 1  -set REFERNUM %%1 -set REFERDOM pv.ssw2",
-                    "SippType" : "uas",
-                    "Timeout" : "60s"
-                },
-                {
-                    "SourceFile" : "transfer/unattended_transfer.xml",
-                    "Options" : "-m 1  -set REFERNUM %%1 -set REFERDOM pv.ssw2",
-                    "SippType" : "uas",
-                    "Timeout" : "60s"
-                },
-                {
-                    "SourceFile" : "transfer/unattended_transfer.xml",
-                    "Options" : "-m 1  -set REFERNUM %%1 -set REFERDOM pv.ssw2",
-                    "SippType" : "uas",
-                    "Timeout" : "60s"
-                }
-                            ]
-            },
-            {
-                "Type" : "User",
-                "UserId" : "3",
-                "Name" : "UAC_UN_TRANS",
-                "Commands" : [
-                {
-                    "SourceFile" : "transfer/uac.xml",
-                    "Options" : "-m 1 -set CDPNDOM pv.ssw2 -set CDPN %%2 -r 1 -l 1 -rp 3000",
-                    "SippType" : "uac",
-                    "NeedAuth" : "True",
-                    "Timeout" : "60s"
-                }
-                            ]
             }
-                        ],
+                       ]
+	},
+	{
         "aaaa": "zzzz"
         }
     ]
