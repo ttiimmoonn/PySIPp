@@ -1,6 +1,30 @@
 {
 "TestName" : "transfer_test",
 
+"Users": [
+    {
+    "UserId" : "1",
+    "Number" : "157",
+    "Login" : "157",
+    "Password" : "123",
+    "SipDomain" : "pv.ssw2",
+    "Expires" : "90",
+    "Port" : "10106",
+    "QParam" : "0.5"
+    },
+    {
+    "UserId" : "2",
+    "Number" : "158",
+    "Login" : "158",
+    "Password" : "123",
+    "SipDomain" : "pv.ssw2",
+    "Expires" : "90",
+    "Port" : "10107",
+    "QParam" : "1"
+    }
+],
+
+
 "UserVar" : [
     {
     }
@@ -30,6 +54,65 @@
         {
             "ServiceFeature" : [{"code":"*21#","userId":"1"}]
         },
+
+        {
+            "ServiceFeature" : [{"code":"*22#","userId":"1"}]
+        },
+
+        {
+            "Sleep" : "2"
+        },
+        {
+            "StartUA" : [
+            {
+                "Type" : "Trunk",
+                "Port" : "5028",
+                "Name" : "UAS1_UN_TRANS",
+                "Commands" : [
+                {
+                    "SourceFile" : "transfer/unattended_transfer.xml",
+                    "Options" : "-m 1  -set REFERNUM 100 -set REFERDOM pv.ssw2",
+                    "SippType" : "uas",
+                    "Timeout" : "60s"
+                },
+                {
+                    "SourceFile" : "transfer/unattended_transfer.xml",
+                    "Options" : "-m 1  -set REFERNUM 102 -set REFERDOM pv.ssw2",
+                    "SippType" : "uas",
+                    "Timeout" : "60s"
+                },
+                {
+                    "SourceFile" : "transfer/unattended_transfer.xml",
+                    "Options" : "-m 1  -set REFERNUM 103 -set REFERDOM pv.ssw2",
+                    "SippType" : "uas",
+                    "Timeout" : "60s"
+                }
+                            ]
+
+            }
+                       ]
+	},
+	{
+        "aaaa": "zzzz"
+        }
+    ]
+    },
+    {
+        "Name" : "unattended transfer2",
+        "Description" : "Проверка несопровождаемого трансфера",
+        "TestProcedure" : [
+        {
+            "Sleep" : "1"
+        },
+       
+        {
+            "ServiceFeature" : [{"code":"*21#","userId":"1"}]
+        },
+
+        {
+            "ServiceFeature" : [{"code":"*22#","userId":"1"}]
+        },
+
         {
             "Sleep" : "2"
         },
@@ -68,6 +151,7 @@
         }
     ]
     }
+
 
 
     ]

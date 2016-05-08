@@ -12,7 +12,7 @@ def build_service_feature_command (user, code):
     command+=" -s " + str(user.Login)
     command+=" -ap " + str(user.Password)
     command+=" -m 1 "
-    command+=" -timeout 20s"
+    command+=" -timeout 20s -recv_timeout 20s"
     return command    
     
 def build_reg_command (user,list,mode="reg"):

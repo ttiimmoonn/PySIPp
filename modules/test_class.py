@@ -1,11 +1,18 @@
 import threading
 import modules.process_contr as proc
+import modules.fs_worker as fs
 class TestClass:
     def __init__(self):
         self.UserAgent = []
+        self.CompliteUA = []
         self.Name = None
         self.Description = None
         self.TestProcedure = None
+        self.Status = None
+    def CompliteSFUA(self):
+        self.CompliteUA += self.UserAgent
+        self.UserAgent = []
+
 
 class UserAgentClass:
     def __init__(self):
@@ -21,6 +28,15 @@ class UserAgentClass:
         self.LogFd = None
         self.UserObject = None
         self.UALock = threading.Lock()
+    def GetServiceFetureUA(self,command,code,user_obj,user_id):
+        #Добавляем новый тип UA
+        self.Type = "ServiceFeatureUA"
+        self.Commands.append(command)
+        self.Name = "SF_CODE_" + code
+        self.UserObject = user_obj
+        self.UserId = user_id
+        return self
+
     def ReadStatusCode(self):
         if not self.UALock.acquire(False):
             #не удалось заблокировать ресурс

@@ -3,6 +3,7 @@ import modules.cmd_builder as builder
 import modules.process_contr as proc
 import modules.fs_worker as fs
 import modules.cocon_interface as ssh
+import modules.test_class as test_class
 import json
 import sys
 import time
@@ -22,9 +23,10 @@ def show_test_info (test):
     print("TestDesc:    ",test.Description)
     print("TestUA:")
     print("")
-    for ua in test.UserAgent:
+    for ua in test.CompliteUA:
         print("     UaName:     ",ua.Name)
         print("     UaStatus:   ",ua.Status)
+        print("     UaStatusCode:   ",ua.StatusCode)
         print("     UaType:     ",ua.Type)
         print("     UaUserId:   ",ua.UserId)
         print("     UaUserObj:  ",ua.UserObject)
@@ -143,7 +145,7 @@ if "PreCoconConf" in test_desc:
     time.sleep(1)
 
 
-if len(test_users) != 0:
+if len(test_users) == 0:
     #Собираем команды для регистрации абонентов
     print("[DEBUG] Building of the registration command for the UA...")
     for key in test_users:
@@ -183,31 +185,74 @@ if len(test_users) != 0:
 #Запускаем процесс тестирования
 for test in tests:
     print("[DEBUG] Start test: ",test.Name)
+    #Выставляем статус теста
+    test.Status = "Starting"
     for item in test.TestProcedure:
+        #Если статус теста Failed заканчиваем процесс тестирования
+        if test.Status == "Failed":
+            print("[ERROR] Test:",test.Name,"Failed.")
+            break
+
         for key in item:
             if key == "ServiceFeature":
                 #Забираем фича-код и юзера с которого его выполнить
                 #О наличии данных параметров заботится парсер тестов
                 code = item[key][0]['code']
                 user_id = str(item[key][0]['userId'])
-
                 print ("[DEBUG] Send ServiceFeature code =", code)
+
                 try:
                     user = test_users[str(user_id)]
                 except:
                     print("[ERROR] Can't get User Object with.")
                     print("    --> ID = ", user_id, "not found.")
-                    exit()
+                    #Выставляем статус теста
+                    test.Status = "Failed"
+                    break
+                
                 #Собираем команду для активации сервис фичи
                 command = builder.build_service_feature_command(user,code)
                 #Прогоняем её через словарь
                 command = builder.replace_key_value(command, test_var)
+                
                 if not command:
-                    exit()
+                    #Выставляем статус теста
+                    test.Status = "Failed"
+                    break
+                
+                service_ua = test_class.UserAgentClass()
+                service_ua = service_ua.GetServiceFetureUA(command,code,user,user_id)
+                sf_log_name = "SF_" + str(service_ua.Name)
+                log_file = fs.open_log_file(sf_log_name,log_path)
+                if not log_file:
+                    #Выставляем статус теста
+                    test.Status = "Failed"
+                    break
                 else:
-                    import subprocess
-                    proc.start_ua(command,subprocess.DEVNULL )
-                    time.sleep(2)
+                    service_ua.LogFd = log_file
+                #Добавляем сервис UA в активные UA теста
+                test.UserAgent.append(service_ua)
+                #Запускаем активацию фича-кода через процесс контроллер
+                sf_thread = proc.start_process_controller(test)
+                #Проверяем, что вернувшиеся треды закрыты:
+                print("[DEBUG] Waiting for closing threads...")
+                if not proc.CheckThreads(sf_thread):
+                    #Переносим отработавшие UA в завершенные
+                    test.Status = "Failed"
+                    test.CompliteSFUA()
+                    print("[ERROR] Send SF",code,"failed")
+                    break
+                #Проверяем UA на статусы
+                print("[DEBUG] Check process StatusCode...")
+                if not proc.CheckUaStatus(test):
+                    #Переносим отработавшие UA в завершенные
+                    test.CompliteSFUA()
+                    print("[ERROR] Can't send Feature code",code)
+                    test.Status = "Failed"
+                    break
+                else:
+                    test.CompliteSFUA()
+
             elif key == "Sleep":
                 try:
                     sleep_time = int(item[key])
@@ -217,31 +262,32 @@ for test in tests:
                 print("[DEBUG] Sleep on", sleep_time, "seconds")
                 time.sleep(sleep_time)
                 continue
+
             elif key == "StartUA":
                 #Парсим Юзер агентов 
                 print ("[DEBUG] Parsing UA from the test.")
                 test = parser.parse_user_agent(test,item[key])
                 if not test:
                     #Если неправильное описание юзер агентов, то выходим
-                    continue
+                    break
                 #Линкуем UA с объектами юзеров.
                 print("[DEBUG] Linking the UA object with the User object...")
                 test = link_user_to_test(test, test_users)
                 #Если есть ошибки при линковке, то выходим
                 if not test:
-                    continue
+                    break
                 #Собираем команды для UA.
                 print("[DEBUG] Building of the SIPp commands for the UA...")
                 test = builder.build_sipp_command(test,test_var)
                 #Если есть ошибки при линковке, то выходим
                 if not test:
-                    continue
+                    break
                 #Линкуем лог файлы и UA
                 print("[DEBUG] Linking of the LogFd with the UA object...")
                 for ua in test.UserAgent:
                     log_fd = fs.open_log_file(ua.Name,log_path)
-                    if not log_fd :
-                        continue
+                    if not log_fd:
+                        break
                     else:
                         ua.LogFd = log_fd
                 #Если все предварительные процедуры выполнены успешно,
@@ -249,18 +295,22 @@ for test in tests:
                 threads = proc.start_process_controller(test)
                 #Заводим таймер на 5 сек.
                 print("[DEBUG] Waiting for closing threads...")
-                Timer = 5
-            
-                while Timer != 0:
-                    Timer -= 1
-                    time.sleep(1)
-                    thread_alive_flag = 0
-                    for thread in threads:
-                        if thread.is_alive():
-                            thread_alive_flag += 1
-                            print(123)
-                    if thread_alive_flag == 0:
-                        break
+                if not proc.CheckThreads(threads):
+                    #Переносим отработавшие UA в завершенные
+                    test.Status = "Failed"
+                    test.CompliteSFUA()
+                    print("[ERROR] Send SF",code,"failed")
+                    break
+                #Проверяем UA на статусы
+                print("[DEBUG] Check process StatusCode...")
+                if not proc.CheckUaStatus(test):
+                    #Переносим отработавшие UA в завершенные
+                    test.CompliteSFUA()
+                    print("[ERROR] One of UAs failed")
+                    test.Status = "Failed"
+                    break
+                #Переносим все активные UA в завершённые
+                test.CompliteSFUA()
 
             
 
@@ -270,44 +320,4 @@ proc.DropRegistration(test_users)
 #Деконфигурируем ссв и закрываем лог файлы
 stop_test(test)
 print("[DEBUG] exit.")
-
-
-
-
-for test in tests:
-    show_test_info(test)
-
-
- 
-
-
-       
-    
-    exit()    
-
-
-    
-      
-        
-
-   #Рассчитывает результат теста
-    result = 0
-    for userAgent in test.UserAgent:
-        for process in userAgent.Process:
-            result += math.fabs(int(process.poll()))
-
-            
-
-    if result != 0:
-        print("[ERROR] Test:",test.Name," - failed.")
-    else:
-        print("[DEBUG] Test:",test.Name," - success.")
-    #Делаем сброс регистрации
-    proc.DropRegistration(test.UserAgent)
-    #Закрываем лог файлы
-    for ua in test.UserAgent:
-        ua.LogFd.close()
-
-#Деконфигурируем ссв и закрываем лог файлы
-stop_test(test)
-print("[DEBUG] exit.")
+exit()

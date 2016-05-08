@@ -205,7 +205,7 @@ def start_process_controller(test):
         if event_for_mgm:
             #Проверяем, что все регистрации живы.
             for ua in test.UserAgent:
-                if ua.Type == "User":
+                if ua.Type == "User": # or ua.Type == "ServiceFeatureUA":
                     ex_code = ua.UserObject.ReadStatusCode()
                     if ex_code != 0:
                         #Если регистрация отвалилась, останавливаем все thread
@@ -235,3 +235,26 @@ def start_process_controller(test):
                 event_for_mgm = False
         time.sleep(0.01)
     return threads
+
+def CheckThreads(threads):
+    #Взводим таймер на 5 сек
+    for Timer in list(range(5)):
+        #Флаг для посдсчёта активных тредов
+        thread_alive_flag = 0
+        for thread in threads:
+            if thread.is_alive():
+                #Если в массиве есть живой thread инкрементируем флаг
+                thread_alive_flag += 1
+        if thread_alive_flag == 0:
+            return True
+        else:
+            time.sleep(1)
+    print("[ERROR] One or more threads not closed")
+    return False
+
+def CheckUaStatus(test):
+    for ua in test.UserAgent:
+        for proc in ua.Process:
+            if proc.poll() != 0:
+                return False
+    return True
