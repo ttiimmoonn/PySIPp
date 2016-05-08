@@ -3,23 +3,30 @@ import modules.cmd_builder as builder
 import modules.process_contr as proc
 import modules.fs_worker as fs
 import modules.cocon_interface as ssh
+import modules.test_class as test_class
 import json
 import sys
 import time
 import threading
+import argparse
 import math
 from collections import OrderedDict
 
-
+def createParser ():
+    parser = argparse.ArgumentParser()
+    parser.add_argument ('-t', '--test_config', type=argparse.FileType(),required=True)
+    parser.add_argument ('-c', '--custom_config', type=argparse.FileType(),required=True)
+    return parser
 
 def show_test_info (test):
     print("TestName:    ",test.Name)
     print("TestDesc:    ",test.Description)
     print("TestUA:")
     print("")
-    for ua in test.UserAgent:
+    for ua in test.CompliteUA:
         print("     UaName:     ",ua.Name)
         print("     UaStatus:   ",ua.Status)
+        print("     UaStatusCode:   ",ua.StatusCode)
         print("     UaType:     ",ua.Type)
         print("     UaUserId:   ",ua.UserId)
         print("     UaUserObj:  ",ua.UserObject)
@@ -53,29 +60,14 @@ def stop_test(test):
         #Переменные для настройки соединения с CoCoN
         ssh.cocon_configure(test_desc,test_var,"PostCoconConf")
     
-
-jsonData = open("/home/vragov/scripts/ecss.3.6.0/test/transfer.json").read()
-customSettings = '''
-{
-"SystemVars" : [
-    {
-        "%%SIPP_PATH" : "/home/vragov/sipp/sipp-3.4.1/sipp",
-        "%%SRC_PATH" : "/home/vragov/scripts/ecss.3.6.0",
-        "%%TEMP_PATH" : "/home/vragov/scripts/ecss.3.6.0/temp",
-        "%%REG_XML" : "./xml/reg_user.xml",
-        "%%SF_XML" : "./xml/send_sf.xml",
-        "%%LOG_PATH" : "/home/vragov/scripts/ecss.3.6.0/temp/log",
-        "%%IP" : "192.168.118.249",
-        "%%SERV_IP" : "192.168.118.245",
-        "%%EXTER_IP" : "192.168.118.245",
-        "%%EXTER_PORT" : "5015",
-        "%%DEV_USER" : "admin",
-        "%%DEV_PASS" : "password",
-        "%%DEV_DOM" : "pv.ssw2"
-    }
-]
-}
-'''
+#Парсим аргументы командной строки
+arg_parser = createParser()
+namespace = arg_parser.parse_args()
+#Забираем описание теста и общие настройки
+jsonData = namespace.test_config.read()
+customSettings = namespace.custom_config.read()
+namespace.test_config.close()
+namespace.custom_config.close()
 
 #Декларируем массив для юзеров
 test_users = {}
@@ -88,13 +80,16 @@ print("[DEBUG] Reading custom settings...")
 try:
     custom_settings = json.loads(customSettings)
 except (ValueError, KeyError, TypeError):
-    print("[ERROR] Wrong JSON format. Detail:")
+    print("[ERROR] Wrong JSON format of test config. Detail:")
     print("--->",sys.exc_info()[1])
     exit()
-
-custom_settings = parser.parse_sys_conf(custom_settings["SystemVars"][0])
-if not custom_settings:
+try:
+    custom_settings = parser.parse_sys_conf(custom_settings["SystemVars"][0])
+except (KeyError):
+    print("[ERROR] Wrong JSON format of custom config. Detail:")
+    print("--->","Custom config hasn't",sys.exc_info()[1],"attr.")
     exit()
+
 
 
 print("[DEBUG] Reading JSON script...")
@@ -109,46 +104,36 @@ except (ValueError, KeyError, TypeError):
 
 #Парсим юзеров
 print ("[DEBUG] Parsing users from the json string...")
-try:
+if "Users" in test_desc:    
     test_users = parser.parse_user_info(test_desc["Users"])
-except KeyError:
+else:
     print("[WARN] Test has no users")
 #Если есть ошибки при парсинге, то выходим
-if not test_users:
+if test_users == False:
     exit()
 
 #Парсим тесты
 print ("[DEBUG] Parsing tests from the json string...")
-tests = parser.parse_test_info(test_desc["Tests"])
+try:
+   tests = parser.parse_test_info(test_desc["Tests"])
+except(KeyError):
+   print("[ERROR] No Test in the test config")
 #Если есть ошибки при парсинге, то выходим
 if not tests:
     exit()
-
+    
 #Парсим тестовые переменные в словарь
 test_var = parser.parse_test_var(test_desc)
 #Добавляем системные переменные в словарь
 test_var.update(custom_settings)
 
 
-#Собираем команды для регистрации абонентов
-print("[DEBUG] Building of the registration command for the UA...")
-for key in test_users:
-    command = builder.build_reg_command(test_users[key],test_var)
-    if command:
-        test_users[key].RegCommand = command
-    else:
-        exit()
-
-#Собираем команды для сброса регистрации абонентов
-print("[DEBUG] Building command for the dropping of users registration...")
-for key in test_users:
-    command = builder.build_reg_command(test_users[key],test_var,"unreg")
-    if command:
-        test_users[key].UnRegCommand = command
-    else:
-        exit()
-        
-        
+#Создаём директорию для логов
+log_path = str(test_var["%%LOG_PATH"]) + "/" + test_desc["TestName"]
+print("[DEBUG] Creating the log dir.")
+if not fs.create_log_dir(log_path):
+    #Если не удалось создать директорию, выходим
+    exit()
 
 #Если есть настройки для CoCon выполняем их
 if "PreCoconConf" in test_desc:
@@ -159,60 +144,115 @@ if "PreCoconConf" in test_desc:
     #Даём кокону очнуться
     time.sleep(1)
 
-#Создаём директорию для логов
-log_path = str(test_var["%%LOG_PATH"]) + "/" + test_desc["TestName"]
-print("[DEBUG] Creating the log dir.")
-if not fs.create_log_dir(log_path):
-    #Если не удалось создать директорию, выходим
-    exit()
 
-#Врубаем регистрацию для всех юзеров
-print ("[DEBUG] Starting of the registration...")
-for user in test_users:
-    reg_log_name = "REG_" + str(test_users[user].Number)
-    log_file = fs.open_log_file(reg_log_name,log_path)
-    #Если не удалось создать лог файл, то выходим
-    if not log_file:
-        exit()
-    else:
-        test_users[user].RegLogFile = log_file
-    if not proc.RegisterUser(test_users[user]):
-        #Если регистрация не прошла
-        #Пытаемся разрегистировать тех кого удалось зарегать
-        proc.DropRegistration(test_users)
-        #Выходим
-        exit()
+if len(test_users) == 0:
+    #Собираем команды для регистрации абонентов
+    print("[DEBUG] Building of the registration command for the UA...")
+    for key in test_users:
+        command = builder.build_reg_command(test_users[key],test_var)
+        if command:
+            test_users[key].RegCommand = command
+        else:
+            exit()
+
+    #Собираем команды для сброса регистрации абонентов
+    print("[DEBUG] Building command for the dropping of users registration...")
+    for key in test_users:
+        command = builder.build_reg_command(test_users[key],test_var,"unreg")
+        if command:
+            test_users[key].UnRegCommand = command
+        else:
+            exit()
+    #Врубаем регистрацию для всех юзеров
+    print ("[DEBUG] Starting of the registration...")
+    for user in test_users:
+        reg_log_name = "REG_" + str(test_users[user].Number)
+        log_file = fs.open_log_file(reg_log_name,log_path)
+        #Если не удалось создать лог файл, то выходим
+        if not log_file:
+            exit()
+        else:
+            test_users[user].RegLogFile = log_file
+        if not proc.RegisterUser(test_users[user]):
+            #Если регистрация не прошла
+            #Пытаемся разрегистировать тех кого удалось зарегать
+            proc.DropRegistration(test_users)
+            #Выходим
+            exit()
+        
+
 
 #Запускаем процесс тестирования
 for test in tests:
     print("[DEBUG] Start test: ",test.Name)
+    #Выставляем статус теста
+    test.Status = "Starting"
     for item in test.TestProcedure:
+        #Если статус теста Failed заканчиваем процесс тестирования
+        if test.Status == "Failed":
+            print("[ERROR] Test:",test.Name,"Failed.")
+            break
+
         for key in item:
             if key == "ServiceFeature":
                 #Забираем фича-код и юзера с которого его выполнить
-                try:
-                    code = item[key][0]['code']
-                    user_id = str(item[key][0]['userId'])
-                except:
-                    print("[ERROR] Can't get service code or user from \"ServiceFeature\" command")
-                    exit()
+                #О наличии данных параметров заботится парсер тестов
+                code = item[key][0]['code']
+                user_id = str(item[key][0]['userId'])
                 print ("[DEBUG] Send ServiceFeature code =", code)
+
                 try:
                     user = test_users[str(user_id)]
                 except:
                     print("[ERROR] Can't get User Object with.")
                     print("    --> ID = ", user_id, "not found.")
-                    exit()
+                    #Выставляем статус теста
+                    test.Status = "Failed"
+                    break
+                
                 #Собираем команду для активации сервис фичи
                 command = builder.build_service_feature_command(user,code)
                 #Прогоняем её через словарь
                 command = builder.replace_key_value(command, test_var)
+                
                 if not command:
-                    exit()
+                    #Выставляем статус теста
+                    test.Status = "Failed"
+                    break
+                
+                service_ua = test_class.UserAgentClass()
+                service_ua = service_ua.GetServiceFetureUA(command,code,user,user_id)
+                sf_log_name = "SF_" + str(service_ua.Name)
+                log_file = fs.open_log_file(sf_log_name,log_path)
+                if not log_file:
+                    #Выставляем статус теста
+                    test.Status = "Failed"
+                    break
                 else:
-                    import subprocess
-                    proc.start_ua(command,subprocess.DEVNULL )
-                    time.sleep(2)
+                    service_ua.LogFd = log_file
+                #Добавляем сервис UA в активные UA теста
+                test.UserAgent.append(service_ua)
+                #Запускаем активацию фича-кода через процесс контроллер
+                sf_thread = proc.start_process_controller(test)
+                #Проверяем, что вернувшиеся треды закрыты:
+                print("[DEBUG] Waiting for closing threads...")
+                if not proc.CheckThreads(sf_thread):
+                    #Переносим отработавшие UA в завершенные
+                    test.Status = "Failed"
+                    test.CompliteSFUA()
+                    print("[ERROR] Send SF",code,"failed")
+                    break
+                #Проверяем UA на статусы
+                print("[DEBUG] Check process StatusCode...")
+                if not proc.CheckUaStatus(test):
+                    #Переносим отработавшие UA в завершенные
+                    test.CompliteSFUA()
+                    print("[ERROR] Can't send Feature code",code)
+                    test.Status = "Failed"
+                    break
+                else:
+                    test.CompliteSFUA()
+
             elif key == "Sleep":
                 try:
                     sleep_time = int(item[key])
@@ -222,31 +262,32 @@ for test in tests:
                 print("[DEBUG] Sleep on", sleep_time, "seconds")
                 time.sleep(sleep_time)
                 continue
+
             elif key == "StartUA":
                 #Парсим Юзер агентов 
                 print ("[DEBUG] Parsing UA from the test.")
                 test = parser.parse_user_agent(test,item[key])
                 if not test:
                     #Если неправильное описание юзер агентов, то выходим
-                    continue
+                    break
                 #Линкуем UA с объектами юзеров.
                 print("[DEBUG] Linking the UA object with the User object...")
                 test = link_user_to_test(test, test_users)
                 #Если есть ошибки при линковке, то выходим
                 if not test:
-                    continue
+                    break
                 #Собираем команды для UA.
                 print("[DEBUG] Building of the SIPp commands for the UA...")
                 test = builder.build_sipp_command(test,test_var)
                 #Если есть ошибки при линковке, то выходим
                 if not test:
-                    continue
+                    break
                 #Линкуем лог файлы и UA
                 print("[DEBUG] Linking of the LogFd with the UA object...")
                 for ua in test.UserAgent:
                     log_fd = fs.open_log_file(ua.Name,log_path)
-                    if not log_fd :
-                        continue
+                    if not log_fd:
+                        break
                     else:
                         ua.LogFd = log_fd
                 #Если все предварительные процедуры выполнены успешно,
@@ -254,18 +295,22 @@ for test in tests:
                 threads = proc.start_process_controller(test)
                 #Заводим таймер на 5 сек.
                 print("[DEBUG] Waiting for closing threads...")
-                Timer = 5
-            
-                while Timer != 0:
-                    Timer -= 1
-                    time.sleep(1)
-                    thread_alive_flag = 0
-                    for thread in threads:
-                        if thread.is_alive():
-                            thread_alive_flag += 1
-                            print(123)
-                    if thread_alive_flag == 0:
-                        break
+                if not proc.CheckThreads(threads):
+                    #Переносим отработавшие UA в завершенные
+                    test.Status = "Failed"
+                    test.CompliteSFUA()
+                    print("[ERROR] Send SF",code,"failed")
+                    break
+                #Проверяем UA на статусы
+                print("[DEBUG] Check process StatusCode...")
+                if not proc.CheckUaStatus(test):
+                    #Переносим отработавшие UA в завершенные
+                    test.CompliteSFUA()
+                    print("[ERROR] One of UAs failed")
+                    test.Status = "Failed"
+                    break
+                #Переносим все активные UA в завершённые
+                test.CompliteSFUA()
 
             
 
@@ -275,44 +320,4 @@ proc.DropRegistration(test_users)
 #Деконфигурируем ссв и закрываем лог файлы
 stop_test(test)
 print("[DEBUG] exit.")
-
-
-
-
-for test in tests:
-    show_test_info(test)
-
-
- 
-
-
-       
-    
-    exit()    
-
-
-    
-      
-        
-
-   #Рассчитывает результат теста
-    result = 0
-    for userAgent in test.UserAgent:
-        for process in userAgent.Process:
-            result += math.fabs(int(process.poll()))
-
-            
-
-    if result != 0:
-        print("[ERROR] Test:",test.Name," - failed.")
-    else:
-        print("[DEBUG] Test:",test.Name," - success.")
-    #Делаем сброс регистрации
-    proc.DropRegistration(test.UserAgent)
-    #Закрываем лог файлы
-    for ua in test.UserAgent:
-        ua.LogFd.close()
-
-#Деконфигурируем ссв и закрываем лог файлы
-stop_test(test)
-print("[DEBUG] exit.")
+exit()

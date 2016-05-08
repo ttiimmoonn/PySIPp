@@ -56,7 +56,22 @@ def parse_test_info (json_tests):
         except:
             print("[ERROR] Wrong Test description. Detail:")
             print("---> UA has no attribute:",sys.exc_info()[1],"{ Test:",new_test.Name,"}")
-            return False            
+            return False
+        #Делаем проверку тестовой процедуры:
+        for item in test["TestProcedure"]:
+            if "Sleep" in item:
+                try:
+                    int(item["Sleep"])
+                except:
+                    print("[ERROR] Sleep command must have a int value.")
+                    return False
+            if "ServiceFeature" in item:
+                try:
+                    service_desc = item["ServiceFeature"]
+                    int(service_desc[0]["userId"])
+                except:
+                    print("[ERROR] UserId in ServiceFeature command must have a int value.")
+                    return False   
         tests.append(new_test)
     return tests
 def parse_user_agent (test,ua_desc):
@@ -73,7 +88,7 @@ def parse_user_agent (test,ua_desc):
                     new_ua.Type = ua["Type"]
                 except KeyError:
                     print("[ERROR] Wrong UA description. Detail:")
-                    print("---> UA has no attribute:",sys.exc_info()[1],"{ Test:",new_test.Name,"}")
+                    print("---> UA has no attribute:",sys.exc_info()[1],"{ Test:",test.Name,"}")
                     return False
                 #В зависимости от типа UA, пытаемся забрать:
                 #Для User: UserId
@@ -83,19 +98,19 @@ def parse_user_agent (test,ua_desc):
                         new_ua.UserId = ua["UserId"]
                     except KeyError:
                         print("[ERROR] Wrong UA description. Detail:")
-                        print("---> UA has no attribute:",sys.exc_info()[1],"{ Test:",new_test.Name,"}")
+                        print("---> UA has no attribute:",sys.exc_info()[1],"{ Test:",test.Name,"}")
                         return False
                 elif new_ua.Type == "Trunk":
                     try:
                         new_ua.Port = ua["Port"]
                     except KeyError:
                         print("[ERROR] Wrong UA description. Detail:")
-                        print("---> UA has no attribute:",sys.exc_info()[1],"{ Test:",new_test.Name,"}")
+                        print("---> UA has no attribute:",sys.exc_info()[1],"{ Test:",test.Name,"}")
                         return False
                 else:
                     #Если кто-то передал некорректный тип юзера, выходим
                     print("[ERROR] Wrong UA description. Detail:")
-                    print("--> Unknown type of User Agent. Use \"User\" or \"Trunk\"","{ Test:",new_test.Name,"}")
+                    print("--> Unknown type of User Agent. Use \"User\" or \"Trunk\"","{ Test:",test.Name,"}")
                     return False
                 #Начинаем парсинг команд для UA
                 try:
