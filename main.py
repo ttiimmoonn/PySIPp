@@ -19,19 +19,20 @@ def createParser ():
     return parser
 
 def show_test_info (test):
-    print("TestName:    ",test.Name)
-    print("TestDesc:    ",test.Description)
-    print("TestUA:")
+    print("TestName:        ",test.Name)
+    print("TestDesc:        ",test.Description)
+    print("TestUA:          ",test.UserAgent)
+    print("TestCompliteUA   ",test.CompliteUA)
     print("")
     for ua in test.CompliteUA:
-        print("     UaName:     ",ua.Name)
-        print("     UaStatus:   ",ua.Status)
+        print("     UaName:         ",ua.Name)
+        print("     UaStatus:       ",ua.Status)
         print("     UaStatusCode:   ",ua.StatusCode)
-        print("     UaType:     ",ua.Type)
-        print("     UaUserId:   ",ua.UserId)
-        print("     UaUserObj:  ",ua.UserObject)
-        print("     UaPort:     ",ua.Port)
-        print("     UaLogFd:    ",ua.LogFd)
+        print("     UaType:         ",ua.Type)
+        print("     UaUserId:       ",ua.UserId)
+        print("     UaUserObj:      ",ua.UserObject)
+        print("     UaPort:         ",ua.Port)
+        print("     UaLogFd:        ",ua.LogFd)
         print("     UaCommand:")
         for command in ua.Commands:
             print("      ",command)
@@ -54,11 +55,15 @@ def link_user_to_test(test, users):
                 return False
     return test
 
-def stop_test(test):
+def stop_test(tests,test_desc):
     if "PostCoconConf" in test_desc:
         print("[DEBUG] Deconfigure of the ECSS-10 system...")
         #Переменные для настройки соединения с CoCoN
         ssh.cocon_configure(test_desc,test_var,"PostCoconConf")
+    print("[DEBUG] Close log files...")
+    for test in tests:
+        for ua in test.CompliteUA:
+            ua.LogFd.close()
     
 #Парсим аргументы командной строки
 arg_parser = createParser()
@@ -145,7 +150,7 @@ if "PreCoconConf" in test_desc:
     time.sleep(1)
 
 
-if len(test_users) == 0:
+if len(test_users) != 0:
     #Собираем команды для регистрации абонентов
     print("[DEBUG] Building of the registration command for the UA...")
     for key in test_users:
@@ -193,8 +198,8 @@ for test in tests:
             print("[ERROR] Test:",test.Name,"Failed.")
             break
 
-        for key in item:
-            if key == "ServiceFeature":
+        for method in item:
+            if method == "ServiceFeature":
                 #Забираем фича-код и юзера с которого его выполнить
                 #О наличии данных параметров заботится парсер тестов
                 code = item[key][0]['code']
@@ -253,7 +258,7 @@ for test in tests:
                 else:
                     test.CompliteSFUA()
 
-            elif key == "Sleep":
+            elif method == "Sleep":
                 try:
                     sleep_time = int(item[key])
                 except:
@@ -263,10 +268,10 @@ for test in tests:
                 time.sleep(sleep_time)
                 continue
 
-            elif key == "StartUA":
+            elif method == "StartUA":
                 #Парсим Юзер агентов 
                 print ("[DEBUG] Parsing UA from the test.")
-                test = parser.parse_user_agent(test,item[key])
+                test = parser.parse_user_agent(test,item[method])
                 if not test:
                     #Если неправильное описание юзер агентов, то выходим
                     break
@@ -311,6 +316,15 @@ for test in tests:
                     break
                 #Переносим все активные UA в завершённые
                 test.CompliteSFUA()
+            else:
+                #Если передана неизвесная команда, то выходим
+                test.Status = "Failed"
+                print("[ERROR] Unknown metod:",method,"in test procedure. Test aborting")
+                break
+    #Устанавливаем статус теста в завершён
+    if test.Status != "Failed":
+        test.Status == "Complite"
+        print("[DEBUG] Test:",test.Name,"complite")
 
             
 
@@ -318,6 +332,8 @@ for test in tests:
 print("[DEBUG] Drop registration of users.")
 proc.DropRegistration(test_users)
 #Деконфигурируем ссв и закрываем лог файлы
-stop_test(test)
+stop_test(tests,test_desc)
 print("[DEBUG] exit.")
+
+show_test_info(tests[0])
 exit()
