@@ -323,17 +323,37 @@ for test in tests:
                 break
     #Устанавливаем статус теста в завершён
     if test.Status != "Failed":
-        test.Status == "Complite"
+        test.Status = "Complite"
         print("[DEBUG] Test:",test.Name,"complite")
 
             
-
 #Разрегистрируем юзеров
 print("[DEBUG] Drop registration of users.")
 proc.DropRegistration(test_users)
 #Деконфигурируем ссв и закрываем лог файлы
 stop_test(tests,test_desc)
-print("[DEBUG] exit.")
 
-show_test_info(tests[0])
-exit()
+#Производим расчёт результатов теста
+print("[DEBUG] Test info:")
+for test in tests:
+    failed_test_flag = False
+    if test.Status == "Failed":
+        failed_test_flag = True
+        print("     Test:",test.Name,"- failed.")
+        continue
+    elif test.Status == "Complite":
+        for ua in test.CompliteUA:
+            for process in ua.Process:
+                if process.poll() != 0:
+                    failed_test_flag = True
+    else:
+        print("     [ERROR] Unknown test status.")
+        failed_test_flag = True
+    if failed_test_flag:
+        print("     Test:",test.Name,"- failed.") 
+    else:
+        print("     Test:",test.Name,"- success.")
+if failed_test_flag:
+    exit(1)
+else:
+    exit(0)
