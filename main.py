@@ -55,7 +55,7 @@ def link_user_to_test(test, users):
                 return False
     return test
 
-def stop_test(tests,test_desc):
+def stop_test(tests,test_desc,test_users):
     if "PostCoconConf" in test_desc:
         print("[DEBUG] Deconfigure of the ECSS-10 system...")
         #Переменные для настройки соединения с CoCoN
@@ -63,7 +63,11 @@ def stop_test(tests,test_desc):
     print("[DEBUG] Close log files...")
     for test in tests:
         for ua in test.CompliteUA:
-            ua.LogFd.close()
+            if ua.LogFd:
+                ua.LogFd.close()
+    #Разрегистрируем юзеров
+    print("[DEBUG] Drop registration of users.")
+    proc.DropRegistration(test_users)
     
 #Парсим аргументы командной строки
 arg_parser = createParser()
@@ -189,12 +193,12 @@ if len(test_users) != 0:
 
 #Запускаем процесс тестирования
 for test in tests:
-    print("[DEBUG] Start test: ",test.Name)
+    print("[DEBUG] Start test:",test.Name)
     #Выставляем статус теста
     test.Status = "Starting"
     for item in test.TestProcedure:
         #Если статус теста Failed заканчиваем процесс тестирования
-        if test.Status == "Failed":
+        if not test or test.Status == "Failed":
             print("[ERROR] Test:",test.Name,"Failed.")
             break
 
@@ -322,16 +326,17 @@ for test in tests:
                 print("[ERROR] Unknown metod:",method,"in test procedure. Test aborting")
                 break
     #Устанавливаем статус теста в завершён
+    if test == False:
+        print("[ERROR] Test procedure failed. Aborting")
+        stop_test(tests,test_desc,test_users)
+        exit(1)
     if test.Status != "Failed":
         test.Status = "Complite"
         print("[DEBUG] Test:",test.Name,"complite")
 
             
-#Разрегистрируем юзеров
-print("[DEBUG] Drop registration of users.")
-proc.DropRegistration(test_users)
-#Деконфигурируем ссв и закрываем лог файлы
-stop_test(tests,test_desc)
+#Запускаем стоп тест
+stop_test(tests,test_desc,test_users)
 
 #Производим расчёт результатов теста
 print("[DEBUG] Test info:")

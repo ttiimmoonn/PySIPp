@@ -1,7 +1,7 @@
 {
 "SystemVars" : [
     {
-        "%%SIPP_PATH" : "/home/vragov/Work/sipp/sipp/sipp-3.4.1/sipp",
+        "%%SIPP_PATH" : "/home/vragov/Work/sipp/sipp/sipp-master/sipp",
         "%%SRC_PATH" : "/home/vragov/Work/scripts/ecss.3.6.0",
         "%%TEMP_PATH" : "/home/vragov/Work/scripts/ecss.3.6.0/temp",
         "%%REG_XML" : "./xml/reg_user.xml",
