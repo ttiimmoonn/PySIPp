@@ -4,6 +4,7 @@ import modules.process_contr as proc
 import modules.fs_worker as fs
 import modules.cocon_interface as ssh
 import modules.test_class as test_class
+import signal
 import json
 import sys
 import time
@@ -11,6 +12,20 @@ import threading
 import argparse
 import math
 from collections import OrderedDict
+
+
+def signal_handler(signal, frame):
+    print("[DEBUG] Receive SIGINT signal. Start test aborting")
+    if tests and test_desc and test_users:
+        stop_test(tests,test_desc,test_users)
+    for test in tests:
+        if test.Status!="New":
+            for ua in test.UserAgent:
+                for process in ua.Process:
+                    if process.poll() == None:
+                        process.kill()
+    #print(threading.current_thread())
+    sys.exit(0)
 
 def createParser ():
     parser = argparse.ArgumentParser()
@@ -60,15 +75,18 @@ def stop_test(tests,test_desc,test_users):
         print("[DEBUG] Deconfigure of the ECSS-10 system...")
         #Переменные для настройки соединения с CoCoN
         ssh.cocon_configure(test_desc,test_var,"PostCoconConf")
+    #Разрегистрируем юзеров
+    print("[DEBUG] Drop registration of users.")
+    proc.DropRegistration(test_users)
     print("[DEBUG] Close log files...")
     for test in tests:
         for ua in test.CompliteUA:
             if ua.LogFd:
                 ua.LogFd.close()
-    #Разрегистрируем юзеров
-    print("[DEBUG] Drop registration of users.")
-    proc.DropRegistration(test_users)
-    
+    return True
+
+#Добавляем трап на SIGINT
+signal.signal(signal.SIGINT, signal_handler)
 #Парсим аргументы командной строки
 arg_parser = createParser()
 namespace = arg_parser.parse_args()
@@ -206,8 +224,9 @@ for test in tests:
             if method == "ServiceFeature":
                 #Забираем фича-код и юзера с которого его выполнить
                 #О наличии данных параметров заботится парсер тестов
-                code = item[key][0]['code']
-                user_id = str(item[key][0]['userId'])
+                code = item[method][0]['code']
+                user_id = str(item[method][0]['userId'])
+                code = builder.replace_key_value(code, test_var)
                 print ("[DEBUG] Send ServiceFeature code =", code)
 
                 try:
@@ -264,7 +283,7 @@ for test in tests:
 
             elif method == "Sleep":
                 try:
-                    sleep_time = int(item[key])
+                    sleep_time = int(item[method])
                 except:
                     print("[ERROR] Bag sleep arg. Exit.")
                     exit()

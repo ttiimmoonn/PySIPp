@@ -59,7 +59,6 @@ class UserAgentClass:
                 self.UALock.release()         
         
 class UserClass:
-
     def __init__(self):
         self.Timer = None
         self.Status = "New"
@@ -76,15 +75,29 @@ class UserClass:
         self.RegProcess = None
         self.UnRegProcess = None
         self.RegLogFile = None
-        self.UserLock = threading.Lock()  
-    def SetRegistrationTimer(self):    
-        self.Timer = threading.Timer((int(self.Expires) * 2 / 3), proc.RegisterUser, args=(self,) , kwargs=None)
-        self.Timer.start()
+        self.UserLock = threading.Lock()
+        self.TimerLock = threading.Lock()  
+    def SetRegistrationTimer(self):
+        if not self.TimerLock.acquire(False):
+            #не удалось заблокировать ресурс
+            return False
+        else:
+            try:
+                self.Timer = threading.Timer((int(self.Expires) * 2 / 3), proc.RegisterUser, args=(self,) , kwargs=None)
+                self.Timer.start()
+            finally:
+                self.TimerLock.release() 
     def CleanRegistrationTimer(self):
-        try:
-            self.Timer.cancel()
-        except AttributeError:
-            pass
+        if not self.TimerLock.acquire(False):
+            #не удалось заблокировать ресурс
+            return False
+        else:
+            try:
+                self.Timer.cancel()
+            except AttributeError:
+                pass
+            finally:
+                self.TimerLock.release() 
     def ReadStatusCode(self):
         if not self.UserLock.acquire(False):
             #не удалось заблокировать ресурс

@@ -48,7 +48,6 @@ def RegisterUser (user, mode="reg"):
             print("    -->Registeration failed. The UA registration process break by timeout.")
             return False
     elif mode == "unreg":
-        user.CleanRegistrationTimer()
         try:
             if user.RegProcess.poll() == None:
                 user.RegProcess.wait()
@@ -91,9 +90,12 @@ def RegisterUser (user, mode="reg"):
         return False
 
 def DropRegistration (users):
+    #Делаем остановку всех таймеров
+    for user in users:
+        users[user].CleanRegistrationTimer()
     # Делаем сброс регистрации
     for user in users:
-        if users[user].StatusCode != 0:
+        if users[user].ReadStatusCode() != 0:
             #Поскольку статус код регистрации не равен нулю
             #то дропать регистрацию такому юзеру не нужно
             #Закрываем лог файл и продолжаем перебор юзеров
