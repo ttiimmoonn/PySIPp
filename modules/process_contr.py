@@ -92,7 +92,9 @@ def RegisterUser (user, mode="reg"):
 def DropRegistration (users):
     #Делаем остановку всех таймеров
     for user in users:
-        users[user].CleanRegistrationTimer()
+        #Если таймер существует, то дропаем его
+        if users[user].Timer:
+            users[user].CleanRegistrationTimer()
     # Делаем сброс регистрации
     for user in users:
         if users[user].ReadStatusCode() != 0:
