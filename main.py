@@ -4,6 +4,7 @@ import modules.process_contr as proc
 import modules.fs_worker as fs
 import modules.cocon_interface as ssh
 import modules.test_class as test_class
+import re
 import signal
 import json
 import sys
@@ -31,6 +32,7 @@ def createParser ():
     parser = argparse.ArgumentParser()
     parser.add_argument ('-t', '--test_config', type=argparse.FileType(),required=True)
     parser.add_argument ('-c', '--custom_config', type=argparse.FileType(),required=True)
+    parser.add_argument ('-n', '--test_numbers', type=match_test_numbers,required=False)
     return parser
 
 def show_test_info (test):
@@ -85,16 +87,28 @@ def stop_test(tests,test_desc,test_users):
                 ua.LogFd.close()
     return True
 
+def match_test_numbers(test_numbers):
+    match_result = re.match("^[0-9]*$|^([0-9]*,)*[0-9]$",test_numbers)
+    if match_result:
+        test_numbers = [int(i) for i in test_numbers.split(",")]
+        return  test_numbers
+    else:
+        raise argparse.ArgumentTypeError("String '%s' does not match required format.(num1,num2,num3)")
+
+
 #Добавляем трап на SIGINT
 signal.signal(signal.SIGINT, signal_handler)
 #Парсим аргументы командной строки
 arg_parser = createParser()
 namespace = arg_parser.parse_args()
+test_numbers = namespace.test_numbers
 #Забираем описание теста и общие настройки
 jsonData = namespace.test_config.read()
 customSettings = namespace.custom_config.read()
 namespace.test_config.close()
 namespace.custom_config.close()
+
+
 
 #Декларируем массив для юзеров
 test_users = {}
@@ -109,13 +123,13 @@ try:
 except (ValueError, KeyError, TypeError):
     print("[ERROR] Wrong JSON format of test config. Detail:")
     print("--->",sys.exc_info()[1])
-    exit()
+    exit(1)
 try:
     custom_settings = parser.parse_sys_conf(custom_settings["SystemVars"][0])
 except (KeyError):
     print("[ERROR] Wrong JSON format of custom config. Detail:")
     print("--->","Custom config hasn't",sys.exc_info()[1],"attr.")
-    exit()
+    exit(1)
 
 
 
@@ -126,7 +140,7 @@ try:
 except (ValueError, KeyError, TypeError):
     print("[ERROR] Wrong JSON format. Detail:")
     print("--->",sys.exc_info()[1])
-    exit()
+    exit(1)
     
 
 #Парсим юзеров
@@ -137,7 +151,7 @@ else:
     print("[WARN] Test has no users")
 #Если есть ошибки при парсинге, то выходим
 if test_users == False:
-    exit()
+    exit(1)
 
 #Парсим тесты
 print ("[DEBUG] Parsing tests from the json string...")
@@ -147,8 +161,17 @@ except(KeyError):
    print("[ERROR] No Test in the test config")
 #Если есть ошибки при парсинге, то выходим
 if not tests:
-    exit()
-    
+    exit(1)
+
+#Если был передан test_numbers, то накладываем маску на массив тестов
+
+if test_numbers:
+    try:
+        tests=list(tests[i] for i in test_numbers)
+    except IndexError:
+        print("[ERROR] Test index out of range")
+        sys.exit(1)
+
 #Парсим тестовые переменные в словарь
 test_var = parser.parse_test_var(test_desc)
 #Добавляем системные переменные в словарь
