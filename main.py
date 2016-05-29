@@ -172,7 +172,6 @@ if test_numbers:
 
 #Парсим тестовые переменные в словарь
 test_var = parser.parse_test_var(test_desc)
-print(custom_settings)
 #Добавляем системные переменные в словарь
 test_var.update(custom_settings)
 #Создаём директорию для логов
@@ -180,7 +179,7 @@ log_path = str(test_var["%%LOG_PATH%%"]) + "/" + test_desc["TestName"]
 print("[DEBUG] Creating the log dir.")
 if not fs.create_log_dir(log_path):
     #Если не удалось создать директорию, выходим
-    exit()
+    exit(1)
 
 #Если есть настройки для CoCon выполняем их
 if "PreCoconConf" in test_desc:
@@ -248,7 +247,7 @@ for test in tests:
                 user_id = str(item[method][0]['userId'])
                 code = builder.replace_key_value(code, test_var)
                 if not code:
-                    test.status = "Failed"
+                    test.Status = "Failed"
                     break
                 print ("[DEBUG] Send ServiceFeature code =", code)
 

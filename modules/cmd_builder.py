@@ -108,7 +108,7 @@ def replace_key_value(string, var_list):
                 return False
         if string.find("%%") != -1:
             if counter == 9:
-                print("[ERROR] The SIPp command contain a special character '%%' after replacing key values.")
+                print("[ERROR] The command contain a special character '%%' after replacing key values.")
                 print("--> Command:",string)
                 return False
         else:
