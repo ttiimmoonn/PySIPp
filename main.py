@@ -247,6 +247,9 @@ for test in tests:
                 code = item[method][0]['code']
                 user_id = str(item[method][0]['userId'])
                 code = builder.replace_key_value(code, test_var)
+                if not code:
+                    test.status = "Failed"
+                    break
                 print ("[DEBUG] Send ServiceFeature code =", code)
 
                 try:
