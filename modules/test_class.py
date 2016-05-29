@@ -75,6 +75,7 @@ class UserClass:
         self.RegProcess = None
         self.UnRegProcess = None
         self.RegLogFile = None
+        self.SipGroup = None
         self.UserLock = threading.Lock()
     def SetRegistrationTimer(self):
         self.Timer = threading.Timer((int(self.Expires) * 2 / 3), proc.RegisterUser, args=(self,) , kwargs=None)

@@ -15,6 +15,7 @@ def parse_user_info (json_users):
             new_user.Login = user["Login"]
             new_user.Password = user["Password"]
             new_user.SipDomain = user["SipDomain"]
+            new_user.SipGroup = user["SipGroup"]
             new_user.Port = user["Port"]
         except KeyError:
             print("[ERROR] Wrong user description. Detail:")
@@ -134,56 +135,57 @@ def parse_test_var (test_desc):
     #Парсим пользовательские переменные
     test_var = {}
     try:
-       #Забираем переменные описанные юзером
+       #Забираем переменные, описанные юзером
        if "UserVar" in test_desc:
            test_var = test_desc["UserVar"][0]
-       # Создаём связку Id <--> Number, чтобы было удобно ссылаться на юзеров
-       # В переменных
-       # %%1 -> юзер с Id = 1 и т.д
+       #
        for user in test_desc["Users"]:
             userId = "%%" + str(user["UserId"])
-            test_var[str(userId)] = str(user["Number"])
+            #Добавляем описание основных параметров юзера
+            test_var[str(userId + "." + "SipDomain" + "%%")] = str(user["SipDomain"])
+            test_var[str(userId + "." + "SipGroup" + "%%")] = str(user["SipGroup"])
+            test_var[str(userId + "." + "Number" + "%%")] = str(user["Number"])
     except KeyError:
         pass
     return test_var
 def parse_sys_conf (sys_json):
-    if not "%%SIPP_PATH" in sys_json:
+    if not "%%SIPP_PATH%%" in sys_json:
         print("[ERROR] No %%SIPP_PATH variable in the system config")
         return False
-    if not "%%SRC_PATH" in sys_json:
+    if not "%%SRC_PATH%%" in sys_json:
         print("[ERROR] No %%SRC_PATH variable in the system config")
         return False
-    if not "%%TEMP_PATH" in sys_json:
+    if not "%%TEMP_PATH%%" in sys_json:
         print("[ERROR] No %%TEMP_PATH variable in the system config")
         return False
-    if not "%%LOG_PATH" in sys_json:
+    if not "%%LOG_PATH%%" in sys_json:
         print("[ERROR] No %%LOG_PATH variable in the system config")
         return False
-    if not "%%REG_XML" in sys_json:
+    if not "%%REG_XML%%" in sys_json:
         print("[ERROR] No %%REG_XML variable in the system config")
         return False
-    if not "%%IP" in sys_json:
+    if not "%%IP%%" in sys_json:
         print("[ERROR] No %%IP variable in the system config")
         return False
-    if not "%%SERV_IP" in sys_json:
+    if not "%%SERV_IP%%" in sys_json:
         print("[ERROR] No %%SERV_IP variable in the system config")
         return False
-    if not "%%EXTER_IP" in sys_json:
+    if not "%%EXTER_IP%%" in sys_json:
         print("[ERROR] No %%EXTER_IP variable in the system config")
         return False
-    if not "%%EXTER_PORT" in sys_json:
+    if not "%%EXTER_PORT%%" in sys_json:
         print("[ERROR] No %%EXTER_PORT variable in the system config")
         return False
-    if not "%%DEV_USER" in sys_json:
+    if not "%%DEV_USER%%" in sys_json:
         print("[ERROR] No %%DEV_USER variable in the system config")
         return False
-    if not "%%DEV_PASS" in sys_json:
+    if not "%%DEV_PASS%%" in sys_json:
         print("[ERROR] No %%DEV_PASS variable in the system config")
         return False
-    if not "%%DEV_DOM" in sys_json:
+    if not "%%DEV_DOM%%" in sys_json:
         print("[ERROR] No %%DEV_DOM variable in the system config")
         return False
-    if not "%%SF_XML" in sys_json:
+    if not "%%SF_XML%%" in sys_json:
         print("[ERROR] No %%SF_XML variable in the system config")
         return False
     return sys_json

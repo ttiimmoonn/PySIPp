@@ -1,10 +1,11 @@
+import re
 def build_service_feature_command (user, code):
     #Сборка команды для регистрации
     command=""
-    command+="%%SIPP_PATH" + " "
-    command+="-sf " + "%%SF_XML" + " "
-    command+="%%EXTER_IP" + ":" + "%%EXTER_PORT" + " "
-    command+="-i " + "%%IP" + " "
+    command+="%%SIPP_PATH%%" + " "
+    command+="-sf " + "%%SF_XML%%" + " "
+    command+="%%EXTER_IP%%" + ":" + "%%EXTER_PORT%%" + " "
+    command+="-i " + "%%IP%%" + " "
     command+=" -p " + str(user.Port)
     command+=" -set CDPN " + str(code)
     command+=" -set CDPNDOM " + str(user.SipDomain)
@@ -18,10 +19,10 @@ def build_service_feature_command (user, code):
 def build_reg_command (user,list,mode="reg"):
     #Сборка команды для регистрации
     command=""
-    command+="%%SIPP_PATH" + " "
-    command+="-sf " + "%%REG_XML" + " "
-    command+="%%EXTER_IP" + ":" + "%%EXTER_PORT" + " "
-    command+="-i " + "%%IP" + " "
+    command+="%%SIPP_PATH%%" + " "
+    command+="-sf " + "%%REG_XML%%" + " "
+    command+="%%EXTER_IP%%" + ":" + "%%EXTER_PORT%%" + " "
+    command+="-i " + "%%IP%%" + " "
     command+=" -set DOMAIN " + str(user.SipDomain)
     command+=" -set PORT " + str(user.Port)
     if mode == "reg":
@@ -69,10 +70,10 @@ def build_sipp_command(test,list):
             except KeyError:
                 timeout = 60
             command=""                
-            command += "%%SIPP_PATH"
-            command += " -sf " + "%%SRC_PATH" + "/" + sipp_sf + " "
-            command += "%%EXTER_IP" + ":" + "%%EXTER_PORT"
-            command += " -i " + "%%IP" + " "
+            command += "%%SIPP_PATH%%"
+            command += " -sf " + "%%SRC_PATH%%" + "/" + sipp_sf + " "
+            command += "%%EXTER_IP%%" + ":" + "%%EXTER_PORT%%"
+            command += " -i " + "%%IP%%" + " "
             command += sipp_options
             if ua.Type == "User":
                 command += " -p " + ua.UserObject.Port
@@ -95,25 +96,21 @@ def build_sipp_command(test,list):
                 return False
     return test
 
-def replace_key_value(command, list):
-    #Перебираем все ключи и если ключ встеречается в команда
-    #Заменяем его на значение
-    #Так как ссылки могут быть вложеными, прогоняем несколько раз
-    #но не больше 10
-    replace_flag = True
-    replace_counter = 0
-    while(replace_flag):
-    
-        for key in list.keys():
-            command = command.replace(str(key),str(list[key])) 
-        #Проверяем, что не осталось ни одного спецсимвола.  
-        if command.find("%%") != -1:
-            if replace_counter == 10:
-                print("[ERROR] The SIPp command contain a special character '%%' after replacing key values.")
-                print("--> Command:",command)
+def replace_key_value(string, var_list):
+    for counter in list(range(10)):
+        #Ищем все переменные в исходной строке
+        command_vars = re.findall(r'%%[\w\.]*%%',string)
+        for eachVar in command_vars:
+            try:
+                string = string.replace(str(eachVar),str(var_list[eachVar]))
+            except KeyError:
+                print("[ERROR] SIPp command contain unexpected variable:", eachVar)
                 return False
-            else:
-                replace_counter += 1
+        if string.find("%%") != -1:
+            if counter == 9:
+                print("[ERROR] The SIPp command contain a special character '%%' after replacing key values.")
+                print("--> Command:",string)
+                return False
         else:
-            replace_flag = False
-    return command
+            break
+    return string

@@ -24,10 +24,10 @@ def get_ssh_connection(host,port,user,secret):
         return False
     
 def cocon_configure(test_desc,test_var,mode):
-    CoconIP =   test_var["%%SERV_IP"]
+    CoconIP =   test_var["%%SERV_IP%%"]
     CoconPort = 8023
-    CoconUser = test_var["%%DEV_USER"]
-    CoconPass = test_var["%%DEV_PASS"]
+    CoconUser = test_var["%%DEV_USER%%"]
+    CoconPass = test_var["%%DEV_PASS%%"]
     #Подключиаемся к CoCoN
     CoconCommands = {}
     CoconCommands = test_desc[mode][0]

@@ -88,12 +88,12 @@ def stop_test(tests,test_desc,test_users):
     return True
 
 def match_test_numbers(test_numbers):
-    match_result = re.match("^[0-9]*$|^([0-9]*,)*[0-9]$",test_numbers)
+    match_result = re.search("^[0-9]*$|^([0-9]*,)*[0-9]$",test_numbers)
     if match_result:
         test_numbers = [int(i) for i in test_numbers.split(",")]
         return  test_numbers
     else:
-        raise argparse.ArgumentTypeError("String '%s' does not match required format.(num1,num2,num3)")
+        raise argparse.ArgumentTypeError("Arg 'n' does not match required format : num1,num2,num3")
 
 
 #Добавляем трап на SIGINT
@@ -124,11 +124,9 @@ except (ValueError, KeyError, TypeError):
     print("[ERROR] Wrong JSON format of test config. Detail:")
     print("--->",sys.exc_info()[1])
     exit(1)
-try:
-    custom_settings = parser.parse_sys_conf(custom_settings["SystemVars"][0])
-except (KeyError):
-    print("[ERROR] Wrong JSON format of custom config. Detail:")
-    print("--->","Custom config hasn't",sys.exc_info()[1],"attr.")
+
+custom_settings = parser.parse_sys_conf(custom_settings["SystemVars"][0])
+if not custom_settings:
     exit(1)
 
 
@@ -174,12 +172,11 @@ if test_numbers:
 
 #Парсим тестовые переменные в словарь
 test_var = parser.parse_test_var(test_desc)
+print(custom_settings)
 #Добавляем системные переменные в словарь
 test_var.update(custom_settings)
-
-
 #Создаём директорию для логов
-log_path = str(test_var["%%LOG_PATH"]) + "/" + test_desc["TestName"]
+log_path = str(test_var["%%LOG_PATH%%"]) + "/" + test_desc["TestName"]
 print("[DEBUG] Creating the log dir.")
 if not fs.create_log_dir(log_path):
     #Если не удалось создать директорию, выходим

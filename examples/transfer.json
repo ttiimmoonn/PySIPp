@@ -10,6 +10,7 @@
     "SipDomain" : "pv.ssw2",
     "Expires" : "90",
     "Port" : "10106",
+    "SipGroup" : "sip.ab",
     "QParam" : "0.5"
     },
     {
@@ -20,6 +21,7 @@
     "SipDomain" : "pv.ssw2",
     "Expires" : "90",
     "Port" : "10107",
+    "SipGroup" : "sip.ab",
     "QParam" : "1"
     }
 ],
@@ -71,7 +73,7 @@
                 "Commands" : [
                 {
                     "SourceFile" : "transfer/unattended_transfer.xml",
-                    "Options" : "-m 1  -set REFERNUM 100 -set REFERDOM pv.ssw2",
+                    "Options" : "-m 1  -set REFERNUM %%1.Number -set REFERDOM %%1.SipDomain",
                     "SippType" : "uas",
                     "Timeout" : "60s"
                 },
