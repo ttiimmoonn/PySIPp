@@ -241,6 +241,7 @@ for test in tests:
 
         for method in item:
             if method == "ServiceFeature":
+                print("[DEBUG] SendServiceFeature command activate.")
                 #Забираем фича-код и юзера с которого его выполнить
                 #О наличии данных параметров заботится парсер тестов
                 code = item[method][0]['code']
@@ -304,6 +305,7 @@ for test in tests:
                     test.CompliteSFUA()
 
             elif method == "Sleep":
+                print("[DEBUG] Sleep command activate.")
                 try:
                     sleep_time = int(item[method])
                 except:
@@ -314,6 +316,7 @@ for test in tests:
                 continue
 
             elif method == "StartUA":
+                print("[DEBUG] StartUA command activate.")
                 #Парсим Юзер агентов 
                 print ("[DEBUG] Parsing UA from the test.")
                 test = parser.parse_user_agent(test,item[method])
