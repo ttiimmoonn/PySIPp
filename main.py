@@ -224,6 +224,7 @@ if len(test_users) != 0:
             #Пытаемся разрегистировать тех кого удалось зарегать
             proc.DropRegistration(test_users)
             #Выходим
+            stop_test(tests,test_desc,test_users)
             exit()
         
 

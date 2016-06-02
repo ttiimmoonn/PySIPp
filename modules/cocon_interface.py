@@ -1,7 +1,6 @@
 import modules.cmd_builder as builder
 import paramiko
 import paramiko.ssh_exception as parm_excpt 
-import time
 
 def get_ssh_connection(host,port,user,secret):
     #Raises:    
@@ -33,11 +32,14 @@ def cocon_configure(CoconCommands,test_var):
     for CoconCmdName in CoconCommands:
         #Пропускаем команду через словарь
         CoconCommand = builder.replace_key_value(CoconCommands[CoconCmdName], test_var)
+        print("---> Command:",CoconCommand)
         if CoconCommand:
                 ssh_connect = get_ssh_connection(CoconIP,CoconPort,CoconUser,CoconPass)
                 if ssh_connect:
-                    ssh_connect.exec_command(CoconCommand,timeout=10)
+                    stdin, stdout, stderr = ssh_connect.exec_command(CoconCommand)
+                    data = stdout.read() + stderr.read()
                     ssh_connect.close()
+                    #print(data.decode("utf-8", "strict"))
                 else:
                      #Если не удалось подключиться к CoCoN выходим...
                       return False
