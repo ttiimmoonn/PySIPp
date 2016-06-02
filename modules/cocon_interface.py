@@ -23,18 +23,16 @@ def get_ssh_connection(host,port,user,secret):
         print("--> Try to check the connection settings.")
         return False
     
-def cocon_configure(test_desc,test_var,mode):
+def cocon_configure(CoconCommands,test_var):
     CoconIP =   test_var["%%SERV_IP%%"]
     CoconPort = 8023
     CoconUser = test_var["%%DEV_USER%%"]
     CoconPass = test_var["%%DEV_PASS%%"]
     #Подключиаемся к CoCoN
-    CoconCommands = {}
-    CoconCommands = test_desc[mode][0]
-
-    for KeyCoconCmd in sorted(CoconCommands):
+    CoconCommands = CoconCommands[0]
+    for CoconCmdName in CoconCommands:
         #Пропускаем команду через словарь
-        CoconCommand = builder.replace_key_value(CoconCommands[KeyCoconCmd], test_var)
+        CoconCommand = builder.replace_key_value(CoconCommands[CoconCmdName], test_var)
         if CoconCommand:
                 ssh_connect = get_ssh_connection(CoconIP,CoconPort,CoconUser,CoconPass)
                 if ssh_connect:
@@ -42,7 +40,7 @@ def cocon_configure(test_desc,test_var,mode):
                     ssh_connect.close()
                 else:
                      #Если не удалось подключиться к CoCoN выходим...
-                     return False
+                      return False
         else:
             return False
     return True

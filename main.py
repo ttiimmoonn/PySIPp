@@ -76,7 +76,7 @@ def stop_test(tests,test_desc,test_users):
     if "PostCoconConf" in test_desc:
         print("[DEBUG] Deconfigure of the ECSS-10 system...")
         #Переменные для настройки соединения с CoCoN
-        ssh.cocon_configure(test_desc,test_var,"PostCoconConf")
+        ssh.cocon_configure(test_desc["PostCoconConf"],test_var)
     #Разрегистрируем юзеров
     print("[DEBUG] Drop registration of users.")
     proc.DropRegistration(test_users)
@@ -185,7 +185,7 @@ if not fs.create_log_dir(log_path):
 if "PreCoconConf" in test_desc:
     print("[DEBUG] Configuration of the ECSS-10 system...")
     #Переменные для настройки соединения с CoCoN
-    if not ssh.cocon_configure(test_desc,test_var,"PreCoconConf"):
+    if not ssh.cocon_configure(test_desc["PreCoconConf"],test_var):
         exit()
     #Даём кокону очнуться
     time.sleep(1)
@@ -240,7 +240,18 @@ for test in tests:
             break
 
         for method in item:
-            if method == "ServiceFeature":
+            if method == "CoconCommand":
+                print("[DEBUG] Send commands to CoCon...")
+                #Переменные для настройки соединения с CoCoN
+                if not ssh.cocon_configure(item[method],test_var):  
+                    #Выставляем статус теста
+                    test.Status = "Failed"
+                    break
+                else:
+                    time.sleep(1)
+
+
+            elif method == "ServiceFeature":
                 print("[DEBUG] SendServiceFeature command activate.")
                 #Забираем фича-код и юзера с которого его выполнить
                 #О наличии данных параметров заботится парсер тестов

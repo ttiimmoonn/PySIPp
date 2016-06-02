@@ -84,6 +84,7 @@ def build_sipp_command(test,list):
                 command += " -s " + ua.UserObject.Number
                 command += " -ap " + ua.UserObject.Password
             if sipp_type == "uac":
+                command += " -timeout " + str(timeout)
                 command += " -set CGPNDOM " + ua.UserObject.SipDomain
                 command += " -recv_timeout " + str(timeout)
             else:
@@ -104,7 +105,7 @@ def replace_key_value(string, var_list):
             try:
                 string = string.replace(str(eachVar),str(var_list[eachVar]))
             except KeyError:
-                print("[ERROR] SIPp command contain unexpected variable:", eachVar)
+                print("[ERROR] Command contain unexpected variable:", eachVar)
                 return False
         if string.find("%%") != -1:
             if counter == 9:

@@ -8,7 +8,7 @@
         "%%SF_XML%%" : "./xml/send_sf.xml",
         "%%LOG_PATH%%" : "/home/vragov/Work/scripts/ecss.3.6.0/temp/log",
         "%%IP%%" : "192.168.118.249",
-        "%%SERV_IP%%" : "192.168.118.245",
+        "%%SERV_IP%%" : "192.168.118.222",
         "%%EXTER_IP%%" : "192.168.118.245",
         "%%EXTER_PORT%%" : "5015",
         "%%DEV_USER%%" : "admin",
