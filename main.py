@@ -33,6 +33,7 @@ def createParser ():
     parser.add_argument ('-t', '--test_config', type=argparse.FileType(),required=True)
     parser.add_argument ('-c', '--custom_config', type=argparse.FileType(),required=True)
     parser.add_argument ('-n', '--test_numbers', type=match_test_numbers,required=False)
+    parser.add_argument ('--drop_uac', action='store_const', const=True)
     return parser
 
 def show_test_info (test):
@@ -102,6 +103,7 @@ signal.signal(signal.SIGINT, signal_handler)
 arg_parser = createParser()
 namespace = arg_parser.parse_args()
 test_numbers = namespace.test_numbers
+uac_drop_flag = namespace.drop_uac
 #Забираем описание теста и общие настройки
 jsonData = namespace.test_config.read()
 customSettings = namespace.custom_config.read()
@@ -343,8 +345,8 @@ for test in tests:
                     break
                 #Собираем команды для UA.
                 print("[DEBUG] Building of the SIPp commands for the UA...")
-                test = builder.build_sipp_command(test,test_var)
-                #Если есть ошибки при линковке, то выходим
+                test = builder.build_sipp_command(test,test_var,uac_drop_flag)
+                #Если есть ошибки при сборке, то выходим
                 if not test:
                     break
                 #Линкуем лог файлы и UA
