@@ -113,6 +113,11 @@ def parse_user_agent (test,ua_desc):
                     print("[ERROR] Wrong UA description. Detail:")
                     print("--> Unknown type of User Agent. Use \"User\" or \"Trunk\"","{ Test:",test.Name,"}")
                     return False
+                #Парсим параметр WriteStat
+                try:
+                    new_ua.WriteStat = ua["WriteStat"]
+                except:
+                    new_ua.WriteStat = False
                 #Начинаем парсинг команд для UA
                 try:
                     for command in ua["Commands"]:

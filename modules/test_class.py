@@ -9,6 +9,7 @@ class TestClass:
         self.Description = None
         self.TestProcedure = None
         self.Status = None
+        self.LogPath = None
     def CompliteSFUA(self):
         self.CompliteUA += self.UserAgent
         self.UserAgent = []
@@ -23,6 +24,7 @@ class UserAgentClass:
         self.StatusCode = None
         self.Name = None
         self.Type = None
+        self.TimeStampFile = None
         self.UserId = None
         self.Port = None
         self.LogFd = None

@@ -35,4 +35,12 @@ def open_log_file (ua_name,log_path):
         print("--->",sys.exc_info()[1])
         return False
     return fd
-    
+
+def get_fd(file_path):
+    try:
+        fd = open(file_path,"r")
+    except:
+        print("[ERROR] Сan't open the log file. Detail:")
+        print("--->",sys.exc_info()[1])
+        return False
+    return fd    

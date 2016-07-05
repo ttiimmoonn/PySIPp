@@ -6,6 +6,7 @@ import modules.process_contr as proc
 import modules.fs_worker as fs
 import modules.cocon_interface as ssh
 import modules.test_class as test_class
+import modules.timestamp_calc as stat_module
 import re
 import signal
 import json
@@ -36,6 +37,7 @@ def createParser ():
     parser.add_argument ('-c', '--custom_config', type=argparse.FileType(),required=True)
     parser.add_argument ('-n', '--test_numbers', type=match_test_numbers,required=False)
     parser.add_argument ('--drop_uac', action='store_const', const=True)
+    parser.add_argument ('--timestamp_calc', action='store_const', const=True)
     return parser
 
 def show_test_info (test):
@@ -106,6 +108,7 @@ arg_parser = createParser()
 namespace = arg_parser.parse_args()
 test_numbers = namespace.test_numbers
 uac_drop_flag = namespace.drop_uac
+timestamp_calc = namespace.timestamp_calc
 #Забираем описание теста и общие настройки
 jsonData = namespace.test_config.read()
 customSettings = namespace.custom_config.read()
@@ -184,6 +187,9 @@ print("[DEBUG] Creating the log dir.")
 if not fs.create_log_dir(log_path):
     #Если не удалось создать директорию, выходим
     exit(1)
+#Добавляем директорию с логами к тестам
+for test in tests:
+    test.LogPath = log_path
 
 #Если есть настройки для CoCon выполняем их
 if "PreCoconConf" in test_desc:
@@ -347,7 +353,7 @@ for test in tests:
                     break
                 #Собираем команды для UA.
                 print("[DEBUG] Building of the SIPp commands for the UA...")
-                test = builder.build_sipp_command(test,test_var,uac_drop_flag)
+                test = builder.build_sipp_command(test,test_var,uac_drop_flag, timestamp_calc)
                 #Если есть ошибки при сборке, то выходим
                 if not test:
                     break
@@ -397,6 +403,15 @@ for test in tests:
             
 #Запускаем стоп тест
 stop_test(tests,test_desc,test_users)
+
+if timestamp_calc:
+    for test in tests:
+        for ua in test.CompliteUA:
+            if ua.WriteStat:
+                print()
+                print("Statistics for", ua.Name, ":")
+                stat_module.get_seq_statistics(ua.TimeStampFile)
+
 
 #Производим расчёт результатов теста
 print("[DEBUG] Test info:")
