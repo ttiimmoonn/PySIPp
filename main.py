@@ -260,8 +260,12 @@ for test in tests:
                     break
                 else:
                     time.sleep(1)
-
-
+            elif method == "Print":
+                message = str(item[method])
+                print("\033[32m[TEST_INFO]", message, "\033[1;m")
+            elif method == "Stop":
+                sys.stdin.flush()
+                input("\033[1;31m[TEST_INFO] Test stopped. Please press any key to continue...\033[1;m")
             elif method == "ServiceFeature":
                 print("[DEBUG] SendServiceFeature command activate.")
                 #Забираем фича-код и юзера с которого его выполнить
@@ -333,7 +337,7 @@ for test in tests:
                 except:
                     print("[ERROR] Bag sleep arg. Exit.")
                     exit()
-                print("[DEBUG] Sleep on", sleep_time, "seconds")
+                print("\033[32m[TEST_INFO] Sleep", sleep_time, "seconds\033[1;m")
                 time.sleep(sleep_time)
                 continue
 
