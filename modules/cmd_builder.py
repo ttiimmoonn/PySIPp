@@ -1,4 +1,6 @@
 import re
+import time
+from datetime import datetime, date
 def build_service_feature_command (user, code):
     #Сборка команды для регистрации
     command=""
@@ -84,13 +86,14 @@ def build_sipp_command(test,list,uac_drop_flag=False, timestamp_calc=False):
             else:
                 command += " -p " + ua.Port
             command+=" -nostdin"
-            if sipp_auth:
+            if sipp_auth and ua.Type=="User":
                 command += " -s " + ua.UserObject.Number
                 command += " -ap " + ua.UserObject.Password
             if sipp_type == "uac":
                 command += " -timeout " + str(timeout)
-                command += " -set CGPNDOM " + ua.UserObject.SipDomain
                 command += " -recv_timeout " + str(timeout)
+                if ua.Type=="User":
+                    command += " -set CGPNDOM " + ua.UserObject.SipDomain
             else:
                 command += " -timeout " + str(timeout)
                 command += " -recv_timeout " + str(timeout)
@@ -111,18 +114,55 @@ def build_sipp_command(test,list,uac_drop_flag=False, timestamp_calc=False):
 def replace_key_value(string, var_list):
     for counter in list(range(10)):
         #Ищем все переменные в исходной строке
-        command_vars = re.findall(r'%%[\w\.]*%%',string)
+        command_vars = re.findall(r'%%[\w\.+-]*%%',string)
         for eachVar in command_vars:
-            try:
-                string = string.replace(str(eachVar),str(var_list[eachVar]))
-            except KeyError:
-                print("[ERROR] Command contain unexpected variable:", eachVar)
-                return False
+            #Если кто запросил текущее время +/- временной сдвиг в формате %%NowTime[+/-][delta]%%,
+            #то отправляем данную переменную в функцию сборки времени.
+            if re.match("%%NowTime([+,-]?)([0-9]{0,4})%%",eachVar):
+                shift_time=get_time_with_shift(eachVar)
+                if shift_time:
+                    string = string.replace(str(eachVar),str(shift_time))
+                else:
+                    return False
+            elif re.match("%%NowWeekDay%%",eachVar):
+                string = string.replace(str(eachVar),str(datetime.today().isoweekday()))
+            #Ищем значение в словаре.
+            else:
+                try:
+                    string = string.replace(str(eachVar),str(var_list[eachVar]))
+                except KeyError:
+                    print("[ERROR] Command contain unexpected variable:", eachVar)
+                    return False
         if string.find("%%") != -1:
             if counter == 9:
                 print("[ERROR] The command contain a special character '%%' after replacing key values.")
                 print("--> Command:",string)
                 return False
-        else:
-            break
+            else:
+                break
     return string
+
+def get_time_with_shift(time_string):   
+    result=re.match("%%NowTime([+,-]?)([0-9]{0,4})%%",time_string)
+    try:
+        shift = int(result.group(2))
+    except IndexError:
+        print("[ERROR] Can't get time shift : \" no such group \"")
+        return False
+    try:
+        sign = str(result.group(1))
+    except IndexError:
+        print("[ERROR] Can't get sign of shift : \" no such group \"")
+        return False
+    nowTime = time.time()
+    if shift:
+        if sign == "+":
+            nowTime += shift
+        elif sign == "-":
+            nowTime -= shift
+    #Возвращаем время
+    return datetime.fromtimestamp(nowTime).strftime('%H%M')
+
+
+
+
