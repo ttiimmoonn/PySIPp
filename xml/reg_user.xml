@@ -26,7 +26,6 @@
     Contact: <sip:[$user_number]@[local_ip]:[$user_port]>;q=[$user_q]
     Allow-Events: talk
     Content-Length: 0
-
     Expires: [$user_exp]
     Max-Forwards: 70
 ]]>
