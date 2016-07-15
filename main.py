@@ -19,17 +19,18 @@ from collections import OrderedDict
 
 
 def signal_handler(signal, frame):
-    print("[DEBUG] Receive SIGINT signal. Start test aborting")
-    if tests and test_desc and test_users:
-        stop_test(tests,test_desc,test_users)
-    for test in tests:
-        if test.Status!="New":
-            for ua in test.UserAgent:
-                for process in ua.Process:
-                    if process.poll() == None:
-                        process.kill()
-    #print(threading.current_thread())
-    sys.exit(0)
+    if  __name__ ==  "__main__" : 
+        print("[DEBUG] Receive SIGINT signal. Start test aborting")
+        if tests and test_desc and test_users:
+            stop_test(tests,test_desc,test_users)
+        for test in tests:
+            if test.Status!="New":
+                for ua in test.UserAgent:
+                    for process in ua.Process:
+                        if process.poll() == None:
+                            process.kill()
+        #print(threading.current_thread())
+        sys.exit(1)
 
 def createParser ():
     parser = argparse.ArgumentParser()
@@ -196,7 +197,7 @@ if "PreCoconConf" in test_desc:
     print("[DEBUG] Configuration of the ECSS-10 system...")
     #Переменные для настройки соединения с CoCoN
     if not ssh.cocon_configure(test_desc["PreCoconConf"],test_var):
-        exit()
+        exit(1)
     #Даём кокону очнуться
     time.sleep(1)
 
@@ -209,7 +210,7 @@ if len(test_users) != 0:
         if command:
             test_users[key].RegCommand = command
         else:
-            exit()
+            exit(1)
 
     #Собираем команды для сброса регистрации абонентов
     print("[DEBUG] Building command for the dropping of users registration...")
@@ -218,7 +219,7 @@ if len(test_users) != 0:
         if command:
             test_users[key].UnRegCommand = command
         else:
-            exit()
+            exit(1)
     #Врубаем регистрацию для всех юзеров
     print ("[DEBUG] Starting of the registration...")
     for user in test_users:
@@ -226,7 +227,7 @@ if len(test_users) != 0:
         log_file = fs.open_log_file(reg_log_name,log_path)
         #Если не удалось создать лог файл, то выходим
         if not log_file:
-            exit()
+            exit(1)
         else:
             test_users[user].RegLogFile = log_file
         if not proc.RegisterUser(test_users[user]):
@@ -235,7 +236,7 @@ if len(test_users) != 0:
             proc.DropRegistration(test_users)
             #Выходим
             stop_test(tests,test_desc,test_users)
-            exit()
+            exit(1)
         
 
 
@@ -336,7 +337,7 @@ for test in tests:
                     sleep_time = int(item[method])
                 except:
                     print("[ERROR] Bag sleep arg. Exit.")
-                    exit()
+                    exit(1)
                 print("\033[32m[TEST_INFO] Sleep", sleep_time, "seconds\033[1;m")
                 time.sleep(sleep_time)
                 continue
