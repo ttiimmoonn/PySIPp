@@ -24,7 +24,6 @@
     Call-ID: [call_id]
     CSeq: [cseq] REGISTER
     Contact: <sip:[$user_number]@[local_ip]:[$user_port]>;q=[$user_q]
-    Allow-Events: talk
     Content-Length: 0
     Expires: [$user_exp]
     Max-Forwards: 70
@@ -52,7 +51,6 @@
     Contact: <sip:[$user_number]@[local_ip]:[$user_port]>;q=[$user_q]
     [authentication]
     Content-Length: 0
-    Allow-Events: talk
     Expires: [$user_exp]
     Max-Forwards: 70
 ]]>

@@ -428,6 +428,8 @@ for test in tests:
         continue
     elif test.Status == "Complite":
         for ua in test.CompliteUA:
+            if ua.StatusCode != 0:
+                failed_test_flag = True
             for process in ua.Process:
                 if process.poll() != 0:
                     failed_test_flag = True
