@@ -445,7 +445,7 @@ for test in tests:
         print("     Test",num_of_test,":",test.Name,"- fail.") 
     else:
         print("     Test",num_of_test,":",test.Name,"- succ.") 
-    num_of_test += 0
+    num_of_test += 1
 if common_test_flag:
     sys.exit(1)
 else:
