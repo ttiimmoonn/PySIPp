@@ -130,11 +130,11 @@ try:
 except (ValueError, KeyError, TypeError):
     print("[ERROR] Wrong JSON format of test config. Detail:")
     print("--->",sys.exc_info()[1])
-    exit(1)
+    sys.exit(1)
 
 custom_settings = parser.parse_sys_conf(custom_settings["SystemVars"][0])
 if not custom_settings:
-    exit(1)
+    sys.exit(1)
 
 
 
@@ -145,7 +145,7 @@ try:
 except (ValueError, KeyError, TypeError):
     print("[ERROR] Wrong JSON format. Detail:")
     print("--->",sys.exc_info()[1])
-    exit(1)
+    sys.exit(1)
     
 
 #Парсим юзеров
@@ -156,7 +156,7 @@ else:
     print("[WARN] Test has no users")
 #Если есть ошибки при парсинге, то выходим
 if test_users == False:
-    exit(1)
+    sys.exit(1)
 
 #Парсим тесты
 print ("[DEBUG] Parsing tests from json string...")
@@ -166,7 +166,7 @@ except(KeyError):
    print("[ERROR] No Test in test config")
 #Если есть ошибки при парсинге, то выходим
 if not tests:
-    exit(1)
+    sys.exit(1)
 
 #Если был передан test_numbers, то накладываем маску на массив тестов
 
@@ -186,7 +186,7 @@ log_path = str(test_var["%%LOG_PATH%%"]) + "/" + test_desc["TestName"]
 print("[DEBUG] Creating log dir.")
 if not fs.create_log_dir(log_path):
     #Если не удалось создать директорию, выходим
-    exit(1)
+    sys.exit(1)
 #Добавляем директорию с логами к тестам
 for test in tests:
     test.LogPath = log_path
@@ -196,7 +196,7 @@ if "PreCoconConf" in test_desc:
     print("[DEBUG] Configuration of ECSS-10 system...")
     #Переменные для настройки соединения с CoCoN
     if not ssh.cocon_configure(test_desc["PreCoconConf"],test_var):
-        exit(1)
+        sys.exit(1)
     #Даём кокону очнуться
     time.sleep(1)
 
@@ -209,7 +209,7 @@ if len(test_users) != 0:
         if command:
             test_users[key].RegCommand = command
         else:
-            exit(1)
+            sys.exit(1)
 
     #Собираем команды для сброса регистрации абонентов
     print("[DEBUG] Building command for dropping of users registration...")
@@ -218,7 +218,7 @@ if len(test_users) != 0:
         if command:
             test_users[key].UnRegCommand = command
         else:
-            exit(1)
+            sys.exit(1)
     #Врубаем регистрацию для всех юзеров
     print ("[DEBUG] Starting of registration...")
     for user in test_users:
@@ -226,7 +226,7 @@ if len(test_users) != 0:
         log_file = fs.open_log_file(reg_log_name,log_path)
         #Если не удалось создать лог файл, то выходим
         if not log_file:
-            exit(1)
+            sys.exit(1)
         else:
             test_users[user].RegLogFile = log_file
         if not proc.RegisterUser(test_users[user]):
@@ -235,7 +235,7 @@ if len(test_users) != 0:
             proc.DropRegistration(test_users)
             #Выходим
             stop_test(tests,test_desc,test_users)
-            exit(1)
+            sys.exit(1)
         
 
 
@@ -336,7 +336,7 @@ for test in tests:
                     sleep_time = int(item[method])
                 except:
                     print("[ERROR] Bag sleep arg. Exit.")
-                    exit(1)
+                    sys.exit(1)
                 print("\033[32m[TEST_INFO] Sleep", sleep_time, "seconds\033[1;m")
                 time.sleep(sleep_time)
                 continue
@@ -399,7 +399,7 @@ for test in tests:
     if test == False:
         print("[ERROR] Test procedure failed. Aborting")
         stop_test(tests,test_desc,test_users)
-        exit(1)
+        sys.exit(1)
     if test.Status != "Failed":
         test.Status = "Complite"
         print("[DEBUG] Test:",test.Name,"complite")
@@ -419,27 +419,34 @@ if timestamp_calc:
 
 #Производим расчёт результатов теста
 print("[DEBUG] Test info:")
+common_test_flag = False
+num_of_test = 0
 for test in tests:
     failed_test_flag = False
     if test.Status == "Failed":
         failed_test_flag = True
+        common_test_flag = True
         print("     Test:",test.Name,"- failed.")
         continue
     elif test.Status == "Complite":
         for ua in test.CompliteUA:
             if ua.StatusCode != 0:
                 failed_test_flag = True
+                common_test_flag = True
             for process in ua.Process:
                 if process.poll() != 0:
                     failed_test_flag = True
+                    common_test_flag = True
     else:
         print("     [ERROR] Unknown test status.")
         failed_test_flag = True
+        common_test_flag = True
     if failed_test_flag:
-        print("     Test:",test.Name,"- failed.") 
+        print("     Test",num_of_test,":",test.Name,"- fail.") 
     else:
-        print("     Test:",test.Name,"- success.")
-if failed_test_flag:
-    exit(1)
+        print("     Test",num_of_test,":",test.Name,"- succ.") 
+    num_of_test += 0
+if common_test_flag:
+    sys.exit(1)
 else:
-    exit(0)
+    sys.exit(0)
