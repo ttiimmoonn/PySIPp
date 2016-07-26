@@ -129,6 +129,7 @@ def start_ua_thread(ua, event_for_stop):
         if not event_for_stop.isSet():
             # Если пришла команда остановить thread выходим
             print("--> [DEBUG] UA", ua.Name, "with command", commandCount, "recv exit event.")
+            ua.SetStatusCode(6)
             break        
         # Запускаем UA
         process = start_ua (command, ua.LogFd)
