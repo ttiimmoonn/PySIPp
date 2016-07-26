@@ -155,42 +155,42 @@ def parse_test_var (test_desc):
     return test_var
 def parse_sys_conf (sys_json):
     if not "%%SIPP_PATH%%" in sys_json:
-        print("[ERROR] No %%SIPP_PATH variable in the system config")
+        print("[ERROR] No %%SIPP_PATH variable in system config")
         return False
     if not "%%SRC_PATH%%" in sys_json:
-        print("[ERROR] No %%SRC_PATH variable in the system config")
+        print("[ERROR] No %%SRC_PATH variable in system config")
         return False
     if not "%%TEMP_PATH%%" in sys_json:
-        print("[ERROR] No %%TEMP_PATH variable in the system config")
+        print("[ERROR] No %%TEMP_PATH variable in system config")
         return False
     if not "%%LOG_PATH%%" in sys_json:
-        print("[ERROR] No %%LOG_PATH variable in the system config")
+        print("[ERROR] No %%LOG_PATH variable in system config")
         return False
     if not "%%REG_XML%%" in sys_json:
-        print("[ERROR] No %%REG_XML variable in the system config")
+        print("[ERROR] No %%REG_XML variable in system config")
         return False
     if not "%%IP%%" in sys_json:
-        print("[ERROR] No %%IP variable in the system config")
+        print("[ERROR] No %%IP variable in system config")
         return False
     if not "%%SERV_IP%%" in sys_json:
-        print("[ERROR] No %%SERV_IP variable in the system config")
+        print("[ERROR] No %%SERV_IP variable in system config")
         return False
     if not "%%EXTER_IP%%" in sys_json:
-        print("[ERROR] No %%EXTER_IP variable in the system config")
+        print("[ERROR] No %%EXTER_IP variable in system config")
         return False
     if not "%%EXTER_PORT%%" in sys_json:
-        print("[ERROR] No %%EXTER_PORT variable in the system config")
+        print("[ERROR] No %%EXTER_PORT variable in system config")
         return False
     if not "%%DEV_USER%%" in sys_json:
-        print("[ERROR] No %%DEV_USER variable in the system config")
+        print("[ERROR] No %%DEV_USER variable in system config")
         return False
     if not "%%DEV_PASS%%" in sys_json:
-        print("[ERROR] No %%DEV_PASS variable in the system config")
+        print("[ERROR] No %%DEV_PASS variable in system config")
         return False
     if not "%%DEV_DOM%%" in sys_json:
-        print("[ERROR] No %%DEV_DOM variable in the system config")
+        print("[ERROR] No %%DEV_DOM variable in system config")
         return False
     if not "%%SF_XML%%" in sys_json:
-        print("[ERROR] No %%SF_XML variable in the system config")
+        print("[ERROR] No %%SF_XML variable in system config")
         return False
     return sys_json

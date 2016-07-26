@@ -13,7 +13,7 @@ def RegisterUser (user, mode="reg"):
         process = start_ua(user.RegCommand, user.RegLogFile)
         if not process:
             print("    [ERROR] User", user.Number, "not registred. Detail:")
-            print("    --> Can't start the process {File not found}")
+            print("    --> Can't start process {File not found}")
             user.Status = "Registration process not started."
             # Выставляем Status код равный 1
             user.SetStatusCode(1)
@@ -32,7 +32,7 @@ def RegisterUser (user, mode="reg"):
                 # Делаем сброс таймера
                 user.CleanRegistrationTimer() 
                 print("    [ERROR] User", user.Number, "not registred. Detail:")
-                print("    --> Registeration failed. The SIPp process return bad exit code.", "ex_code:", user.RegProcess.poll())
+                print("    --> Registeration failed. SIPp process return bad exit code.", "ex_code:", user.RegProcess.poll())
                 return False
             else:
                 user.Status = "Registered"
@@ -45,7 +45,7 @@ def RegisterUser (user, mode="reg"):
             user.SetStatusCode(2)
             user.CleanRegistrationTimer()
             print("    [ERROR] User", user.Number, "not registred. Detail:")
-            print("    -->Registeration failed. The UA registration process break by timeout.")
+            print("    -->Registeration failed. UA registration process break by timeout.")
             return False
     elif mode == "unreg":
         try:
@@ -56,7 +56,7 @@ def RegisterUser (user, mode="reg"):
         process = start_ua(user.UnRegCommand, user.RegLogFile)
         if not process:
             print("    [ERROR] User registration", user.Number, "not dropped. Detail:")
-            print("    --> Can't start the process {File not found}")
+            print("    --> Can't start process {File not found}")
             #Закрываем лог файл
             user.RegLogFile.close()
             return False
@@ -67,7 +67,7 @@ def RegisterUser (user, mode="reg"):
             if user.UnRegProcess.poll() != 0:
                 user.Status = "Error of drop"
                 print("    [ERROR] User registration", user.Number, "not dropped. Detail:")
-                print("    --> Drop failed. The SIPp process return bad exit code.")
+                print("    --> Drop failed. SIPp process return bad exit code.")
                 #Закрываем лог файл
                 user.RegLogFile.close()
                 return False
@@ -81,7 +81,7 @@ def RegisterUser (user, mode="reg"):
             user.UnRegProcess.kill()
             user.Status = "Error of drop (timeout)"
             print("    [ERROR] User registration", user.Number, "not dropped. Detail:")
-            print("    --> Drop failed. The UA registration process break by timeout.")
+            print("    --> Drop failed. UA registration process break by timeout.")
             #Закрываем лог файл
             user.RegLogFile.close()
             return False

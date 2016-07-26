@@ -19,8 +19,8 @@ def get_ssh_connection(host,port,user,secret):
         #client.close()
         return client
     except:
-        print("[ERROR] Can't connenct to the CoCon interface.")
-        print("--> Try to check the connection settings.")
+        print("[ERROR] Can't connenct to CoCon interface.")
+        print("--> Try to check connection settings.")
         return False
     
 def cocon_configure(CoconCommands,test_var):

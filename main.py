@@ -1,5 +1,4 @@
 #!/usr/local/bin/python3.5
-
 import modules.test_parser as parser
 import modules.cmd_builder as builder
 import modules.process_contr as proc
@@ -80,7 +79,7 @@ def link_user_to_test(test, users):
 
 def stop_test(tests,test_desc,test_users):
     if "PostCoconConf" in test_desc:
-        print("[DEBUG] Deconfigure of the ECSS-10 system...")
+        print("[DEBUG] Deconfigure of ECSS-10 system...")
         #Переменные для настройки соединения с CoCoN
         ssh.cocon_configure(test_desc["PostCoconConf"],test_var)
     #Разрегистрируем юзеров
@@ -150,7 +149,7 @@ except (ValueError, KeyError, TypeError):
     
 
 #Парсим юзеров
-print ("[DEBUG] Parsing users from the json string...")
+print ("[DEBUG] Parsing users from json string...")
 if "Users" in test_desc:    
     test_users = parser.parse_user_info(test_desc["Users"])
 else:
@@ -160,11 +159,11 @@ if test_users == False:
     exit(1)
 
 #Парсим тесты
-print ("[DEBUG] Parsing tests from the json string...")
+print ("[DEBUG] Parsing tests from json string...")
 try:
    tests = parser.parse_test_info(test_desc["Tests"])
 except(KeyError):
-   print("[ERROR] No Test in the test config")
+   print("[ERROR] No Test in test config")
 #Если есть ошибки при парсинге, то выходим
 if not tests:
     exit(1)
@@ -184,7 +183,7 @@ test_var = parser.parse_test_var(test_desc)
 test_var.update(custom_settings)
 #Создаём директорию для логов
 log_path = str(test_var["%%LOG_PATH%%"]) + "/" + test_desc["TestName"]
-print("[DEBUG] Creating the log dir.")
+print("[DEBUG] Creating log dir.")
 if not fs.create_log_dir(log_path):
     #Если не удалось создать директорию, выходим
     exit(1)
@@ -194,7 +193,7 @@ for test in tests:
 
 #Если есть настройки для CoCon выполняем их
 if "PreCoconConf" in test_desc:
-    print("[DEBUG] Configuration of the ECSS-10 system...")
+    print("[DEBUG] Configuration of ECSS-10 system...")
     #Переменные для настройки соединения с CoCoN
     if not ssh.cocon_configure(test_desc["PreCoconConf"],test_var):
         exit(1)
@@ -204,7 +203,7 @@ if "PreCoconConf" in test_desc:
 
 if len(test_users) != 0:
     #Собираем команды для регистрации абонентов
-    print("[DEBUG] Building of the registration command for the UA...")
+    print("[DEBUG] Building of registration command for UA...")
     for key in test_users:
         command = builder.build_reg_command(test_users[key],test_var)
         if command:
@@ -213,7 +212,7 @@ if len(test_users) != 0:
             exit(1)
 
     #Собираем команды для сброса регистрации абонентов
-    print("[DEBUG] Building command for the dropping of users registration...")
+    print("[DEBUG] Building command for dropping of users registration...")
     for key in test_users:
         command = builder.build_reg_command(test_users[key],test_var,"unreg")
         if command:
@@ -221,7 +220,7 @@ if len(test_users) != 0:
         else:
             exit(1)
     #Врубаем регистрацию для всех юзеров
-    print ("[DEBUG] Starting of the registration...")
+    print ("[DEBUG] Starting of registration...")
     for user in test_users:
         reg_log_name = "REG_" + str(test_users[user].Number)
         log_file = fs.open_log_file(reg_log_name,log_path)
@@ -345,25 +344,25 @@ for test in tests:
             elif method == "StartUA":
                 print("[DEBUG] StartUA command activate.")
                 #Парсим Юзер агентов 
-                print ("[DEBUG] Parsing UA from the test.")
+                print ("[DEBUG] Parsing UA from test.")
                 test = parser.parse_user_agent(test,item[method])
                 if not test:
                     #Если неправильное описание юзер агентов, то выходим
                     break
                 #Линкуем UA с объектами юзеров.
-                print("[DEBUG] Linking the UA object with the User object...")
+                print("[DEBUG] Linking UA object with User object...")
                 test = link_user_to_test(test, test_users)
                 #Если есть ошибки при линковке, то выходим
                 if not test:
                     break
                 #Собираем команды для UA.
-                print("[DEBUG] Building of the SIPp commands for the UA...")
+                print("[DEBUG] Building of SIPp commands for UA...")
                 test = builder.build_sipp_command(test,test_var,uac_drop_flag, timestamp_calc)
                 #Если есть ошибки при сборке, то выходим
                 if not test:
                     break
                 #Линкуем лог файлы и UA
-                print("[DEBUG] Linking of the LogFd with the UA object...")
+                print("[DEBUG] Linking of LogFd with UA object...")
                 for ua in test.UserAgent:
                     log_fd = fs.open_log_file(ua.Name,log_path)
                     if not log_fd:
