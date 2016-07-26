@@ -139,7 +139,7 @@ def replace_key_value(string, var_list):
                 print("--> Command:",string)
                 return False
             else:
-                break
+                continue
     return string
 
 def get_time_with_shift(time_string):   
