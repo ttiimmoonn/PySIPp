@@ -40,7 +40,7 @@ def cocon_configure(CoconCommands,test_var):
                 stdin, stdout, stderr = ssh_connect.exec_command(CoconCommand)
                 data = stdout.read() + stderr.read()
                 ssh_connect.close()
-                #print(data.decode("utf-8", "strict"))
+                print(data.decode("utf-8", "strict"))
             else:
                 #Если не удалось подключиться к CoCoN выходим...
                 return False
