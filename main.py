@@ -318,6 +318,8 @@ for test in tests:
                     test.Status = "Failed"
                     test.CompliteSFUA()
                     print("[ERROR] Send SF",code,"failed")
+                    print("[DEBUG] Sleep on 32s")
+                    time.sleep(32)
                     break
                 #Проверяем UA на статусы
                 print("[DEBUG] Check process StatusCode...")
@@ -326,6 +328,8 @@ for test in tests:
                     test.CompliteSFUA()
                     print("[ERROR] Can't send Feature code",code)
                     test.Status = "Failed"
+                    print("[DEBUG] Sleep on 32s")
+                    time.sleep(32)
                     break
                 else:
                     test.CompliteSFUA()
@@ -372,13 +376,14 @@ for test in tests:
                 #Если все предварительные процедуры выполнены успешно,
                 #то запускаем процессы
                 threads = proc.start_process_controller(test)
-                #Заводим таймер на 5 сек.
                 print("[DEBUG] Waiting for closing threads...")
                 if not proc.CheckThreads(threads):
                     #Переносим отработавшие UA в завершенные
                     test.Status = "Failed"
                     test.CompliteSFUA()
                     print("[ERROR] Send SF",code,"failed")
+                    print("[DEBUG] Sleep on 32s")
+                    time.sleep(32)
                     break
                 #Проверяем UA на статусы
                 print("[DEBUG] Check process StatusCode...")
@@ -387,6 +392,8 @@ for test in tests:
                     test.CompliteSFUA()
                     print("[ERROR] One of UAs failed")
                     test.Status = "Failed"
+                    print("[DEBUG] Sleep on 32s")
+                    time.sleep(32)
                     break
                 #Переносим все активные UA в завершённые
                 test.CompliteSFUA()
