@@ -246,7 +246,7 @@ for test in tests:
     test.Status = "Starting"
     for item in test.TestProcedure:
         #Если статус теста Failed заканчиваем процесс тестирования
-        if not test or test.Status == "Failed":
+        if not test:
             print("[ERROR] Test:",test.Name,"Failed.")
             break
 
@@ -275,7 +275,7 @@ for test in tests:
                 code = builder.replace_key_value(code, test_var)
                 if not code:
                     test.Status = "Failed"
-                    break
+                    continue
                 print ("[DEBUG] Send ServiceFeature code =", code)
 
                 try:
@@ -285,7 +285,7 @@ for test in tests:
                     print("    --> ID = ", user_id, "not found.")
                     #Выставляем статус теста
                     test.Status = "Failed"
-                    break
+                    continue
                 
                 #Собираем команду для активации сервис фичи
                 command = builder.build_service_feature_command(user,code)
@@ -295,7 +295,7 @@ for test in tests:
                 if not command:
                     #Выставляем статус теста
                     test.Status = "Failed"
-                    break
+                    continue
                 
                 service_ua = test_class.UserAgentClass()
                 service_ua = service_ua.GetServiceFetureUA(command,code,user,user_id)
@@ -304,7 +304,7 @@ for test in tests:
                 if not log_file:
                     #Выставляем статус теста
                     test.Status = "Failed"
-                    break
+                    continue
                 else:
                     service_ua.LogFd = log_file
                 #Добавляем сервис UA в активные UA теста
@@ -320,7 +320,7 @@ for test in tests:
                     print("[ERROR] Send SF",code,"failed")
                     print("[DEBUG] Sleep on 32s")
                     time.sleep(32)
-                    break
+                    continue
                 #Проверяем UA на статусы
                 print("[DEBUG] Check process StatusCode...")
                 if not proc.CheckUaStatus(test):
@@ -330,7 +330,7 @@ for test in tests:
                     test.Status = "Failed"
                     print("[DEBUG] Sleep on 32s")
                     time.sleep(32)
-                    break
+                    continue
                 else:
                     test.CompliteSFUA()
 
@@ -352,25 +352,25 @@ for test in tests:
                 test = parser.parse_user_agent(test,item[method])
                 if not test:
                     #Если неправильное описание юзер агентов, то выходим
-                    break
+                    continue
                 #Линкуем UA с объектами юзеров.
                 print("[DEBUG] Linking UA object with User object...")
                 test = link_user_to_test(test, test_users)
                 #Если есть ошибки при линковке, то выходим
                 if not test:
-                    break
+                    continue
                 #Собираем команды для UA.
                 print("[DEBUG] Building of SIPp commands for UA...")
                 test = builder.build_sipp_command(test,test_var,uac_drop_flag, timestamp_calc)
                 #Если есть ошибки при сборке, то выходим
                 if not test:
-                    break
+                    continue
                 #Линкуем лог файлы и UA
                 print("[DEBUG] Linking of LogFd with UA object...")
                 for ua in test.UserAgent:
                     log_fd = fs.open_log_file(ua.Name,log_path)
                     if not log_fd:
-                        break
+                        continue
                     else:
                         ua.LogFd = log_fd
                 #Если все предварительные процедуры выполнены успешно,
@@ -384,7 +384,7 @@ for test in tests:
                     print("[ERROR] Send SF",code,"failed")
                     print("[DEBUG] Sleep on 32s")
                     time.sleep(32)
-                    break
+                    continue
                 #Проверяем UA на статусы
                 print("[DEBUG] Check process StatusCode...")
                 if not proc.CheckUaStatus(test):
@@ -394,14 +394,14 @@ for test in tests:
                     test.Status = "Failed"
                     print("[DEBUG] Sleep on 32s")
                     time.sleep(32)
-                    break
+                    continue
                 #Переносим все активные UA в завершённые
                 test.CompliteSFUA()
             else:
                 #Если передана неизвесная команда, то выходим
                 test.Status = "Failed"
                 print("[ERROR] Unknown metod:",method,"in test procedure. Test aborting")
-                break
+                continue
     #Устанавливаем статус теста в завершён
     if test == False:
         print("[ERROR] Test procedure failed. Aborting")
