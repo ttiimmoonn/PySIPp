@@ -433,7 +433,7 @@ for test in tests:
     if test.Status == "Failed":
         failed_test_flag = True
         common_test_flag = True
-        print("     Test:",test.Name,"- failed.")
+        print("     Test",num_of_test,":",test.Name,"- fail.")
         continue
     elif test.Status == "Complite":
         for ua in test.CompliteUA:

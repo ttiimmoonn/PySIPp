@@ -104,8 +104,10 @@ def build_sipp_command(test,list,uac_drop_flag=False, timestamp_calc=False):
                 ua.TimeStampFile = timestamp_file
                 command += " -shortmessage_overwrite false -trace_shortmsg -shortmessage_file " + str(timestamp_file)
 
+            #Добавляем message trace
             command += " -trace_msg -message_file " + test.LogPath + "/" + "MESSAGE_" + str(ua.Name)
-
+            #Добавляем screen trace
+            command += " -trace_screen -screen_file " + test.LogPath + "/" + "SCREEN_" + str(ua.Name)
             command = replace_key_value(command, list)
 
             if command:
