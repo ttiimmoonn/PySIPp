@@ -17,6 +17,7 @@ import math
 from collections import OrderedDict
 
 def signal_handler(current_signal, frame):
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
     print("[DEBUG] Receive SIGINT signal. Start test aborting")
     if tests and test_desc and test_users:
         stop_test(tests,test_desc,test_users)
