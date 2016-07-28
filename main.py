@@ -16,20 +16,22 @@ import argparse
 import math
 from collections import OrderedDict
 
+def signal_handler(current_signal, frame):
+    print("[DEBUG] Receive SIGINT signal. Start test aborting")
+    if tests and test_desc and test_users:
+        stop_test(tests,test_desc,test_users)
+    for test in tests:
+        if test.Status!="New":
+            for ua in test.UserAgent:
+                for process in ua.Process:
+                    if process.poll() == None:
+                        process.kill()
+    #print(threading.current_thread())
+    sys.exit(1)
 
-def signal_handler(signal, frame):
-    if  __name__ ==  "__main__" : 
-        print("[DEBUG] Receive SIGINT signal. Start test aborting")
-        if tests and test_desc and test_users:
-            stop_test(tests,test_desc,test_users)
-        for test in tests:
-            if test.Status!="New":
-                for ua in test.UserAgent:
-                    for process in ua.Process:
-                        if process.poll() == None:
-                            process.kill()
-        #print(threading.current_thread())
-        sys.exit(1)
+
+#Добавляем трап на SIGINT
+signal.signal(signal.SIGINT, signal_handler)
 
 def createParser ():
     parser = argparse.ArgumentParser()
@@ -101,8 +103,8 @@ def match_test_numbers(test_numbers):
         raise argparse.ArgumentTypeError("Arg 'n' does not match required format : num1,num2,num3")
 
 
-#Добавляем трап на SIGINT
-signal.signal(signal.SIGINT, signal_handler)
+
+    
 #Парсим аргументы командной строки
 arg_parser = createParser()
 namespace = arg_parser.parse_args()

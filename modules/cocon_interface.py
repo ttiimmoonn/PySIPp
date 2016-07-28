@@ -2,7 +2,6 @@ import modules.cmd_builder as builder
 import paramiko
 import paramiko.ssh_exception as parm_excpt 
 
-
 def get_ssh_connection(host,port,user,secret):
     #Raises:    
     #BadHostKeyException – if the server’s host key could not be verified
