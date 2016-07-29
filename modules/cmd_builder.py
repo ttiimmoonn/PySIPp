@@ -74,7 +74,7 @@ def build_sipp_command(test,list,uac_drop_flag=False, timestamp_calc=False):
             try:
                 timeout = command["Timeout"]
             except KeyError:
-                timeout = 60
+                timeout = "60s"
             command=""                
             command += "%%SIPP_PATH%%"
             command += " -sf " + "%%SRC_PATH%%" + "/" + sipp_sf + " "

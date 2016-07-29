@@ -104,6 +104,11 @@ def DropRegistration (users):
             if users[user].RegLogFile != None:
                 users[user].RegLogFile.close()
             continue
+        #Если юзер уже разрегистрирован, то пропускаем его
+        #Требуется в том случае если кто-то интерапнул программу после сброса регистрации
+        if users[user].Status == "Dropped":
+            print("[WARN] Registaration for user",users[user].Login,"already dropped")
+            continue
         if not RegisterUser(users[user], "unreg"):
             continue
    
@@ -141,8 +146,8 @@ def start_ua_thread(ua, event_for_stop):
         # Добавляем новый процесс в массив
         ua.Process.append(process)
         # Ждём
-        time.sleep(0.8)
-        if process.poll() != None:
+        time.sleep(0.2)
+        if process.poll() != None and process.poll() != 0:
             ua.Status = "Not Started"
             print("--> [DEBUG] UA", ua.Name, "with command", commandCount, "not started")
             ua.SetStatusCode(2)
