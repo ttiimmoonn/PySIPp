@@ -81,15 +81,15 @@ def link_user_to_test(test, users):
     return test
 
 def stop_test(tests,test_desc,test_users,coconInt):
-    #Засовываем команды на деконфигурацию в очередь
-    if "PostCoconConf" in test_desc:
-        print("[DEBUG] Deconfigure of ECSS-10 system...")
-        #Переменные для настройки соединения с CoCoN
-        ssh.cocon_configure(test_desc["PostCoconConf"],coconInt,test_var)
-    #Отрубаем thread
-    #На всякий случай убеждаемся, что ccn thread существует и живой
-    if coconInt:
-        if coconInt.coconQueue:
+    if coconInt and coconInt.coconQueue and coconInt.myThread:
+        if coconInt.myThread.is_alive():
+            #Засовываем команды на деконфигурацию в очередь
+            if "PostCoconConf" in test_desc:
+                print("[DEBUG] Deconfigure of ECSS-10 system...")
+                #Переменные для настройки соединения с CoCoN
+                ssh.cocon_configure(test_desc["PostCoconConf"],coconInt,test_var)
+            #Отрубаем thread
+            #На всякий случай убеждаемся, что ccn thread существует и живой
             coconInt.eventForStop.set()
     #Разрегистрируем юзеров
     print("[DEBUG] Drop registration of users.")
@@ -207,11 +207,11 @@ coconInt = ssh.coconInterface(test_var)
 #Создаём event для остановки thread
 coconInt.eventForStop = threading.Event()
 #Поднимаем thread
-ccn_configure_thread = threading.Thread(target=ssh.ccn_command_handler, args=(coconInt,))
-ccn_configure_thread.start()
+coconInt.myThread = threading.Thread(target=ssh.ccn_command_handler, args=(coconInt,))
+coconInt.myThread.start()
 #Проверяем, что он жив.
 time.sleep(0.2)
-if not ccn_configure_thread.is_alive():
+if not coconInt.myThread.is_alive():
     print("[ERROR] Can't start CCN configure thread")
     sys.exit(1)
 

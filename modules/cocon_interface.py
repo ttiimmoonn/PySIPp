@@ -15,6 +15,7 @@ class coconInterface:
         self.ConnectionStatus = True
         self.coconQueue = queue.Queue()
         self.eventForStop = None
+        self.myThread = None
 
 
     def get_channel(self):
