@@ -20,7 +20,7 @@ def signal_handler(current_signal, frame):
     signal.signal(signal.SIGINT, signal.SIG_IGN)
     print("[DEBUG] Receive SIGINT signal. Start test aborting")
     if tests and test_desc and test_users:
-        stop_test(tests,test_desc,test_users)
+        stop_test(tests,test_desc,test_users,coconInt)
     for test in tests:
         if test.Status!="New":
             for ua in test.UserAgent:
@@ -80,11 +80,17 @@ def link_user_to_test(test, users):
                 return False
     return test
 
-def stop_test(tests,test_desc,test_users):
+def stop_test(tests,test_desc,test_users,coconInt):
+    #Засовываем команды на деконфигурацию в очередь
     if "PostCoconConf" in test_desc:
         print("[DEBUG] Deconfigure of ECSS-10 system...")
         #Переменные для настройки соединения с CoCoN
-        ssh.cocon_configure(test_desc["PostCoconConf"],test_var)
+        ssh.cocon_configure(test_desc["PostCoconConf"],coconInt,test_var)
+    #Отрубаем thread
+    #На всякий случай убеждаемся, что ccn thread существует и живой
+    if coconInt:
+        if coconInt.coconQueue:
+            coconInt.eventForStop.set()
     #Разрегистрируем юзеров
     print("[DEBUG] Drop registration of users.")
     proc.DropRegistration(test_users)
@@ -93,6 +99,8 @@ def stop_test(tests,test_desc,test_users):
         for ua in test.CompliteUA:
             if ua.LogFd:
                 ua.LogFd.close()
+    #Даём время на сворачивание thread
+    time.sleep(0.2)
     return True
 
 def match_test_numbers(test_numbers):
@@ -193,16 +201,28 @@ if not fs.create_log_dir(log_path):
 #Добавляем директорию с логами к тестам
 for test in tests:
     test.LogPath = log_path
+#Поднимаем thread для отправки CoCoN command
+print("[DEBUG] Start CoCoN thread...")
+coconInt = ssh.coconInterface(test_var)
+#Создаём event для остановки thread
+coconInt.eventForStop = threading.Event()
+#Поднимаем thread
+ccn_configure_thread = threading.Thread(target=ssh.ccn_command_handler, args=(coconInt,))
+ccn_configure_thread.start()
+#Проверяем, что он жив.
+time.sleep(0.2)
+if not ccn_configure_thread.is_alive():
+    print("[ERROR] Can't start CCN configure thread")
+    sys.exit(1)
 
 #Если есть настройки для CoCon выполняем их
 if "PreCoconConf" in test_desc:
     print("[DEBUG] Configuration of ECSS-10 system...")
     #Переменные для настройки соединения с CoCoN
-    if not ssh.cocon_configure(test_desc["PreCoconConf"],test_var):
+    if not ssh.cocon_configure(test_desc["PreCoconConf"],coconInt,test_var):
         sys.exit(1)
     #Даём кокону очнуться
     time.sleep(1)
-
 
 if len(test_users) != 0:
     #Собираем команды для регистрации абонентов
@@ -237,7 +257,7 @@ if len(test_users) != 0:
             #Пытаемся разрегистировать тех кого удалось зарегать
             proc.DropRegistration(test_users)
             #Выходим
-            stop_test(tests,test_desc,test_users)
+            stop_test(tests,test_desc,test_users,coconInt)
             sys.exit(1)
         
 
@@ -257,7 +277,7 @@ for test in tests:
             if method == "CoconCommand":
                 print("[DEBUG] Send commands to CoCon...")
                 #Переменные для настройки соединения с CoCoN
-                if not ssh.cocon_configure(item[method],test_var):  
+                if not ssh.cocon_configure(item[method],coconInt,test_var):  
                     #Выставляем статус теста
                     test.Status = "Failed"
                     break
@@ -408,7 +428,7 @@ for test in tests:
     #Устанавливаем статус теста в завершён
     if test == False:
         print("[ERROR] Test procedure failed. Aborting")
-        stop_test(tests,test_desc,test_users)
+        stop_test(tests,test_desc,test_users,coconInt)
         sys.exit(1)
     if test.Status != "Failed":
         test.Status = "Complite"
@@ -416,7 +436,7 @@ for test in tests:
 
             
 #Запускаем стоп тест
-stop_test(tests,test_desc,test_users)
+stop_test(tests,test_desc,test_users,coconInt)
 
 if timestamp_calc:
     for test in tests:
