@@ -83,6 +83,8 @@ def link_user_to_test(test, users):
 def stop_test(tests,test_desc,test_users,coconInt):
     if coconInt and coconInt.coconQueue and coconInt.myThread:
         if coconInt.myThread.is_alive():
+            #Чистим текущие задачи из очереди
+            coconInt.flush_queue()
             #Засовываем команды на деконфигурацию в очередь
             if "PostCoconConf" in test_desc:
                 print("[DEBUG] Deconfigure of ECSS-10 system...")
@@ -201,6 +203,7 @@ if not fs.create_log_dir(log_path):
 #Добавляем директорию с логами к тестам
 for test in tests:
     test.LogPath = log_path
+    
 #Поднимаем thread для отправки CoCoN command
 print("[DEBUG] Start CoCoN thread...")
 coconInt = ssh.coconInterface(test_var)

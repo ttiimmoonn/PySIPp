@@ -17,6 +17,14 @@ class coconInterface:
         self.eventForStop = None
         self.myThread = None
 
+    def flush_queue(self):
+        print ("[DEBUG] Flashing CCN Queue. Num of tasks:", self.coconQueue.qsize())
+        while not self.coconQueue.empty():
+            #Если поймали SIGINT, то чтобы не ждать исполнения всех команд
+            #просто вычитываем их.
+            self.coconQueue.get()
+            self.coconQueue.task_done()
+        return True
 
     def get_channel(self):
         try:
