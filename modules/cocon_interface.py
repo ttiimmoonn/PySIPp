@@ -52,7 +52,7 @@ class coconInterface:
             self.sshChannel.close()
             #Устанавливаем sshChannel в None
             self.sshChannel = None
-               #Даём кокону очнуться            
+            #Даём кокону очнуться            
             time.sleep(0.5)
             #print(data.decode("utf-8", "strict"))
             #Возвращаем True

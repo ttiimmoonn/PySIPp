@@ -30,7 +30,7 @@ def RegisterUser (user, mode="reg"):
                 # Cтавим код выхода
                 user.SetStatusCode(user.RegProcess.poll())
                 # Делаем сброс таймера
-                user.CleanRegistrationTimer() 
+                user.CleanRegistrationTimer()
                 print("    [ERROR] User", user.Number, "not registred. Detail:")
                 print("    --> Registeration failed. SIPp process return bad exit code.", "ex_code:", user.RegProcess.poll())
                 return False
@@ -41,7 +41,7 @@ def RegisterUser (user, mode="reg"):
                 return True
         except subprocess.TimeoutExpired:
             user.RegProcess.kill()
-            user.Status = "Error of registration (timeout)"
+            user.Status = "Error of registration (timeout)."
             user.SetStatusCode(2)
             user.CleanRegistrationTimer()
             print("    [ERROR] User", user.Number, "not registred. Detail:")
@@ -59,15 +59,17 @@ def RegisterUser (user, mode="reg"):
             print("    --> Can't start process {File not found}")
             #Закрываем лог файл
             user.RegLogFile.close()
+            user.SetStatusCode(3)
             return False
         else:
             user.UnRegProcess = process
         try:
             user.UnRegProcess.communicate(timeout=5)
             if user.UnRegProcess.poll() != 0:
-                user.Status = "Error of drop"
+                user.Status = "Error of drop registration"
                 print("    [ERROR] User registration", user.Number, "not dropped. Detail:")
                 print("    --> Drop failed. SIPp process return bad exit code.")
+                user.SetStatusCode(user.RegProcess.poll())
                 #Закрываем лог файл
                 user.RegLogFile.close()
                 return False
@@ -76,12 +78,14 @@ def RegisterUser (user, mode="reg"):
                 print("    [DEBUG] User registration", user.Number, " is dropped.")
                 #Закрываем лог файл
                 user.RegLogFile.close()
+                user.SetStatusCode(user.RegProcess.poll())
                 return True
         except subprocess.TimeoutExpired:
             user.UnRegProcess.kill()
             user.Status = "Error of drop (timeout)"
             print("    [ERROR] User registration", user.Number, "not dropped. Detail:")
             print("    --> Drop failed. UA registration process break by timeout.")
+            user.SetStatusCode(4)
             #Закрываем лог файл
             user.RegLogFile.close()
             return False
@@ -134,12 +138,12 @@ def start_ua_thread(ua, event_for_stop):
         if not event_for_stop.isSet():
             # Если пришла команда остановить thread выходим
             print("--> [DEBUG] UA", ua.Name, "with command", commandCount, "recv exit event.")
-            ua.SetStatusCode(6)
+            ua.SetStatusCode(1)
             break        
         # Запускаем UA
         process = start_ua (command, ua.LogFd)
         if not process:
-            ua.SetStatusCode(1)
+            ua.SetStatusCode(2)
             print("[ERROR] UA", ua.Name, "not started")
             return False
         ua.Status = "Starting"
@@ -150,7 +154,7 @@ def start_ua_thread(ua, event_for_stop):
         if process.poll() != None and process.poll() != 0:
             ua.Status = "Not Started"
             print("--> [DEBUG] UA", ua.Name, "with command", commandCount, "not started")
-            ua.SetStatusCode(2)
+            ua.SetStatusCode(3)
             # Если процесс упал, выходим
             return False
         else:
@@ -166,14 +170,16 @@ def start_ua_thread(ua, event_for_stop):
             
             if not event_for_stop.isSet():
                 process.kill()
-                ua.SetStatusCode(3)
+                ua.Status = "Killed (recv stop event)"
+                ua.SetStatusCode(4)
                 print("--> [DEBUG] UA", ua.Name, "with command", commandCount, "recv exit event.")
                 #print("--> [ERROR] UA", ua.Name, "with command", commandCount, "return", process.poll(), "exit code.")
                 return False      
             
             if process.poll() != 0:
                     ua.Status = "SIPp error"
-                    ua.SetStatusCode(4)
+                    # Выставляем статус код процессу.
+                    ua.SetStatusCode(process.poll())
                     print("--> [ERROR] UA", ua.Name, "with command", commandCount, "return", process.poll(), "exit code.")
                     return False
             else:
@@ -182,8 +188,8 @@ def start_ua_thread(ua, event_for_stop):
                 print("--> [DEBUG] UA", ua.Name, "with command", commandCount, "return", process.poll(), "exit code.")
         except subprocess.TimeoutExpired:
             process.kill()
+            ua.Status = "Killed by timeout"
             ua.SetStatusCode(5)
-            ua.Status = "Timeout Error"
             print("--> [ERROR] UA", ua.Name, "killed by timeout")
             return False
         commandCount += 1

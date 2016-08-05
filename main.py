@@ -45,6 +45,7 @@ def createParser ():
 
 def show_test_info (test):
     print("TestName:        ",test.Name)
+    print("TestStatus:      ",test.Status)
     print("TestDesc:        ",test.Description)
     print("TestUA:          ",test.UserAgent)
     print("TestCompliteUA   ",test.CompliteUA)
@@ -166,7 +167,7 @@ print ("[DEBUG] Parsing users from json string...")
 if "Users" in test_desc:    
     test_users = parser.parse_user_info(test_desc["Users"])
 else:
-    print("[WARN] Test has no users")
+    print("[WARN] No user in test")
 #Если есть ошибки при парсинге, то выходим
 if test_users == False:
     sys.exit(1)
@@ -270,11 +271,42 @@ for test in tests:
     print("[DEBUG] Start test:",test.Name)
     #Выставляем статус теста
     test.Status = "Starting"
-    for item in test.TestProcedure:
+    #Читаем индекс и команду из описания теста
+    #Индекс нужен для того, чтобы знать на какой команде мы остановились, когда тест получит статус failed
+    for index,item in enumerate(test.TestProcedure):
         #Если статус теста Failed заканчиваем процесс тестирования
-        if not test:
-            print("[ERROR] Test:",test.Name,"Failed.")
-            break
+        if not test or test.Status == "Failed":
+            #На данном этапе мы поняли, что тест провалился. Нужно предусмотреть деконфигурацию ссв.
+            #Пока сделаю следующее. Если тест свалился, то я ищу все оставшиеся CoconCommand
+            #и отправляю их на ссв.
+            
+            #Если отвалилось соединение с cocon, то дальше можно не пытаться ничего слать.
+            #Просто переходим к следующему тесту. 
+            if not coconInt.ConnectionStatus:
+                print (coconInt.ConnectionStatus)
+                break
+            if test:
+                print("[DEBUG] Trying send to CCN all commands from test:",test.Name)
+                #Берём срез массива от индекса, где у нас всё упало и до конца
+                for item in test.TestProcedure[index:]:
+                    for method in item:
+                        #Если метод равен CoconCommand, то отправляем команды в CCN handler
+                        if method == "CoconCommand":
+                            #Если не удалось отправить команду, выходим
+                            if not ssh.cocon_configure(item[method],coconInt,test_var):
+                                break
+                            else:
+                                #Если метод не CoconCommand, ищём дальше
+                                continue
+                        else:
+                            #Если в item нет method CoconCommand, ищём дальше
+                            continue
+                #После перебора всего теста, выходим. 
+                break
+            else:
+                #Если объект теста  равен false, то просто идём к следующему тесту
+                print("[WARN] Test object eq false.")
+                break
 
         for method in item:
             if method == "CoconCommand":
@@ -286,12 +318,15 @@ for test in tests:
                     break
                 else:
                     time.sleep(1)
+
             elif method == "Print":
                 message = str(item[method])
                 print("\033[32m[TEST_INFO]", message, "\033[1;m")
+
             elif method == "Stop":
                 sys.stdin.flush()
                 input("\033[1;31m[TEST_INFO] Test stopped. Please press any key to continue...\033[1;m")
+
             elif method == "ServiceFeature":
                 print("[DEBUG] SendServiceFeature command activate.")
                 #Забираем фича-код и юзера с которого его выполнить
@@ -301,7 +336,7 @@ for test in tests:
                 code = builder.replace_key_value(code, test_var)
                 if not code:
                     test.Status = "Failed"
-                    continue
+                    break
                 print ("[DEBUG] Send ServiceFeature code =", code)
 
                 try:
@@ -311,7 +346,7 @@ for test in tests:
                     print("    --> ID = ", user_id, "not found.")
                     #Выставляем статус теста
                     test.Status = "Failed"
-                    continue
+                    break
                 
                 #Собираем команду для активации сервис фичи
                 command = builder.build_service_feature_command(user,code)
@@ -321,7 +356,7 @@ for test in tests:
                 if not command:
                     #Выставляем статус теста
                     test.Status = "Failed"
-                    continue
+                    break
                 
                 service_ua = test_class.UserAgentClass()
                 service_ua = service_ua.GetServiceFetureUA(command,code,user,user_id)
@@ -330,7 +365,7 @@ for test in tests:
                 if not log_file:
                     #Выставляем статус теста
                     test.Status = "Failed"
-                    continue
+                    break
                 else:
                     service_ua.LogFd = log_file
                 #Добавляем сервис UA в активные UA теста
@@ -346,7 +381,7 @@ for test in tests:
                     print("[ERROR] Send SF",code,"failed")
                     print("[DEBUG] Sleep on 32s")
                     time.sleep(32)
-                    continue
+                    break
                 #Проверяем UA на статусы
                 print("[DEBUG] Check process StatusCode...")
                 if not proc.CheckUaStatus(test):
@@ -356,7 +391,7 @@ for test in tests:
                     test.Status = "Failed"
                     print("[DEBUG] Sleep on 32s")
                     time.sleep(32)
-                    continue
+                    break
                 else:
                     test.CompliteSFUA()
 
@@ -369,7 +404,6 @@ for test in tests:
                     sys.exit(1)
                 print("\033[32m[TEST_INFO] Sleep", sleep_time, "seconds\033[1;m")
                 time.sleep(sleep_time)
-                continue
 
             elif method == "StartUA":
                 print("[DEBUG] StartUA command activate.")
@@ -378,25 +412,25 @@ for test in tests:
                 test = parser.parse_user_agent(test,item[method])
                 if not test:
                     #Если неправильное описание юзер агентов, то выходим
-                    continue
+                    break
                 #Линкуем UA с объектами юзеров.
                 print("[DEBUG] Linking UA object with User object...")
                 test = link_user_to_test(test, test_users)
                 #Если есть ошибки при линковке, то выходим
                 if not test:
-                    continue
+                    break
                 #Собираем команды для UA.
                 print("[DEBUG] Building of SIPp commands for UA...")
                 test = builder.build_sipp_command(test,test_var,uac_drop_flag, timestamp_calc)
                 #Если есть ошибки при сборке, то выходим
                 if not test:
-                    continue
+                    break
                 #Линкуем лог файлы и UA
                 print("[DEBUG] Linking of LogFd with UA object...")
                 for ua in test.UserAgent:
                     log_fd = fs.open_log_file(ua.Name,log_path)
                     if not log_fd:
-                        continue
+                        break
                     else:
                         ua.LogFd = log_fd
                 #Если все предварительные процедуры выполнены успешно,
@@ -410,24 +444,24 @@ for test in tests:
                     print("[ERROR] Send SF",code,"failed")
                     print("[DEBUG] Sleep on 32s")
                     time.sleep(32)
-                    continue
+                    break
                 #Проверяем UA на статусы
                 print("[DEBUG] Check process StatusCode...")
                 if not proc.CheckUaStatus(test):
                     #Переносим отработавшие UA в завершенные
                     test.CompliteSFUA()
-                    print("[ERROR] One of UAs failed")
+                    print("[ERROR] One of UAs return bad exit code")
                     test.Status = "Failed"
                     print("[DEBUG] Sleep on 32s")
                     time.sleep(32)
-                    continue
+                    break
                 #Переносим все активные UA в завершённые
                 test.CompliteSFUA()
             else:
                 #Если передана неизвесная команда, то выходим
                 test.Status = "Failed"
                 print("[ERROR] Unknown metod:",method,"in test procedure. Test aborting")
-                continue
+                break
     #Устанавливаем статус теста в завершён
     if test == False:
         print("[ERROR] Test procedure failed. Aborting")
@@ -436,6 +470,8 @@ for test in tests:
     if test.Status != "Failed":
         test.Status = "Complite"
         print("[DEBUG] Test:",test.Name,"complite")
+    else:
+        print("[ERROR] Test:",test.Name,"Failed.")
 
             
 #Запускаем стоп тест
@@ -452,35 +488,28 @@ if timestamp_calc:
 
 #Производим расчёт результатов теста
 print("[DEBUG] Test info:")
-common_test_flag = False
-num_of_test = 0
-for test in tests:
-    failed_test_flag = False
+failed_test_flag = False
+
+#Если статус теста Failed, то поднимаем flag.
+for index,test in enumerate(tests):
+    #Если передавали параметр -n 1,3,4, то используем данные индексы.
+    if test_numbers:
+        index = test_numbers[index]
+
     if test.Status == "Failed":
         failed_test_flag = True
-        common_test_flag = True
-        print("     Test",num_of_test,":",test.Name,"- fail.")
-        num_of_test += 1
-        continue
+        print("     Test",index,":",test.Name,"- fail.")
+
     elif test.Status == "Complite":
-        for ua in test.CompliteUA:
-            if ua.StatusCode != 0:
-                failed_test_flag = True
-                common_test_flag = True
-            for process in ua.Process:
-                if process.poll() != 0:
-                    failed_test_flag = True
-                    common_test_flag = True
+        print("     Test",index,":",test.Name,"- succ.")
+        
     else:
-        print("     [ERROR] Unknown test status.")
+        print("     [ERROR] Unknown test status.",test.Name)
         failed_test_flag = True
-        common_test_flag = True
-    if failed_test_flag:
-        print("     Test",num_of_test,":",test.Name,"- fail.") 
-    else:
-        print("     Test",num_of_test,":",test.Name,"- succ.") 
-    num_of_test += 1
-if common_test_flag:
+        #Выводим дамп по этому тесту
+        show_test_info(test)
+
+if failed_test_flag:
     sys.exit(1)
 else:
     sys.exit(0)
