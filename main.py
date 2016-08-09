@@ -5,7 +5,7 @@ import modules.process_contr as proc
 import modules.fs_worker as fs
 import modules.cocon_interface as ssh
 import modules.test_class as test_class
-import modules.timestamp_calc as stat_module
+import modules.show_call_flow as stat_module
 import re
 import signal
 import json
@@ -40,7 +40,7 @@ def createParser ():
     parser.add_argument ('-c', '--custom_config', type=argparse.FileType(),required=True)
     parser.add_argument ('-n', '--test_numbers', type=match_test_numbers,required=False)
     parser.add_argument ('--drop_uac', action='store_const', const=True)
-    parser.add_argument ('--timestamp_calc', action='store_const', const=True)
+    parser.add_argument ('--show_sip_flow', action='store_const', const=True)
     return parser
 
 def show_test_info (test):
@@ -122,7 +122,7 @@ arg_parser = createParser()
 namespace = arg_parser.parse_args()
 test_numbers = namespace.test_numbers
 uac_drop_flag = namespace.drop_uac
-timestamp_calc = namespace.timestamp_calc
+show_sip_flow = namespace.show_sip_flow
 #Забираем описание теста и общие настройки
 jsonData = namespace.test_config.read()
 customSettings = namespace.custom_config.read()
@@ -224,6 +224,7 @@ if "PreCoconConf" in test_desc:
     print("[DEBUG] Configuration of ECSS-10 system...")
     #Переменные для настройки соединения с CoCoN
     if not ssh.cocon_configure(test_desc["PreCoconConf"],coconInt,test_var):
+        coconInt.eventForStop.set()
         sys.exit(1)
     #Даём кокону очнуться
     time.sleep(1)
@@ -236,6 +237,7 @@ if len(test_users) != 0:
         if command:
             test_users[key].RegCommand = command
         else:
+            coconInt.eventForStop.set()
             sys.exit(1)
 
     #Собираем команды для сброса регистрации абонентов
@@ -245,6 +247,7 @@ if len(test_users) != 0:
         if command:
             test_users[key].UnRegCommand = command
         else:
+            coconInt.eventForStop.set()
             sys.exit(1)
     #Врубаем регистрацию для всех юзеров
     print ("[DEBUG] Starting of registration...")
@@ -253,6 +256,7 @@ if len(test_users) != 0:
         log_file = fs.open_log_file(reg_log_name,log_path)
         #Если не удалось создать лог файл, то выходим
         if not log_file:
+            coconInt.eventForStop.set()
             sys.exit(1)
         else:
             test_users[user].RegLogFile = log_file
@@ -401,6 +405,7 @@ for test in tests:
                     sleep_time = int(item[method])
                 except:
                     print("[ERROR] Bag sleep arg. Exit.")
+                    coconInt.eventForStop.set()
                     sys.exit(1)
                 print("\033[32m[TEST_INFO] Sleep", sleep_time, "seconds\033[1;m")
                 time.sleep(sleep_time)
@@ -421,7 +426,7 @@ for test in tests:
                     break
                 #Собираем команды для UA.
                 print("[DEBUG] Building of SIPp commands for UA...")
-                test = builder.build_sipp_command(test,test_var,uac_drop_flag, timestamp_calc)
+                test = builder.build_sipp_command(test,test_var,uac_drop_flag, show_sip_flow)
                 #Если есть ошибки при сборке, то выходим
                 if not test:
                     break
@@ -477,7 +482,7 @@ for test in tests:
 #Запускаем стоп тест
 stop_test(tests,test_desc,test_users,coconInt)
 
-if timestamp_calc:
+if show_sip_flow:
     for test in tests:
         for ua in test.CompliteUA:
             if ua.WriteStat:

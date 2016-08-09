@@ -41,7 +41,7 @@ def build_reg_command (user,list,mode="reg"):
         return command
     else:
         return False
-def build_sipp_command(test,list,uac_drop_flag=False, timestamp_calc=False):
+def build_sipp_command(test,list,uac_drop_flag=False, show_sip_flow=False):
     for ua in test.UserAgent:
          #Пытаемся достать параметры команды
          for command in ua.RawJsonCommands:
@@ -99,7 +99,7 @@ def build_sipp_command(test,list,uac_drop_flag=False, timestamp_calc=False):
                 command += " -recv_timeout " + str(timeout)
             
             #Если был передан флаг для записи timestamp, то добавляем соотвествующие ключи
-            if timestamp_calc and ua.WriteStat:
+            if show_sip_flow and ua.WriteStat:
                 timestamp_file = test.LogPath + "/" + "TIMESTAMP_" + str(ua.Name)
                 ua.TimeStampFile = timestamp_file
                 command += " -shortmessage_overwrite false -trace_shortmsg -shortmessage_file " + str(timestamp_file)
