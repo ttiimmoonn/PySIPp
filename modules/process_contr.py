@@ -132,68 +132,75 @@ def start_ua_thread(ua, event_for_stop):
 #    event_for_wait.wait() # wait for event
 #    event_for_wait.clear() # clean event for future
 #    event_for_set.set() # set event for neighbor thread
-    commandCount = 1
-   
-    for command in ua.Commands:
-        if not event_for_stop.isSet():
-            # Если пришла команда остановить thread выходим
-            print("--> [DEBUG] UA", ua.Name, "with command", commandCount, "recv exit event.")
-            ua.SetStatusCode(1)
-            break        
-        # Запускаем UA
-        process = start_ua (command, ua.LogFd)
-        if not process:
-            ua.SetStatusCode(2)
-            print("[ERROR] UA", ua.Name, "not started")
-            return False
-        ua.Status = "Starting"
-        # Добавляем новый процесс в массив
-        ua.Process.append(process)
-        # Ждём
-        time.sleep(0.2)
-        if process.poll() != None and process.poll() != 0:
-            ua.Status = "Not Started"
-            print("--> [DEBUG] UA", ua.Name, "with command", commandCount, "not started")
-            ua.SetStatusCode(3)
-            # Если процесс упал, выходим
-            return False
-        else:
-            ua.Status = "Started"
-            print("--> [DEBUG] UA", ua.Name, "with command", commandCount, "started")
-        try:
-            while(event_for_stop.isSet()):
-                code = process.poll()
-                if code != None:
-                    # Если процесс завершился самостоятельно, то выходим из цикла
-                    break
-                time.sleep(0.01)
-            
+    while  True:
+        for commandCount, command in enumerate(ua.Commands,start=1):
             if not event_for_stop.isSet():
-                process.kill()
-                ua.Status = "Killed (recv stop event)"
-                ua.SetStatusCode(4)
+                # Если пришла команда остановить thread выходим
                 print("--> [DEBUG] UA", ua.Name, "with command", commandCount, "recv exit event.")
-                #print("--> [ERROR] UA", ua.Name, "with command", commandCount, "return", process.poll(), "exit code.")
-                return False      
-            
-            if process.poll() != 0:
-                    ua.Status = "SIPp error"
-                    # Выставляем статус код процессу.
-                    ua.SetStatusCode(process.poll())
-                    print("--> [ERROR] UA", ua.Name, "with command", commandCount, "return", process.poll(), "exit code.")
-                    return False
+                ua.SetStatusCode(1)
+                break 
+            # Запускаем UA
+            process = start_ua (command, ua.LogFd)
+            if not process:
+                ua.SetStatusCode(2)
+                print("[ERROR] UA", ua.Name, "not started")
+                return False
+            ua.Status = "Starting"
+            # Добавляем новый процесс в массив
+            ua.Process.append(process)
+            # Ждём
+            time.sleep(0.2)
+            if process.poll() != None and process.poll() != 0:
+                ua.Status = "Not Started"
+                print("--> [DEBUG] UA", ua.Name, "with command", commandCount, "not started")
+                ua.SetStatusCode(3)
+                # Если процесс упал, выходим
+                return False
             else:
-                ua.Status = "Success"
-                ua.SetStatusCode(process.poll())
-                print("--> [DEBUG] UA", ua.Name, "with command", commandCount, "return", process.poll(), "exit code.")
-        except subprocess.TimeoutExpired:
-            process.kill()
-            ua.Status = "Killed by timeout"
-            ua.SetStatusCode(5)
-            print("--> [ERROR] UA", ua.Name, "killed by timeout")
-            return False
-        commandCount += 1
-    return True
+                ua.Status = "Started"
+                print("--> [DEBUG] UA", ua.Name, "with command", commandCount, "started")
+            try:
+                while(event_for_stop.isSet()):
+                    code = process.poll()
+                    if code != None:
+                        # Если процесс завершился самостоятельно, то выходим из цикла
+                        break
+                    time.sleep(0.01)
+                
+                if not event_for_stop.isSet():
+                    process.kill()
+                    ua.Status = "Killed (recv stop event)"
+                    ua.SetStatusCode(4)
+                    print("--> [DEBUG] UA", ua.Name, "with command", commandCount, "recv exit event.")
+                    #print("--> [ERROR] UA", ua.Name, "with command", commandCount, "return", process.poll(), "exit code.")
+                    return False      
+                
+                if process.poll() != 0:
+                        ua.Status = "SIPp error"
+                        # Выставляем статус код процессу.
+                        ua.SetStatusCode(process.poll())
+                        print("--> [ERROR] UA", ua.Name, "with command", commandCount, "return", process.poll(), "exit code.")
+                        return False
+                else:
+                    ua.Status = "Success"
+                    ua.SetStatusCode(process.poll())
+                    print("--> [DEBUG] UA", ua.Name, "with command", commandCount, "return", process.poll(), "exit code.")
+            except subprocess.TimeoutExpired:
+                process.kill()
+                ua.Status = "Killed by timeout"
+                ua.SetStatusCode(5)
+                print("--> [ERROR] UA", ua.Name, "killed by timeout")
+                return False
+            commandCount += 1
+        #Если передали параметр Cyclic = True
+        if not ua.Cyclic:
+            #Выходим из цикла.
+            break
+        else:
+            print("--> [DEBUG] UA",ua.Name,"is started in Cyclic mode. Restarting UA processes...")
+            #Увеличиваем каунтер цикла
+            continue
+
 
 def start_process_controller(test):
     threads = []

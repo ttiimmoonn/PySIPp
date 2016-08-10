@@ -50,7 +50,7 @@ def show_test_info (test):
     print("TestUA:          ",test.UserAgent)
     print("TestCompliteUA   ",test.CompliteUA)
     print("")
-    for ua in test.CompliteUA:
+    for ua in test.UserAgent:
         print("     UaName:         ",ua.Name)
         print("     UaStatus:       ",ua.Status)
         print("     UaStatusCode:   ",ua.StatusCode)

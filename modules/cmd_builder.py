@@ -102,8 +102,7 @@ def build_sipp_command(test,list,uac_drop_flag=False, show_sip_flow=False):
             if show_sip_flow and ua.WriteStat:
                 timestamp_file = test.LogPath + "/" + "TIMESTAMP_" + str(ua.Name)
                 ua.TimeStampFile = timestamp_file
-                command += " -shortmessage_overwrite false -trace_shortmsg -shortmessage_file " + str(timestamp_file)
-
+                command += " -shortmessage_overwrite false -trace_shortmsg -shortmessage_file " + str(timestamp_file) 
             #Добавляем message trace
             command += " -message_overwrite false -trace_msg -message_file " + test.LogPath + "/" + "MESSAGE_" + str(ua.Name)
             #Добавляем screen trace

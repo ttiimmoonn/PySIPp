@@ -22,6 +22,7 @@ class UserAgentClass:
         self.RawJsonCommands=[]
         self.Process = []
         self.Status = None
+        self.Cyclic = None
         self.StatusCode = None
         self.Name = None
         self.Type = None

@@ -118,6 +118,11 @@ def parse_user_agent (test,ua_desc):
                     new_ua.WriteStat = ua["WriteStat"]
                 except:
                     new_ua.WriteStat = False
+                #Парсим параметр cyclic
+                try:
+                    new_ua.Cyclic = ua["Cyclic"]
+                except:
+                    new_ua.Cyclic = False
                 #Начинаем парсинг команд для UA
                 try:
                     for command in ua["Commands"]:
