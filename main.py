@@ -21,12 +21,6 @@ def signal_handler(current_signal, frame):
     print("[DEBUG] Receive SIGINT signal. Start test aborting")
     if tests and test_desc and test_users:
         stop_test(tests,test_desc,test_users,coconInt)
-    for test in tests:
-        if test.Status!="New":
-            for ua in test.UserAgent:
-                for process in ua.Process:
-                    if process.poll() == None:
-                        process.kill()
     #print(threading.current_thread())
     sys.exit(1)
 
@@ -94,6 +88,13 @@ def stop_test(tests,test_desc,test_users,coconInt):
             #Отрубаем thread
             #На всякий случай убеждаемся, что ccn thread существует и живой
             coconInt.eventForStop.set()
+    #Дропаем процессы
+    for test in tests:
+        if test.Status!="New":
+            for ua in test.UserAgent:
+                for process in ua.Process:
+                    if process.poll() == None:
+                        process.kill()
     #Разрегистрируем юзеров
     print("[DEBUG] Drop registration of users.")
     proc.DropRegistration(test_users)

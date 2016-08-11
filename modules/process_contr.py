@@ -115,13 +115,19 @@ def DropRegistration (users):
             continue
         if not RegisterUser(users[user], "unreg"):
             continue
-   
+
+            
+def preexec_process():
+    import os
+    os.setpgrp()
+
+
 def start_ua (command, fd):
 # Запуск подпроцесса регистрации
     args = shlex.split(str(command))
     try:
         # Пытаемся создать новый SIPp процесс.
-        ua_process = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=fd)
+        ua_process = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=fd, preexec_fn = preexec_process)
     except FileNotFoundError:
         # Если неправильно указан путь, то возвращаем false.
         return False
