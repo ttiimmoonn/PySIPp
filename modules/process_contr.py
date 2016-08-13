@@ -127,7 +127,7 @@ def start_ua (command, fd):
     args = shlex.split(str(command))
     try:
         # Пытаемся создать новый SIPp процесс.
-        ua_process = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=fd, preexec_fn = preexec_process)
+        ua_process = subprocess.Popen(args, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=fd, preexec_fn = preexec_process)
     except FileNotFoundError:
         # Если неправильно указан путь, то возвращаем false.
         return False
