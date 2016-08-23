@@ -37,6 +37,7 @@ def createParser ():
     parser.add_argument ('-c', '--custom_config', type=argparse.FileType(),required=True)
     parser.add_argument ('-n', '--test_numbers', type=match_test_numbers,required=False)
     parser.add_argument ('--drop_uac', action='store_const', const=True)
+    parser.add_argument ('--show_ua_info', action='store_const', const=True)
     parser.add_argument ('--show_sip_flow', action='store_const', const=True)
     return parser
 
@@ -128,6 +129,7 @@ namespace = arg_parser.parse_args()
 test_numbers = namespace.test_numbers
 uac_drop_flag = namespace.drop_uac
 show_sip_flow = namespace.show_sip_flow
+show_ua_info = namespace.show_ua_info
 #Забираем описание теста и общие настройки
 jsonData = namespace.test_config.read()
 customSettings = namespace.custom_config.read()
@@ -518,9 +520,9 @@ for index,test in enumerate(tests):
         failed_test_flag = True
         #Выводим дамп по этому тесту
         show_test_info(test)
-
-for test in tests:
-    show_test_info(test)
+if show_ua_info:
+    for test in tests:
+        show_test_info(test)
 
 if failed_test_flag:
     sys.exit(1)
