@@ -42,7 +42,7 @@ class UserAgentClass:
         return self
 
     def ReadStatusCode(self):
-        if not self.UALock.acquire(False):
+        if not self.UALock.acquire():
             #не удалось заблокировать ресурс
             return False
         else:
@@ -52,7 +52,7 @@ class UserAgentClass:
             finally:
                 self.UALock.release() 
     def SetStatusCode(self,statusCode):
-        if not self.UALock.acquire(False):
+        if not self.UALock.acquire():
             #не удалось заблокировать ресурс
             return False
         else:
@@ -92,7 +92,7 @@ class UserClass:
             pass
 
     def ReadStatusCode(self):
-        if not self.UserLock.acquire(False):
+        if not self.UserLock.acquire():
             #не удалось заблокировать ресурс
             return False
         else:
@@ -102,7 +102,7 @@ class UserClass:
             finally:
                 self.UserLock.release() 
     def SetStatusCode(self,statusCode):
-        if not self.UserLock.acquire(False):
+        if not self.UserLock.acquire():
             #не удалось заблокировать ресурс
             return False
         else:

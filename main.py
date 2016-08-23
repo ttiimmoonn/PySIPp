@@ -19,8 +19,11 @@ from collections import OrderedDict
 def signal_handler(current_signal, frame):
     signal.signal(signal.SIGINT, signal.SIG_IGN)
     print("[DEBUG] Receive SIGINT signal. Start test aborting")
-    if tests and test_desc and test_users:
-        stop_test(tests,test_desc,test_users,coconInt)
+    try:
+        if tests and test_desc and test_users and coconInt and reg_lock:
+            stop_test(tests,test_desc,test_users,coconInt,reg_lock)
+    except NameError:
+        print("[WARN] Required variables are missing!")
     #print(threading.current_thread())
     sys.exit(1)
 
@@ -44,7 +47,7 @@ def show_test_info (test):
     print("TestUA:          ",test.UserAgent)
     print("TestCompliteUA   ",test.CompliteUA)
     print("")
-    for ua in test.UserAgent:
+    for ua in test.CompliteUA:
         print("     UaName:         ",ua.Name)
         print("     UaStatus:       ",ua.Status)
         print("     UaStatusCode:   ",ua.StatusCode)
@@ -75,8 +78,8 @@ def link_user_to_test(test, users):
                 return False
     return test
 
-def stop_test(tests,test_desc,test_users,coconInt):
-    if coconInt and coconInt.coconQueue and coconInt.myThread:
+def stop_test(tests,test_desc,test_users,coconInt,reg_lock):
+    if coconInt.coconQueue and coconInt.myThread:
         if coconInt.myThread.is_alive():
             #Чистим текущие задачи из очереди
             coconInt.flush_queue()
@@ -97,12 +100,13 @@ def stop_test(tests,test_desc,test_users,coconInt):
                         process.kill()
     #Разрегистрируем юзеров
     print("[DEBUG] Drop registration of users.")
-    proc.DropRegistration(test_users)
+    proc.ChangeUsersRegistration(test_users,reg_lock,"unreg")
     print("[DEBUG] Close log files...")
-    for test in tests:
-        for ua in test.CompliteUA:
-            if ua.LogFd:
-                ua.LogFd.close()
+    if tests:
+        for test in tests:
+            for ua in test.CompliteUA:
+                if ua.LogFd:
+                    ua.LogFd.close()
     #Даём время на сворачивание thread
     time.sleep(0.2)
     return True
@@ -130,8 +134,8 @@ customSettings = namespace.custom_config.read()
 namespace.test_config.close()
 namespace.custom_config.close()
 
-
-
+#Декларируем lock объект для регистрации
+reg_lock = threading.Lock()
 #Декларируем массив для юзеров
 test_users = {}
 #декларируем массив для тестов
@@ -252,6 +256,7 @@ if len(test_users) != 0:
             sys.exit(1)
     #Врубаем регистрацию для всех юзеров
     print ("[DEBUG] Starting of registration...")
+    #Декларируем массив для thread регистрации
     for user in test_users:
         reg_log_name = "REG_" + str(test_users[user].Number)
         log_file = fs.open_log_file(reg_log_name,log_path)
@@ -261,14 +266,13 @@ if len(test_users) != 0:
             sys.exit(1)
         else:
             test_users[user].RegLogFile = log_file
-        if not proc.RegisterUser(test_users[user]):
-            #Если регистрация не прошла
-            #Пытаемся разрегистировать тех кого удалось зарегать
-            proc.DropRegistration(test_users)
-            #Выходим
-            stop_test(tests,test_desc,test_users,coconInt)
-            sys.exit(1)
-        
+
+    reg_thread = threading.Thread(target=proc.ChangeUsersRegistration, args=(test_users,reg_lock))
+    reg_thread.start()
+    reg_thread.join()
+    if not proc.CheckUserRegStatus(test_users):
+        stop_test(tests,test_desc,test_users,coconInt,reg_lock)
+        sys.exit(1)   
 
 
 #Запускаем процесс тестирования
@@ -471,7 +475,7 @@ for test in tests:
     #Устанавливаем статус теста в завершён
     if test == False:
         print("[ERROR] Test procedure failed. Aborting")
-        stop_test(tests,test_desc,test_users,coconInt)
+        stop_test(tests,test_desc,test_users,coconInt,reg_lock)
         sys.exit(1)
     if test.Status != "Failed":
         test.Status = "Complite"
@@ -481,7 +485,7 @@ for test in tests:
 
             
 #Запускаем стоп тест
-stop_test(tests,test_desc,test_users,coconInt)
+stop_test(tests,test_desc,test_users,coconInt,reg_lock)
 
 if show_sip_flow:
     for test in tests:
@@ -514,6 +518,9 @@ for index,test in enumerate(tests):
         failed_test_flag = True
         #Выводим дамп по этому тесту
         show_test_info(test)
+
+for test in tests:
+    show_test_info(test)
 
 if failed_test_flag:
     sys.exit(1)

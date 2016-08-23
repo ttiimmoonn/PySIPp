@@ -93,28 +93,6 @@ def RegisterUser (user, mode="reg"):
         print("    [ERROR] Bad arg {set registration func}")
         return False
 
-def DropRegistration (users):
-    #Делаем остановку всех таймеров
-    for user in users:
-        #Если таймер существует, то дропаем его
-        if users[user].Timer:
-            users[user].CleanRegistrationTimer()
-    # Делаем сброс регистрации
-    for user in users:
-        if users[user].ReadStatusCode() != 0:
-            #Поскольку статус код регистрации не равен нулю
-            #то дропать регистрацию такому юзеру не нужно
-            #Закрываем лог файл и продолжаем перебор юзеров
-            if users[user].RegLogFile != None:
-                users[user].RegLogFile.close()
-            continue
-        #Если юзер уже разрегистрирован, то пропускаем его
-        #Требуется в том случае если кто-то интерапнул программу после сброса регистрации
-        if users[user].Status == "Dropped":
-            print("[WARN] Registaration for user",users[user].Login,"already dropped")
-            continue
-        if not RegisterUser(users[user], "unreg"):
-            continue
 
             
 def preexec_process():
@@ -287,3 +265,59 @@ def CheckUaStatus(test):
             if proc.poll() != 0:
                 return False
     return True
+
+def CheckUserRegStatus(test_users):
+    for user in test_users:
+        if test_users[user].ReadStatusCode() != 0:
+            return False
+    return True
+
+def ChangeUsersRegistration(test_users, lock, mode="reg"):
+    if lock.locked():
+        print("[WARN] Registration lock object is acquired. Waiting release...")
+    if not lock.acquire():
+        #не удалось заблокировать ресурс
+        return False
+    else:
+        try:
+            if mode == "reg":
+                reg_threads=[]
+                #Запускаем регистрацию
+                for user in test_users:
+                    reg_thread = threading.Thread(target=RegisterUser, args=(test_users[user],mode))
+                    reg_thread.start()
+                    #Добавляем thread в массив
+                    reg_threads.append(reg_thread)
+
+                #Ждём пока все thread завершатся
+                for reg_thread in reg_threads:
+                    reg_thread.join()
+
+            elif mode == "unreg":
+                reg_threads=[]
+                #Делаем остановку всех таймеров
+                for user in test_users:
+                    #Если таймер существует, то дропаем его
+                    if test_users[user].Timer:
+                        test_users[user].CleanRegistrationTimer()
+
+                for user in test_users:
+                    if test_users[user].Status == "Dropped":
+                        print("[WARN] Registaration for user",users[user].Login,"already dropped")
+                        continue
+                    #Дропаем только успешные регистрации
+                    if test_users[user].ReadStatusCode() == 0:
+                        reg_thread = threading.Thread(target=RegisterUser, args=(test_users[user],mode))
+                        reg_thread.start()
+                        #Добавляем thread в массив
+                        reg_threads.append(reg_thread)
+
+                #Ждём пока все thread завершатся
+                for reg_thread in reg_threads:
+                    reg_thread.join()
+
+                for user in test_users:
+                    if test_users[user].RegLogFile != None:
+                        test_users[user].RegLogFile.close()
+        finally:
+            lock.release()
