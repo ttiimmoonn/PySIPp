@@ -196,7 +196,7 @@ def start_process_controller(test):
     #Начинаем запуск UA по очереди
     print("[DEBUG] Trying to start UA...")
     for ua in test.UserAgent:
-        time.sleep(0.5)
+        time.sleep(0.01)
         # Инициализируем новый thread
         testThread = threading.Thread(target=start_ua_thread, args=(ua,event_for_threads,), name = ua.Name)
         testThread.setName(ua.Name)
@@ -303,7 +303,7 @@ def ChangeUsersRegistration(test_users, lock, mode="reg"):
 
                 for user in test_users:
                     if test_users[user].Status == "Dropped":
-                        print("[WARN] Registaration for user",users[user].Login,"already dropped")
+                        print("[WARN] Registaration for user",test_users[user].Login,"already dropped")
                         continue
                     #Дропаем только успешные регистрации
                     if test_users[user].ReadStatusCode() == 0:

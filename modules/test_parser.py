@@ -67,12 +67,12 @@ def parse_test_info (json_tests):
                     print("[ERROR] Sleep command must have a int value.")
                     return False
             if "ServiceFeature" in item:
-                try:
-                    service_desc = item["ServiceFeature"]
-                    int(service_desc[0]["userId"])
-                except:
-                    print("[ERROR] UserId in ServiceFeature command must have a int value.")
-                    return False   
+                for sf in item["ServiceFeature"]:
+                    try:
+                        int(sf["userId"])
+                    except:
+                        print("[ERROR] UserId in ServiceFeature command must have a int value. { Bad UserID:",sf["userId"],"}")
+                        return False   
         tests.append(new_test)
     return tests
 def parse_user_agent (test,ua_desc):

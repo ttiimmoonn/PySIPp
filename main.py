@@ -101,7 +101,8 @@ def stop_test(tests,test_desc,test_users,coconInt,reg_lock):
                         process.kill()
     #Разрегистрируем юзеров
     print("[DEBUG] Drop registration of users.")
-    proc.ChangeUsersRegistration(test_users,reg_lock,"unreg")
+    unreg_thread = threading.Thread(target=proc.ChangeUsersRegistration, args=(test_users,reg_lock,"unreg",))
+    unreg_thread.start()
     print("[DEBUG] Close log files...")
     if tests:
         for test in tests:
@@ -110,6 +111,8 @@ def stop_test(tests,test_desc,test_users,coconInt,reg_lock):
                     ua.LogFd.close()
     #Даём время на сворачивание thread
     time.sleep(0.2)
+    #Даём завершиться thread'у разрегистрации
+    unreg_thread.join()
     return True
 
 def match_test_numbers(test_numbers):
@@ -294,7 +297,7 @@ for test in tests:
             #Если отвалилось соединение с cocon, то дальше можно не пытаться ничего слать.
             #Просто переходим к следующему тесту. 
             if not coconInt.ConnectionStatus:
-                print (coconInt.ConnectionStatus)
+                print ("[DEBUG] Connection Status:",coconInt.ConnectionStatus)
                 break
             if test:
                 print("[DEBUG] Trying send to CCN all commands from test:",test.Name)
@@ -339,50 +342,64 @@ for test in tests:
                 input("\033[1;31m[TEST_INFO] Test stopped. Please press any key to continue...\033[1;m")
 
             elif method == "ServiceFeature":
+                #Список threads для SF
+                sf_threads=[]
+                sf_use_uid = []
                 print("[DEBUG] SendServiceFeature command activate.")
                 #Забираем фича-код и юзера с которого его выполнить
                 #О наличии данных параметров заботится парсер тестов
-                code = item[method][0]['code']
-                user_id = str(item[method][0]['userId'])
-                code = builder.replace_key_value(code, test_var)
-                if not code:
-                    test.Status = "Failed"
-                    break
-                print ("[DEBUG] Send ServiceFeature code =", code)
+                for sf in item[method]:
+                    code = sf['code']
+                    user_id = str(sf['userId'])
+                    code = builder.replace_key_value(code, test_var)
+                    if not code:
+                        test.Status = "Failed"
+                        break
+                    if user_id in sf_use_uid:
+                        print("[ERROR] Duplicated UserId in ServiceFeature item: { UA :",user_id,"}")
+                        test.Status = "Failed"
+                        break
+                    else:
+                        sf_use_uid.append(user_id)
+                    print ("[DEBUG] Send ServiceFeature code =", code)
 
-                try:
-                    user = test_users[str(user_id)]
-                except:
-                    print("[ERROR] Can't get User Object with.")
-                    print("    --> ID = ", user_id, "not found.")
-                    #Выставляем статус теста
-                    test.Status = "Failed"
-                    break
+                    try:
+                        user = test_users[str(user_id)]
+                    except:
+                        print("[ERROR] Can't get User Object with.")
+                        print("    --> ID = ", user_id, "not found.")
+                        #Выставляем статус теста
+                        test.Status = "Failed"
+                        break
                 
-                #Собираем команду для активации сервис фичи
-                command = builder.build_service_feature_command(user,code)
-                #Прогоняем её через словарь
-                command = builder.replace_key_value(command, test_var)
+                    #Собираем команду для активации сервис фичи
+                    command = builder.build_service_feature_command(user,code)
+                    #Прогоняем её через словарь
+                    command = builder.replace_key_value(command, test_var)
                 
-                if not command:
-                    #Выставляем статус теста
-                    test.Status = "Failed"
-                    break
+                    if not command:
+                        #Выставляем статус теста
+                        test.Status = "Failed"
+                        break
                 
-                service_ua = test_class.UserAgentClass()
-                service_ua = service_ua.GetServiceFetureUA(command,code,user,user_id)
-                sf_log_name = "SF_" + str(service_ua.Name)
-                log_file = fs.open_log_file(sf_log_name,log_path)
-                if not log_file:
-                    #Выставляем статус теста
-                    test.Status = "Failed"
+                    service_ua = test_class.UserAgentClass()
+                    service_ua = service_ua.GetServiceFetureUA(command,code,user,user_id)
+                    sf_log_name = "SF_" + str(service_ua.Name)
+                    log_file = fs.open_log_file(sf_log_name,log_path)
+                    if not log_file:
+                        #Выставляем статус теста
+                        test.Status = "Failed"
+                        break
+                    else:
+                        service_ua.LogFd = log_file
+                    #Добавляем сервис UA в активные UA теста
+                    test.UserAgent.append(service_ua)
+
+                if test.Status == "Failed":
                     break
-                else:
-                    service_ua.LogFd = log_file
-                #Добавляем сервис UA в активные UA теста
-                test.UserAgent.append(service_ua)
                 #Запускаем активацию фича-кода через процесс контроллер
                 sf_thread = proc.start_process_controller(test)
+
                 #Проверяем, что вернувшиеся треды закрыты:
                 print("[DEBUG] Waiting for closing threads...")
                 if not proc.CheckThreads(sf_thread):
