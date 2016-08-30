@@ -3,8 +3,7 @@ import paramiko
 import paramiko.ssh_exception as parm_excpt 
 import queue
 import time
-
-
+import logging
 class coconInterface:
     def __init__(self,test_var):
         self.Login = str(test_var["%%DEV_USER%%"])
@@ -30,7 +29,7 @@ class coconInterface:
         try:
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            client.connect(hostname = self.Ip, username = self.Login, password = self.Password, port = self.Port, timeout=10)
+            client.connect(hostname = self.Ip, username = self.Login, password = self.Password, port = self.Port, timeout=10, look_for_keys=False)
         except:
             print("[ERROR] Can't connect to CoCon interface. {cocon thread}")
             print("--> Try to check connection settings.")
