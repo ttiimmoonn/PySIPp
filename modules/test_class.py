@@ -23,7 +23,7 @@ class TestClass:
         self.UserAgent += self.BackGroundUA
         self.BackGroundUA = []
 
-    def MoveBackGroundUA():
+    def MoveBackGroundUA(self):
         #Костыль!
         for count, ua in enumerate(self.UserAgent):
             if ua.BackGround:
