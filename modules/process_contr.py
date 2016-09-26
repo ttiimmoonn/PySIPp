@@ -127,6 +127,8 @@ def start_ua_thread(ua, event_for_stop):
             process = start_ua (command, ua.LogFd)
             if not process:
                 ua.SetStatusCode(2)
+                #Сигналим в соседний thread
+                test.ThreadEvent.clear()
                 print("[ERROR] UA", ua.Name, "not started")
                 return False
             ua.Status = "Starting"
@@ -138,6 +140,8 @@ def start_ua_thread(ua, event_for_stop):
                 ua.Status = "Not Started"
                 print("--> [DEBUG] UA", ua.Name, "with command", commandCount, "not started")
                 ua.SetStatusCode(3)
+                #Сигналим в соседний thread
+                test.ThreadEvent.clear()
                 # Если процесс упал, выходим
                 return False
             else:
@@ -155,6 +159,8 @@ def start_ua_thread(ua, event_for_stop):
                     process.kill()
                     ua.Status = "Killed (recv stop event)"
                     ua.SetStatusCode(4)
+                    #Сигналим в соседний thread
+                    test.ThreadEvent.clear()
                     print("--> [DEBUG] UA", ua.Name, "with command", commandCount, "recv exit event.")
                     #print("--> [ERROR] UA", ua.Name, "with command", commandCount, "return", process.poll(), "exit code.")
                     return False      
@@ -163,6 +169,8 @@ def start_ua_thread(ua, event_for_stop):
                         ua.Status = "SIPp error"
                         # Выставляем статус код процессу.
                         ua.SetStatusCode(process.poll())
+                        #Сигналим в соседний thread
+                        test.ThreadEvent.clear()
                         print("--> [ERROR] UA", ua.Name, "with command", commandCount, "return", process.poll(), "exit code.")
                         return False
                 else:
@@ -174,6 +182,8 @@ def start_ua_thread(ua, event_for_stop):
                 ua.Status = "Killed by timeout"
                 ua.SetStatusCode(5)
                 print("--> [ERROR] UA", ua.Name, "killed by timeout")
+                #Сигналим в соседний thread
+                test.ThreadEvent.clear()
                 return False
             commandCount += 1
         #Если передали параметр Cyclic = True
@@ -229,8 +239,6 @@ def start_process_controller(test):
                 if ex_code == None:
                     continue
                 if int(ex_code) != 0:
-                    #Если процесс отвалился, останавливаем все thread
-                    test.ThreadEvent.clear()
                     #Выходим из диспетчера
                     event_for_mgm = False
                     
