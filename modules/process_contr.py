@@ -204,7 +204,7 @@ def start_process_controller(test):
         testThread.start()
         if ua.BackGround:
             print("[DEBUG] UA:",ua.Name,"will be started in background mode.")
-            threads.BackGroundThreads.append(testThread)
+            test.BackGroundThreads.append(testThread)
         else:
             threads.append(testThread)
     #Костыль! Разделяем обычные ua и bg.
