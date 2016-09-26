@@ -497,7 +497,7 @@ for test in tests:
                 break
     if len(test.WaitBackGroundUA) > 0:
         print("[DEBUG] Waiting for closing threads which started in background mode...")
-        if not proc.CheckThreads(test.WaitBackGroundUA):
+        if not proc.CheckThreads(test.BackGroundThreads):
             test.ThreadEvent.clear()
             #Даём thread завершиться
             time.sleep(1)
