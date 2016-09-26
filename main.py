@@ -495,9 +495,9 @@ for test in tests:
                 test.Status = "Failed"
                 print("[ERROR] Unknown metod:",method,"in test procedure. Test aborting")
                 break
-    if len(test.BackGroundThreads) > 0:
+    if len(test.WaitBackGroundUA) > 0:
         print("[DEBUG] Waiting for closing threads which started in background mode...")
-        if not proc.CheckThreads(test.BackGroundThreads):
+        if not proc.CheckThreads(test.WaitBackGroundUA):
             test.ThreadEvent.clear()
             #Даём thread завершиться
             time.sleep(1)
