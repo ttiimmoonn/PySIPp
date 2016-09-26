@@ -95,7 +95,7 @@ def stop_test(tests,test_desc,test_users,coconInt,reg_lock):
     #Дропаем процессы
     for test in tests:
         if test.Status!="New":
-            for ua in test.UserAgent + test.BackGroundUA:
+            for ua in test.UserAgent + test.WaitBackGroundUA:
                 for process in ua.Process:
                     if process.poll() == None:
                         process.kill()
@@ -506,7 +506,7 @@ for test in tests:
             print("[DEBUG] Sleep on 32s")
             test.CompliteBgUA()
             time.sleep(32)
-        elif not proc.CheckUaStatus(test.BackGroundUA):
+        elif not proc.CheckUaStatus(test.WaitBackGroundUA):
             #Переносим отработавшие UA в завершенные
             test.CompliteBgUA()
             print("[ERROR] One of UAs return bad exit code")

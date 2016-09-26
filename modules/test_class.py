@@ -8,6 +8,7 @@ class TestClass:
         self.CompliteUA = []
         self.BackGroundUA = []
         self.BackGroundThreads = []
+        self.WaitBackGroundUA = []
         self.ThreadEvent = threading.Event()
         self.Name = None
         self.Description = None
@@ -19,9 +20,13 @@ class TestClass:
         self.CompliteUA += self.UserAgent
         self.UserAgent = []
 
-    def CompliteBgUA(self):
-        self.CompliteUA += self.BackGroundUA
+    def ReplaceBgUaToWait(self):
+        self.WaitBackGroundUA += self.BackGroundUA
         self.BackGroundUA = []
+
+    def CompliteBgUA(self):
+        self.CompliteUA += self.WaitBackGroundUA
+        self.WaitBackGroundUA = []
 
 class UserAgentClass:
     def __init__(self):
