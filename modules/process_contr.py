@@ -225,7 +225,7 @@ def start_process_controller(test):
                     ex_code = ua.UserObject.ReadStatusCode()
                     if ex_code != 0:
                         #Если регистрация отвалилась, останавливаем все thread
-                        event_for_threads.clear()
+                        test.ThreadEvent.clear()
                         #Выходим из диспетчера
                         event_for_mgm = False
         #Проверяем, что все процессы возращают 0 ex_code
@@ -236,7 +236,7 @@ def start_process_controller(test):
                     continue
                 if int(ex_code) != 0:
                     #Если процесс отвалился, останавливаем все thread
-                    event_for_threads.clear()
+                    test.ThreadEvent.clear()
                     #Выходим из диспетчера
                     event_for_mgm = False
                     
