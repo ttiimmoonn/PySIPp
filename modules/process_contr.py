@@ -190,27 +190,21 @@ def start_process_controller(test):
     threads = []
     #Устанавливаем его в true
     test.ThreadEvent.set()
-    test.ThreadEventForBG.set()
    
     #Начинаем запуск UA по очереди
     print("[DEBUG] Trying to start UA...")
+    # Инициализируем новый thread
+    testThread = threading.Thread(target=start_ua_thread, args=(ua,test.ThreadEvent,), name = ua.Name)
+    testThread.setName(ua.Name)
+    # Запускаем новый thread
+    testThread.start()
     for ua in test.UserAgent + test.BackGroundUA:
         time.sleep(0.01)
         #Разделяем Thread
         if ua.BackGround:
             print("[DEBUG] UA:",ua.Name,"will be started in background mode.")
-            # Инициализируем новый thread
-            testThread = threading.Thread(target=start_ua_thread, args=(ua,test.ThreadEventForBG,), name = ua.Name)
-            testThread.setName(ua.Name)
-            # Запускаем новый thread
-            testThread.start()
             test.BackGroundThreads.append(testThread)
         else:
-            # Инициализируем новый thread
-            testThread = threading.Thread(target=start_ua_thread, args=(ua,test.ThreadEvent,), name = ua.Name)
-            testThread.setName(ua.Name)
-            # Запускаем новый thread
-            testThread.start()
             threads.append(testThread)
         
     #Включаем цикл опроса статусов процессов.

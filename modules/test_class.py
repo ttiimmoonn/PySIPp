@@ -9,7 +9,6 @@ class TestClass:
         self.BackGroundUA = []
         self.BackGroundThreads = []
         self.ThreadEvent = threading.Event()
-        self.ThreadEventForBG = threading.Event()
         self.Name = None
         self.Description = None
         self.TestProcedure = None
