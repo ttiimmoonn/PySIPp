@@ -201,7 +201,7 @@ def start_process_controller(test):
         # Запускаем новый thread
         testThread.start()
         #Разделяем Thread
-        if ua.BackGround:
+        if ua.BackGround and ua.Status == "New":
             print("[DEBUG] UA:",ua.Name,"will be started in background mode.")
             test.BackGroundThreads.append(testThread)
         else:
