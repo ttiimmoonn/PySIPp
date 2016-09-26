@@ -116,7 +116,7 @@ def start_ua_thread(ua, event_for_stop):
 #    event_for_wait.wait() # wait for event
 #    event_for_wait.clear() # clean event for future
 #    event_for_set.set() # set event for neighbor thread
-    while  True:
+    while  event_for_stop.isSet():
         for commandCount, command in enumerate(ua.Commands,start=1):
             if not event_for_stop.isSet():
                 # Если пришла команда остановить thread выходим
