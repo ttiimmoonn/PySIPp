@@ -194,7 +194,7 @@ def start_process_controller(test):
    
     #Начинаем запуск UA по очереди
     print("[DEBUG] Trying to start UA...")
-    for count, ua in enumerate(test.UserAgent):
+    for ua in test.UserAgent + test.BackGroundUA:
         time.sleep(0.01)
         #Разделяем Thread
         if ua.BackGround:
