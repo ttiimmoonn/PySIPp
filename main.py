@@ -406,7 +406,6 @@ for test in tests:
                     #Переносим отработавшие UA в завершенные
                     test.Status = "Failed"
                     test.CompliteSFUA()
-                    print("[ERROR] Send SF",code,"failed")
                     print("[DEBUG] Sleep on 32s")
                     time.sleep(32)
                     break
@@ -470,7 +469,6 @@ for test in tests:
                     #Переносим отработавшие UA в завершенные
                     test.Status = "Failed"
                     test.CompliteSFUA()
-                    print("[ERROR] Send SF",code,"failed")
                     print("[DEBUG] Sleep on 32s")
                     time.sleep(32)
                     break
@@ -491,6 +489,29 @@ for test in tests:
                 test.Status = "Failed"
                 print("[ERROR] Unknown metod:",method,"in test procedure. Test aborting")
                 break
+    if len(test.BackGroundThreads) > 0:
+        print("Waiting for closing threads which started in background mode...")
+        #Костыль!
+        test.CompliteBgUA()
+        if not proc.CheckThreads(test.BackGroundThreads):
+            #Переносим отработавшие UA в завершенные
+            test.Status = "Failed"
+            print("[DEBUG] Sleep on 32s")
+            test.CompliteSFUA()
+            time.sleep(32)
+        elif not proc.CheckUaStatus(test):
+            #Переносим отработавшие UA в завершенные
+            test.CompliteSFUA()
+            print("[ERROR] One of UAs return bad exit code")
+            test.Status = "Failed"
+            print("[DEBUG] Sleep on 32s")
+            time.sleep(32)
+        else:
+            test.CompliteBgUA()
+
+
+
+
     #Устанавливаем статус теста в завершён
     if test == False:
         print("[ERROR] Test procedure failed. Aborting")

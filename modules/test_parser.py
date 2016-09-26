@@ -133,6 +133,10 @@ def parse_user_agent (test,ua_desc):
                         print("[ERROR] Wrong UA description. Detail:")
                         print("---> UA has no attribute:",sys.exc_info()[1])
                         return False
+                try:
+                    new_ua.BackGround = ua["BackGround"]
+                except:
+                    new_ua.BackGround = False
                 test.UserAgent.append(new_ua)
         except KeyError:
             #Если в тесте нет UA, то выходим

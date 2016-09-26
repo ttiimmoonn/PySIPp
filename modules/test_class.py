@@ -6,15 +6,29 @@ class TestClass:
     def __init__(self):
         self.UserAgent = []
         self.CompliteUA = []
+        self.BackGroundUA = []
+        self.BackGroundThreads = []
         self.Name = None
         self.Description = None
         self.TestProcedure = None
         self.Status = None
         self.LogPath = None
+    
     def CompliteSFUA(self):
         self.CompliteUA += self.UserAgent
         self.UserAgent = []
 
+    def CompliteBgUA(self):
+        #Костыль!
+        self.UserAgent += self.BackGroundUA
+        self.BackGroundUA = []
+
+    def MoveBackGroundUA():
+        #Костыль!
+        for count, ua in enumerate(self.UserAgent)
+            if ua.BackGround:
+                self.BackGroundUA.append(ua)
+                del self.UserAgent[count]
 
 class UserAgentClass:
     def __init__(self):
@@ -31,7 +45,9 @@ class UserAgentClass:
         self.Port = None
         self.LogFd = None
         self.UserObject = None
+        self.BackGround = None
         self.UALock = threading.Lock()
+    
     def GetServiceFetureUA(self,command,code,user_obj,user_id):
         #Добавляем новый тип UA
         self.Type = "ServiceFeatureUA"
@@ -81,6 +97,7 @@ class UserClass:
         self.RegLogFile = None
         self.SipGroup = None
         self.UserLock = threading.Lock()
+    
     def SetRegistrationTimer(self):
         self.Timer = threading.Timer((int(self.Expires) * 2 / 3), proc.RegisterUser, args=(self,) , kwargs=None)
         self.Timer.start()

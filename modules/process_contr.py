@@ -195,14 +195,20 @@ def start_process_controller(test):
    
     #Начинаем запуск UA по очереди
     print("[DEBUG] Trying to start UA...")
-    for ua in test.UserAgent:
+    for count, ua in enumerate(test.UserAgent):
         time.sleep(0.01)
         # Инициализируем новый thread
         testThread = threading.Thread(target=start_ua_thread, args=(ua,event_for_threads,), name = ua.Name)
         testThread.setName(ua.Name)
         # Запускаем новый thread
         testThread.start()
-        threads.append(testThread)
+        if ua.BackGround:
+            print("[DEBUG] UA:",ua.Name,"will be started in background mode.")
+            threads.BackGroundThreads.append(testThread)
+        else:
+            threads.append(testThread)
+    #Костыль! Разделяем обычные ua и bg.
+    test.MoveBackGroundUA()
         
     #Включаем цикл опроса статусов процессов.
     #Включаем флажок для выхода из диспетчера
