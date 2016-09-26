@@ -137,7 +137,11 @@ def parse_user_agent (test,ua_desc):
                     new_ua.BackGround = ua["BackGround"]
                 except:
                     new_ua.BackGround = False
-                test.UserAgent.append(new_ua)
+                #Делим агентов
+                if new_ua.BackGround:
+                    test.BackGroundUA.append(new_ua)
+                else:
+                    test.UserAgent.append(new_ua)
         except KeyError:
             #Если в тесте нет UA, то выходим
             print("[ERROR] Wrong test description. Detail:")

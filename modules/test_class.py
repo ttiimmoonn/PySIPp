@@ -8,27 +8,22 @@ class TestClass:
         self.CompliteUA = []
         self.BackGroundUA = []
         self.BackGroundThreads = []
+        self.ThreadEvent = threading.Event()
+        self.ThreadEventForBG = threading.Event()
         self.Name = None
         self.Description = None
         self.TestProcedure = None
         self.Status = None
         self.LogPath = None
     
-    def CompliteSFUA(self):
+    def CompliteUA(self):
         self.CompliteUA += self.UserAgent
         self.UserAgent = []
 
     def CompliteBgUA(self):
         #Костыль!
-        self.UserAgent += self.BackGroundUA
+        self.CompliteUA += self.BackGroundUA
         self.BackGroundUA = []
-
-    def MoveBackGroundUA(self):
-        #Костыль!
-        for count, ua in enumerate(self.UserAgent):
-            if ua.BackGround:
-                self.BackGroundUA.append(ua)
-                del self.UserAgent[count]
 
 class UserAgentClass:
     def __init__(self):

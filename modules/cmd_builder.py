@@ -42,7 +42,7 @@ def build_reg_command (user,list,mode="reg"):
     else:
         return False
 def build_sipp_command(test,list,uac_drop_flag=False, show_sip_flow=False):
-    for ua in test.UserAgent:
+    for ua in test.UserAgent + test.BackGroundUA:
          #Пытаемся достать параметры команды
          for command in ua.RawJsonCommands:
             try:

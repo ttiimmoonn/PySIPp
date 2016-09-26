@@ -65,7 +65,7 @@ def show_test_info (test):
 def link_user_to_test(test, users):
     #Массив для использованных id
     use_id = []
-    for ua in test.UserAgent:
+    for ua in test.UserAgent + test.BackGroundUA:
         if ua.Type == "User":
             if not int(ua.UserId) in use_id:
                 use_id.append(int(ua.UserId))
@@ -403,24 +403,26 @@ for test in tests:
                 #Проверяем, что вернувшиеся треды закрыты:
                 print("[DEBUG] Waiting for closing threads...")
                 if not proc.CheckThreads(sf_thread):
+                    test.ThreadEvent.clear()
+                    time.sleep(1)
                     #Переносим отработавшие UA в завершенные
                     test.Status = "Failed"
-                    test.CompliteSFUA()
+                    test.CompliteUA()
                     print("[DEBUG] Sleep on 32s")
                     time.sleep(32)
                     break
                 #Проверяем UA на статусы
                 print("[DEBUG] Check process StatusCode...")
-                if not proc.CheckUaStatus(test):
+                if not proc.CheckUaStatus(test.UserAgent):
                     #Переносим отработавшие UA в завершенные
-                    test.CompliteSFUA()
+                    test.CompliteUA()
                     print("[ERROR] Can't send Feature code",code)
                     test.Status = "Failed"
                     print("[DEBUG] Sleep on 32s")
                     time.sleep(32)
                     break
                 else:
-                    test.CompliteSFUA()
+                    test.CompliteUA()
 
             elif method == "Sleep":
                 print("[DEBUG] Sleep command activate.")
@@ -455,7 +457,7 @@ for test in tests:
                     break
                 #Линкуем лог файлы и UA
                 print("[DEBUG] Linking of LogFd with UA object...")
-                for ua in test.UserAgent:
+                for ua in test.UserAgent + test.BackGroundUA:
                     log_fd = fs.open_log_file(ua.Name,log_path)
                     if not log_fd:
                         break
@@ -467,49 +469,52 @@ for test in tests:
                 print("[DEBUG] Waiting for closing threads...")
                 if not proc.CheckThreads(threads):
                     #Переносим отработавшие UA в завершенные
+                    #Останавливаем все thread
+                    test.ThreadEvent.clear()
+                    #Даём thread завершиться
+                    time.sleep(1)
                     test.Status = "Failed"
-                    test.CompliteSFUA()
+                    test.CompliteUA()
                     print("[DEBUG] Sleep on 32s")
                     time.sleep(32)
                     break
                 #Проверяем UA на статусы
                 print("[DEBUG] Check process StatusCode...")
-                if not proc.CheckUaStatus(test):
+                if not proc.CheckUaStatus(test.UserAgent):
                     #Переносим отработавшие UA в завершенные
-                    test.CompliteSFUA()
+                    test.CompliteUA()
                     print("[ERROR] One of UAs return bad exit code")
                     test.Status = "Failed"
                     print("[DEBUG] Sleep on 32s")
                     time.sleep(32)
                     break
                 #Переносим все активные UA в завершённые
-                test.CompliteSFUA()
+                test.CompliteUA()
             else:
                 #Если передана неизвесная команда, то выходим
                 test.Status = "Failed"
                 print("[ERROR] Unknown metod:",method,"in test procedure. Test aborting")
                 break
     if len(test.BackGroundThreads) > 0:
-        print("Waiting for closing threads which started in background mode...")
-        #Костыль!
-        test.CompliteBgUA()
+        print("[DEBUG] Waiting for closing threads which started in background mode...")
         if not proc.CheckThreads(test.BackGroundThreads):
+            test.ThreadEventForBG.clear()
+            #Даём thread завершиться
+            time.sleep(1)
             #Переносим отработавшие UA в завершенные
             test.Status = "Failed"
             print("[DEBUG] Sleep on 32s")
-            test.CompliteSFUA()
+            test.CompliteBgUA()
             time.sleep(32)
-        elif not proc.CheckUaStatus(test):
+        elif not proc.CheckUaStatus(test.BackGroundUA):
             #Переносим отработавшие UA в завершенные
-            test.CompliteSFUA()
+            test.CompliteBgUA()
             print("[ERROR] One of UAs return bad exit code")
             test.Status = "Failed"
             print("[DEBUG] Sleep on 32s")
             time.sleep(32)
         else:
             test.CompliteBgUA()
-
-
 
 
     #Устанавливаем статус теста в завершён

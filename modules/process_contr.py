@@ -188,27 +188,30 @@ def start_ua_thread(ua, event_for_stop):
 
 def start_process_controller(test):
     threads = []
-    #Создаём ivent для threads
-    event_for_threads = threading.Event()
     #Устанавливаем его в true
-    event_for_threads.set()
+    test.ThreadEvent.set()
+    test.ThreadEventForBG.set()
    
     #Начинаем запуск UA по очереди
     print("[DEBUG] Trying to start UA...")
     for count, ua in enumerate(test.UserAgent):
         time.sleep(0.01)
-        # Инициализируем новый thread
-        testThread = threading.Thread(target=start_ua_thread, args=(ua,event_for_threads,), name = ua.Name)
-        testThread.setName(ua.Name)
-        # Запускаем новый thread
-        testThread.start()
+        #Разделяем Thread
         if ua.BackGround:
             print("[DEBUG] UA:",ua.Name,"will be started in background mode.")
+            # Инициализируем новый thread
+            testThread = threading.Thread(target=start_ua_thread, args=(ua,test.ThreadEventForBG,), name = ua.Name)
+            testThread.setName(ua.Name)
+            # Запускаем новый thread
+            testThread.start()
             test.BackGroundThreads.append(testThread)
         else:
+            # Инициализируем новый thread
+            testThread = threading.Thread(target=start_ua_thread, args=(ua,test.ThreadEvent,), name = ua.Name)
+            testThread.setName(ua.Name)
+            # Запускаем новый thread
+            testThread.start()
             threads.append(testThread)
-    #Костыль! Разделяем обычные ua и bg.
-    test.MoveBackGroundUA()
         
     #Включаем цикл опроса статусов процессов.
     #Включаем флажок для выхода из диспетчера
@@ -265,8 +268,8 @@ def CheckThreads(threads):
     print("[ERROR] One or more threads not closed")
     return False
 
-def CheckUaStatus(test):
-    for ua in test.UserAgent:
+def CheckUaStatus(user_agents):
+    for ua in user_agents:
         for proc in ua.Process:
             if proc.poll() != 0:
                 return False
