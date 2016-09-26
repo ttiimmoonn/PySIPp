@@ -95,7 +95,7 @@ def stop_test(tests,test_desc,test_users,coconInt,reg_lock):
     #Дропаем процессы
     for test in tests:
         if test.Status!="New":
-            for ua in test.UserAgent:
+            for ua in test.UserAgent + test.BackGroundUA:
                 for process in ua.Process:
                     if process.poll() == None:
                         process.kill()
