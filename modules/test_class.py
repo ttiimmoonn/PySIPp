@@ -16,12 +16,11 @@ class TestClass:
         self.Status = None
         self.LogPath = None
     
-    def CompliteUA(self):
+    def ReplaceUaToComplite(self):
         self.CompliteUA += self.UserAgent
         self.UserAgent = []
 
     def CompliteBgUA(self):
-        #Костыль!
         self.CompliteUA += self.BackGroundUA
         self.BackGroundUA = []
 

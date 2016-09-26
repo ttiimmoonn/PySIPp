@@ -407,7 +407,7 @@ for test in tests:
                     time.sleep(1)
                     #Переносим отработавшие UA в завершенные
                     test.Status = "Failed"
-                    test.CompliteUA()
+                    test.ReplaceUaToComplite()
                     print("[DEBUG] Sleep on 32s")
                     time.sleep(32)
                     break
@@ -415,14 +415,14 @@ for test in tests:
                 print("[DEBUG] Check process StatusCode...")
                 if not proc.CheckUaStatus(test.UserAgent):
                     #Переносим отработавшие UA в завершенные
-                    test.CompliteUA()
+                    test.ReplaceUaToComplite()
                     print("[ERROR] Can't send Feature code",code)
                     test.Status = "Failed"
                     print("[DEBUG] Sleep on 32s")
                     time.sleep(32)
                     break
                 else:
-                    test.CompliteUA()
+                    test.ReplaceUaToComplite()
 
             elif method == "Sleep":
                 print("[DEBUG] Sleep command activate.")
@@ -474,7 +474,7 @@ for test in tests:
                     #Даём thread завершиться
                     time.sleep(1)
                     test.Status = "Failed"
-                    test.CompliteUA()
+                    test.ReplaceUaToComplite()
                     print("[DEBUG] Sleep on 32s")
                     time.sleep(32)
                     break
@@ -482,14 +482,14 @@ for test in tests:
                 print("[DEBUG] Check process StatusCode...")
                 if not proc.CheckUaStatus(test.UserAgent):
                     #Переносим отработавшие UA в завершенные
-                    test.CompliteUA()
+                    test.ReplaceUaToComplite()
                     print("[ERROR] One of UAs return bad exit code")
                     test.Status = "Failed"
                     print("[DEBUG] Sleep on 32s")
                     time.sleep(32)
                     break
                 #Переносим все активные UA в завершённые
-                test.CompliteUA()
+                test.ReplaceUaToComplite()
             else:
                 #Если передана неизвесная команда, то выходим
                 test.Status = "Failed"
