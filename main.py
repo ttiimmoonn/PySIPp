@@ -427,7 +427,7 @@ for test in tests:
             elif method == "Sleep":
                 print("[DEBUG] Sleep command activate.")
                 try:
-                    sleep_time = int(item[method])
+                    sleep_time = float(item[method])
                 except:
                     print("[ERROR] Bag sleep arg. Exit.")
                     coconInt.eventForStop.set()
@@ -495,6 +495,12 @@ for test in tests:
                 test.Status = "Failed"
                 print("[ERROR] Unknown metod:",method,"in test procedure. Test aborting")
                 break
+    #Устанавливаем статус теста в завершён
+    if test == False:
+        print("[ERROR] Test procedure failed. Aborting")
+        stop_test(tests,test_desc,test_users,coconInt,reg_lock)
+        sys.exit(1)
+
     if len(test.WaitBackGroundUA) > 0:
         print("[DEBUG] Waiting for closing threads which started in background mode...")
         if not proc.CheckThreads(test.BackGroundThreads):
@@ -516,12 +522,6 @@ for test in tests:
         else:
             test.CompliteBgUA()
 
-
-    #Устанавливаем статус теста в завершён
-    if test == False:
-        print("[ERROR] Test procedure failed. Aborting")
-        stop_test(tests,test_desc,test_users,coconInt,reg_lock)
-        sys.exit(1)
     if test.Status != "Failed":
         test.Status = "Complite"
         print("[DEBUG] Test:",test.Name,"complite")
