@@ -29,7 +29,7 @@ class coconInterface:
         try:
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            client.connect(hostname = self.Ip, username = self.Login, password = self.Password, port = self.Port, timeout=10, look_for_keys=False)
+            client.connect(hostname = self.Ip, username = self.Login, password = self.Password, port = self.Port, timeout=10, look_for_keys=False, allow_agent=False)
         except:
             print("[ERROR] Can't connect to CoCon interface. {cocon thread}")
             print("--> Try to check connection settings.")
