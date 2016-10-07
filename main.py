@@ -198,9 +198,8 @@ if not tests:
 if show_test_info:
     for count,test in enumerate(tests):
         print("Test ID:   ",count)
-        print("Test Name: ",test.Name)
-        print("Test Desc: ",test.Description)
-        print("")
+        print("---| Test Name: ",test.Name)
+        print("---| Test Desc: ",test.Description)
     sys.exit(0)
 
 #Если был передан test_numbers, то накладываем маску на массив тестов
