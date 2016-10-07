@@ -39,6 +39,7 @@ def createParser ():
     parser.add_argument ('--drop_uac', action='store_const', const=True)
     parser.add_argument ('--show_ua_info', action='store_const', const=True)
     parser.add_argument ('--show_sip_flow', action='store_const', const=True)
+    parser.add_argument ('--show_test_info', action='store_const', const=True)
     return parser
 
 def show_test_info (test):
@@ -133,6 +134,7 @@ test_numbers = namespace.test_numbers
 uac_drop_flag = namespace.drop_uac
 show_sip_flow = namespace.show_sip_flow
 show_ua_info = namespace.show_ua_info
+show_test_info = namespace.show_test_info
 #Забираем описание теста и общие настройки
 jsonData = namespace.test_config.read()
 customSettings = namespace.custom_config.read()
@@ -191,6 +193,15 @@ except(KeyError):
 #Если есть ошибки при парсинге, то выходим
 if not tests:
     sys.exit(1)
+
+#Если запросили show_test_info, показавыем информацию по тесту и выходим
+if show_test_info:
+    for count,test in enumerate(tests):
+        print("Test ID:   ",count)
+        print("Test Name: ",test.Name)
+        print("Test Desc: ",test.Description)
+        print("")
+    sys.exit(0)
 
 #Если был передан test_numbers, то накладываем маску на массив тестов
 
