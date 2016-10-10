@@ -39,6 +39,7 @@ class UserAgentClass:
         self.Name = None
         self.Type = None
         self.TimeStampFile = None
+        self.StatFile = None
         self.UserId = None
         self.Port = None
         self.LogFd = None

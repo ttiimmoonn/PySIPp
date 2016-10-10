@@ -56,9 +56,6 @@ class sip_flow():
 
 
 
-
-
-
 def get_seq_statistics(stat_file):
 	new_flow = sip_flow(stat_file)
 	new_flow.print_flow()

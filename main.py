@@ -6,6 +6,7 @@ import modules.fs_worker as fs
 import modules.cocon_interface as ssh
 import modules.test_class as test_class
 import modules.show_call_flow as stat_module
+import modules.check_diff as diff 
 import re
 import signal
 import json
@@ -42,7 +43,7 @@ def createParser ():
     parser.add_argument ('--show_test_info', action='store_const', const=True)
     return parser
 
-def show_test_info (test):
+def get_test_info (test):
     print("TestName:        ",test.Name)
     print("TestStatus:      ",test.Status)
     print("TestDesc:        ",test.Description)
@@ -500,6 +501,32 @@ for test in tests:
                     break
                 #Переносим все активные UA в завершённые
                 test.ReplaceUaToComplite()
+            elif method == "CheckDifference":
+                print("[DEBUG] CheckDifference command activate.")
+                test_diff = diff.diff_time(test)
+                if test_diff:
+                    for diff_item in item[method]:
+                        print("[DEBUG] Check difference for method: ",diff_item["Method"])
+                        diff_time = code = builder.replace_key_value(diff_item["Difference"], test_var)
+                        if diff_time:
+                            try:
+                                diff_time = float(diff_time)
+                            except ValueError:
+                                print("[ERROR] Difference must have integer value")
+                                test.Status = "Failed"
+                                #Выходим из обработчика метода
+                                break
+                        test_diff.check_diff(diff_item["Method"], diff_time, *diff_item["UA"].split(","))
+                        if test_diff.Status == "Failed":
+                            test.Status = "Failed"
+                            #Выходим из обработчика метода
+                            break
+                    test_diff.close_stat_files()                        
+                else:
+                    print("[ERROR] Command CheckDifference failed. test_diff obj not created.")
+                    test.Status = "Failed"
+                    #Выходим из обработчика метода
+                    break
             else:
                 #Если передана неизвесная команда, то выходим
                 test.Status = "Failed"
@@ -534,6 +561,7 @@ for test in tests:
 
     if test.Status != "Failed":
         test.Status = "Complite"
+
         print("[DEBUG] Test:",test.Name,"complite")
     else:
         print("[ERROR] Test:",test.Name,"Failed.")
@@ -572,10 +600,13 @@ for index,test in enumerate(tests):
         print("     [ERROR] Unknown test status.",test.Name)
         failed_test_flag = True
         #Выводим дамп по этому тесту
-        show_test_info(test)
+        get_test_info(test)
 if show_ua_info:
     for test in tests:
-        show_test_info(test)
+        if test:
+            get_test_info(test)
+        else:
+            print("[ERROR] Test obj corrupted. Get test info failed!")
 
 if failed_test_flag:
     sys.exit(1)

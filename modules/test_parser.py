@@ -72,7 +72,14 @@ def parse_test_info (json_tests):
                         int(sf["userId"])
                     except:
                         print("[ERROR] UserId in ServiceFeature command must have a int value. { Bad UserID:",sf["userId"],"}")
-                        return False   
+                        return False
+#            if "CheckDifference" in item:
+#                for chk_diff in item["CheckDifference"]:
+#                    try:
+#                        float(chk_diff["Difference"])
+#                    except:
+#                         print("[ERROR] Difference in CheckDifference command must have a float value. { Bad Diff:",chk_diff["Difference"],"}")
+#                         return False
         tests.append(new_test)
     return tests
 def parse_user_agent (test,ua_desc):
