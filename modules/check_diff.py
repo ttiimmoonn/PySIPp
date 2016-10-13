@@ -45,7 +45,7 @@ class diff_time():
 				self.close_stat_files()
 				self.Status = "Failed"
 				return False
-			#Example  #CANCEL 2016-10-10 09:57:47.231259 1476068267.231259
+			#Example  CANCEL 2016-10-10 09:57:47.231259 1476068267.231259
 			for line in stat_file:
 				print
 				line = line.split()
@@ -72,7 +72,9 @@ class diff_time():
 				break
 			msg_diff = self.timestamps[idx + 1] - timestamp
 			if msg_diff < diff + 0.5 and msg_diff > diff - 0.5:
-				print("--> [DEBUG] Diff between UA", idx + 1, "and", idx, "equal", round(msg_diff,1), ". Method", method)
+				print("--> [DEBUG] Require timer is",round(diff,1))
+				print("--> [DEBUG] Current timer is",round(msg_diff,1))
+				print("--> [DEBUG] Diff between UA", idx + 1, "and", idx, "success")
 			else:
 				print("[ERROR] Diff for method:",method,"not equal", diff, "Current diff = ", round(msg_diff,1))
 				self.Status = "Failed"

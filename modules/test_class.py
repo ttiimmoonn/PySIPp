@@ -38,6 +38,7 @@ class UserAgentClass:
         self.StatusCode = None
         self.Name = None
         self.Type = None
+        self.WriteStat = None
         self.TimeStampFile = None
         self.StatFile = None
         self.UserId = None

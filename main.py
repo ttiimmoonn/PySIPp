@@ -575,7 +575,7 @@ if show_sip_flow:
         for ua in test.CompliteUA:
             if ua.WriteStat:
                 print()
-                print("Statistics for", ua.Name, ":")
+                print("SIP flow for", ua.Name, ":")
                 stat_module.get_seq_statistics(ua.TimeStampFile)
 
 
