@@ -31,7 +31,7 @@ def open_log_file (ua_name,log_path):
         fileName = str(log_path) + "/" + str(ua_name) + "_" + str(datetime.strftime(datetime.now(), "%Y_%m_%d_%H_%M_%S")) + ".log"
         fd = open(fileName,"wb")
     except (PermissionError,FileNotFoundError):
-        print("[ERROR] Сan't open log file. Detail:")
+        print("[ERROR] Сan't open file. Detail:")
         print("--->",sys.exc_info()[1])
         return False
     return fd
@@ -40,7 +40,7 @@ def get_fd(file_path):
     try:
         fd = open(file_path,"r")
     except:
-        print("[ERROR] Сan't open log file. Detail:")
+        print("[ERROR] Сan't open file. Detail:")
         print("--->",sys.exc_info()[1])
         return False
     return fd    

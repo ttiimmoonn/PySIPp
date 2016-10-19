@@ -36,6 +36,7 @@ def build_reg_command (user,list,mode="reg"):
     command+=" -s " + str(user.Login) + " -ap " + str(user.Password)
     command+=" -m 1"
     command+=" -nostdin"
+    command+=" -timeout_error"
     command = replace_key_value(command, list)
     if command:
         return command
@@ -75,6 +76,14 @@ def build_sipp_command(test,list,uac_drop_flag=False, show_sip_flow=False):
                 timeout = command["Timeout"]
             except KeyError:
                 timeout = "60s"
+
+            #В некоторых случаях полезно, чтобы UA завершился по timeout и при этом вернул 0 ex code
+            #Для таких случаев на уровне команды передаем параметр NoTimeOutError
+            try:
+                no_timeout_err = command["NoTimeOutError"]
+            except KeyError:
+                no_timeout_err = False
+
             command=""                
             command += "%%SIPP_PATH%%"
             command += " -sf " + "%%SRC_PATH%%" + "/" + sipp_sf + " "
@@ -96,7 +105,6 @@ def build_sipp_command(test,list,uac_drop_flag=False, show_sip_flow=False):
                     command += " -set CGPNDOM " + ua.UserObject.SipDomain
             else:
                 command += " -timeout " + str(timeout)
-                command += " -recv_timeout " + str(timeout)
             
             #Если был передан флаг для записи timestamp, то добавляем соотвествующие ключи
             if show_sip_flow and ua.WriteStat:
@@ -112,6 +120,8 @@ def build_sipp_command(test,list,uac_drop_flag=False, show_sip_flow=False):
             #Добавляем screen trace
             command += " -screen_overwrite false -trace_screen -screen_file " + test.LogPath + "/" + "SCREEN_" + str(ua.Name)
             command = replace_key_value(command, list)
+            if not no_timeout_err:
+                command += " -timeout_error"
 
             if command:
                 ua.Commands.append(command)

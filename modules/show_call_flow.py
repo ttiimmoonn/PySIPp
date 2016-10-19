@@ -5,11 +5,12 @@ class sip_flow():
 	def __init__(self,stat_file):
 		#Подключаем файл со статистикой
 		self.Fd=fs_worker.get_fd(stat_file)
-		self.Calls={}
-		#разделяем звонки
-		self.separate_calls()
-		#сортируем сообщения по времени
-		self.sort_call_messages()
+		if self.Fd:
+			self.Calls={}
+			#разделяем звонки
+			self.separate_calls()
+			#сортируем сообщения по времени
+			self.sort_call_messages()
 
 	def separate_calls(self):
 		#Example
@@ -58,4 +59,5 @@ class sip_flow():
 
 def get_seq_statistics(stat_file):
 	new_flow = sip_flow(stat_file)
-	new_flow.print_flow()
+	if new_flow.Fd:
+		new_flow.print_flow()
