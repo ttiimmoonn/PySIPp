@@ -142,7 +142,7 @@ def start_ua_thread(ua, event_for_stop):
                 return False
             else:
                 ua.Status = "Started"
-                logger.error("UA %s with command %s started.",ua.Name,commandCount)
+                logger.info("UA %s with command %s started.",ua.Name,commandCount)
             try:
                 while(event_for_stop.isSet()):
                     code = process.poll()
