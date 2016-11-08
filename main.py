@@ -1,4 +1,4 @@
-#!/usr/bin/python3.5
+#!/usr/local/bin/python3.5
 import modules.test_parser as parser
 import modules.cmd_builder as builder
 import modules.process_contr as proc
@@ -84,7 +84,7 @@ def link_user_to_test(test, users):
                     logger.error("User with id = %d not found { UA : %s }",ua.UserId,ua.Name)
                     return False
             else:
-                logger.error("Duplicate UserId: %d { UA : %s }",ua.UserId,ua.Name)
+                logger.error("Duplicate UserId: %d { UA : %s }",int(ua.UserId),ua.Name)
                 return False
     return test
 
