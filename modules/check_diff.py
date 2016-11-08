@@ -74,7 +74,7 @@ class diff_time():
 				break
 			msg_diff = self.timestamps[idx + 1] - timestamp
 			if msg_diff < diff + 0.5 and msg_diff > diff - 0.5:
-				logger.info("--> Require timer is %.1f`",round(diff,1))
+				logger.info("--> Require timer is %.1f",round(diff,1))
 				logger.info("--> Current timer is %.1f",round(msg_diff,1))
 				logger.info("--> Diff between UA %d and %d success",idx + 1,idx)
 			else:
