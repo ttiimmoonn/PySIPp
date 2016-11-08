@@ -19,7 +19,7 @@ import math
 from collections import OrderedDict
 
 
-logging.basicConfig(format = u'%(levelname)-8s %(asctime)-8s  %(message)-8s', level = logging.INFO)
+logging.basicConfig(format = u'%(asctime)-8s %(levelname)-8s %(message)-8s', level = logging.INFO)
 logger = logging.getLogger("tester")
 
 
