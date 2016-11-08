@@ -33,7 +33,7 @@ def parse_user_info (json_users):
             new_user.QParam = 1
         #Если есть два юзера с одинаковыми id, выходим
         if new_user.UserId in users:
-            logger.error("UserId = %d is already in use",new_user.UserId)
+            logger.error("UserId = %d is already in use",int(new_user.UserId))
             return False
         else:
             users[new_user.UserId] = new_user

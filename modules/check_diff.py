@@ -38,7 +38,7 @@ class diff_time():
 			try:
 				stat_file = self.diff_array[int(user_id)]
 			except KeyError:
-				logger.info("Can't find statistic file for User with id: \"", user_id, "\". Try set WriteStat attr in json description for that UA")
+				logger.info("Can't find statistic file for User with id: %d. Try set WriteStat attr in json description for that UA",int(user_id))
 				self.close_stat_files()
 				self.Status = "Failed"
 				return False
@@ -64,7 +64,7 @@ class diff_time():
 						return False
 			stat_file.seek(0,0)
 			if not find_timestamp:
-				logger.error("Can't find method %s in statistic file for user with id %d",method,user_id)
+				logger.error("Can't find method %s in statistic file for user with id %d",method,int(user_id))
 				self.close_stat_files()
 				self.Status = "Failed"
 				return False
@@ -76,7 +76,7 @@ class diff_time():
 			if msg_diff < diff + 0.5 and msg_diff > diff - 0.5:
 				logger.info("--> Require timer is %f",round(diff,1))
 				logger.info("--> Current timer is %f",round(msg_diff,1))
-				logger.info("--> Diff between UA %d and %d success",idx + 1,idx)
+				logger.info("--> Diff between UA %f and %f success",idx + 1,idx)
 			else:
 				logger.error("Diff for method: %s not equal %f. Current diff = %f",method,diff,round(msg_diff,1))
 				self.Status = "Failed"
