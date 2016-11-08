@@ -1,6 +1,7 @@
 import modules.fs_worker as fs_worker
 import re 
-
+import logging
+logger = logging.getLogger("tester")
 class sip_flow():
 	def __init__(self,stat_file):
 		#Подключаем файл со статистикой

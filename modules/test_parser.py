@@ -1,5 +1,7 @@
 import modules.test_class as testClass
 import sys
+import logging
+logger = logging.getLogger("tester")
 def parse_user_info (json_users):
     #Создаём массив для хранения юзеров
     users = {}
@@ -18,8 +20,7 @@ def parse_user_info (json_users):
             new_user.SipGroup = user["SipGroup"]
             new_user.Port = user["Port"]
         except KeyError:
-            print("[ERROR] Wrong user description. Detail:")
-            print("---> User has no attribute:",sys.exc_info()[1])
+            logger.error("Wrong user description. Detail: User has no attribute: %s",sys.exc_info()[1])
             return False
         #Выставляем опциональные параметры
         try:
@@ -32,7 +33,7 @@ def parse_user_info (json_users):
             new_user.QParam = 1
         #Если есть два юзера с одинаковыми id, выходим
         if new_user.UserId in users:
-            print("[ERROR] UserId =", new_user.UserId," is already in use")
+            logger.error("UserId = %d is already in use",new_user.UserId)
             return False
         else:
             users[new_user.UserId] = new_user
@@ -55,8 +56,7 @@ def parse_test_info (json_tests):
         try:
             new_test.TestProcedure = test["TestProcedure"]
         except:
-            print("[ERROR] Wrong Test description. Detail:")
-            print("---> UA has no attribute:",sys.exc_info()[1],"{ Test:",new_test.Name,"}")
+            logger.error("Wrong Test description. Detail: UA has no attribute: %s { Test: %s }", sys.exc_info()[1], new_test.Name)
             return False
         #Делаем проверку тестовой процедуры:
         for item in test["TestProcedure"]:
@@ -64,14 +64,14 @@ def parse_test_info (json_tests):
                 try:
                     int(item["Sleep"])
                 except:
-                    print("[ERROR] Sleep command must have a int value.")
+                    logger.error("Sleep command must have a int value.")
                     return False
             if "ServiceFeature" in item:
                 for sf in item["ServiceFeature"]:
                     try:
                         int(sf["userId"])
                     except:
-                        print("[ERROR] UserId in ServiceFeature command must have a int value. { Bad UserID:",sf["userId"],"}")
+                        logger.error("UserId in ServiceFeature command must have a int value. { Bad UserID: %s}",sf["userId"])
                         return False
 #            if "CheckDifference" in item:
 #                for chk_diff in item["CheckDifference"]:
@@ -95,8 +95,7 @@ def parse_user_agent (test,ua_desc):
                     new_ua.Name = ua["Name"]
                     new_ua.Type = ua["Type"]
                 except KeyError:
-                    print("[ERROR] Wrong UA description. Detail:")
-                    print("---> UA has no attribute:",sys.exc_info()[1],"{ Test:",test.Name,"}")
+                    logger.error("Wrong UA description. Detail: UA has no attribute: %s { Test: %s }",sys.exc_info()[1],test.Name)
                     return False
                 #В зависимости от типа UA, пытаемся забрать:
                 #Для User: UserId
@@ -105,20 +104,17 @@ def parse_user_agent (test,ua_desc):
                     try:
                         new_ua.UserId = ua["UserId"]
                     except KeyError:
-                        print("[ERROR] Wrong UA description. Detail:")
-                        print("---> UA has no attribute:",sys.exc_info()[1],"{ Test:",test.Name,"}")
+                        logger.error("Wrong UA description. Detail: UA has no attribute: %s { Test: %s }",sys.exc_info()[1],test.Name)
                         return False
                 elif new_ua.Type == "Trunk":
                     try:
                         new_ua.Port = ua["Port"]
                     except KeyError:
-                        print("[ERROR] Wrong UA description. Detail:")
-                        print("---> UA has no attribute:",sys.exc_info()[1],"{ Test:",test.Name,"}")
+                        logger.error("Wrong UA description. Detail: UA has no attribute: %s { Test: %s }",sys.exc_info()[1],test.Name)
                         return False
                 else:
                     #Если кто-то передал некорректный тип юзера, выходим
-                    print("[ERROR] Wrong UA description. Detail:")
-                    print("--> Unknown type of User Agent. Use \"User\" or \"Trunk\"","{ Test:",test.Name,"}")
+                    logger.error("Wrong UA description. Detail: Unknown type of User Agent. Use \"User\" or \"Trunk\" { Test: %s }",test.Name)
                     return False
                 #Парсим параметр WriteStat
                 try:
@@ -137,8 +133,7 @@ def parse_user_agent (test,ua_desc):
                         #Просто передаём объекту JSON описания команд
                         new_ua.RawJsonCommands.append(command)
                 except KeyError:
-                        print("[ERROR] Wrong UA description. Detail:")
-                        print("---> UA has no attribute:",sys.exc_info()[1])
+                        logger.error("Wrong UA description. Detail: UA has no attribute: %s { Test: %s }",sys.exc_info()[1],test.Name)
                         return False
                 try:
                     new_ua.BackGround = ua["BackGround"]
@@ -151,8 +146,7 @@ def parse_user_agent (test,ua_desc):
                     test.UserAgent.append(new_ua)
         except KeyError:
             #Если в тесте нет UA, то выходим
-            print("[ERROR] Wrong test description. Detail:")
-            print("---> Test has no attribute:",sys.exc_info()[1])
+            logger.error("Wrong UA description. Detail: UA has no attribute: %s { Test: %s }",sys.exc_info()[1],test.Name)
             return False
         return test
 
@@ -175,40 +169,40 @@ def parse_test_var (test_desc):
     return test_var
 def parse_sys_conf (sys_json):
     if not "%%SIPP_PATH%%" in sys_json:
-        print("[ERROR] No %%SIPP_PATH variable in system config")
+        logger.error("No %%SIPP_PATH variable in system config")
         return False
     if not "%%SRC_PATH%%" in sys_json:
-        print("[ERROR] No %%SRC_PATH variable in system config")
+        logger.error("No %%SRC_PATH variable in system config")
         return False
     if not "%%TEMP_PATH%%" in sys_json:
-        print("[ERROR] No %%TEMP_PATH variable in system config")
+        logger.error("No %%TEMP_PATH variable in system config")
         return False
     if not "%%LOG_PATH%%" in sys_json:
-        print("[ERROR] No %%LOG_PATH variable in system config")
+        logger.error("No %%LOG_PATH variable in system config")
         return False
     if not "%%REG_XML%%" in sys_json:
-        print("[ERROR] No %%REG_XML variable in system config")
+        logger.error("No %%REG_XML variable in system config")
         return False
     if not "%%IP%%" in sys_json:
-        print("[ERROR] No %%IP variable in system config")
+        logger.error("No %%IP variable in system config")
         return False
     if not "%%SERV_IP%%" in sys_json:
-        print("[ERROR] No %%SERV_IP variable in system config")
+        logger.error("No %%SERV_IP variable in system config")
         return False
     if not "%%EXTER_IP%%" in sys_json:
-        print("[ERROR] No %%EXTER_IP variable in system config")
+        logger.error("No %%EXTER_IP variable in system config")
         return False
     if not "%%EXTER_PORT%%" in sys_json:
-        print("[ERROR] No %%EXTER_PORT variable in system config")
+        logger.error("No %%EXTER_PORT variable in system config")
         return False
     if not "%%DEV_USER%%" in sys_json:
-        print("[ERROR] No %%DEV_USER variable in system config")
+        logger.error("No %%DEV_USER variable in system config")
         return False
     if not "%%DEV_PASS%%" in sys_json:
-        print("[ERROR] No %%DEV_PASS variable in system config")
+        logger.error("No %%DEV_PASS variable in system config")
         return False
     if not "%%DEV_DOM%%" in sys_json:
-        print("[ERROR] No %%DEV_DOM variable in system config")
+        logger.error("No %%DEV_DOM variable in system config")
         return False
     if not "%%SF_XML%%" in sys_json:
         print("[ERROR] No %%SF_XML variable in system config")

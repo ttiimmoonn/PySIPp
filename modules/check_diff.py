@@ -1,4 +1,6 @@
 import modules.fs_worker as fs_worker
+import logging
+logger = logging.getLogger("tester")
 class diff_time():
 	def __init__(self,test):
 		self.diff_array = {}
@@ -15,7 +17,7 @@ class diff_time():
 				return False
 	
 	def close_stat_files(self):
-		print("[DEBUG] Closing statistic files.")
+		logger.info("Closing statistic files.")
 		for file_indx in self.diff_array:
 			try:
 				self.diff_array[file_indx].close()
@@ -36,12 +38,12 @@ class diff_time():
 			try:
 				stat_file = self.diff_array[int(user_id)]
 			except KeyError:
-				print("[ERROR] Can't find statistic file for User with id: \"", user_id, "\". Try set WriteStat attr in json description for that UA")
+				logger.info("Can't find statistic file for User with id: \"", user_id, "\". Try set WriteStat attr in json description for that UA")
 				self.close_stat_files()
 				self.Status = "Failed"
 				return False
 			except ValueError:
-				print("[ERROR] User ID must have  integer value. {Bad Value: ",user_id,"}")
+				logger.info("User ID must have  integer value. {Bad Value: ",user_id,"}")
 				self.close_stat_files()
 				self.Status = "Failed"
 				return False
@@ -58,11 +60,11 @@ class diff_time():
 					except ValueError:
 						self.close_stat_files()
 						self.Status = "Failed"
-						print("[ERROR] User ID must have float value. {Bad Value: ",find_timestamp,"}")
+						logger.info("User ID must have float value. {Bad Value: ",find_timestamp,"}")
 						return False
 			stat_file.seek(0,0)
 			if not find_timestamp:
-				print("[ERROR] Can't find method", method, "in statistic file for user with id", user_id)
+				logger.error("Can't find method %s in statistic file for user with id %d",method,user_id)
 				self.close_stat_files()
 				self.Status = "Failed"
 				return False
@@ -72,11 +74,11 @@ class diff_time():
 				break
 			msg_diff = self.timestamps[idx + 1] - timestamp
 			if msg_diff < diff + 0.5 and msg_diff > diff - 0.5:
-				print("--> [DEBUG] Require timer is",round(diff,1))
-				print("--> [DEBUG] Current timer is",round(msg_diff,1))
-				print("--> [DEBUG] Diff between UA", idx + 1, "and", idx, "success")
+				logger.info("--> Require timer is %f",round(diff,1))
+				logger.info("--> Current timer is %f",round(msg_diff,1))
+				logger.info("--> Diff between UA %d and %d success",idx + 1,idx)
 			else:
-				print("[ERROR] Diff for method:",method,"not equal", diff, "Current diff = ", round(msg_diff,1))
+				logger.error("Diff for method: %s not equal %f. Current diff = %f",method,diff,round(msg_diff,1))
 				self.Status = "Failed"
 
 		if self.Status == "Failed":

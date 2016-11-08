@@ -4,6 +4,8 @@ import paramiko.ssh_exception as parm_excpt
 import queue
 import time
 import logging
+logger = logging.getLogger("tester")
+
 class coconInterface:
     def __init__(self,test_var):
         self.Login = str(test_var["%%DEV_USER%%"])
@@ -17,7 +19,7 @@ class coconInterface:
         self.myThread = None
 
     def flush_queue(self):
-        print ("[DEBUG] Flashing CCN Queue. Num of tasks:", self.coconQueue.qsize())
+        logger.info("Flashing CCN Queue. Num of tasks: %s", self.coconQueue.qsize())
         while not self.coconQueue.empty():
             #Если поймали SIGINT, то чтобы не ждать исполнения всех команд
             #просто вычитываем их.
@@ -31,8 +33,7 @@ class coconInterface:
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             client.connect(hostname = self.Ip, username = self.Login, password = self.Password, port = self.Port, timeout=10, look_for_keys=False, allow_agent=False)
         except:
-            print("[ERROR] Can't connect to CoCon interface. {cocon thread}")
-            print("--> Try to check connection settings.")
+            logger.error("Can't connect to CoCon interface. {cocon thread}. Try to check connection settings.")
             self.sshChannel = False
             return False
         self.sshChannel = client
@@ -43,7 +44,7 @@ class coconInterface:
         self.get_channel()
          #Если соединение удалось поднять, то начинаем отправку команды
         if self.sshChannel:
-            print("---> Command:",command)
+            logger.info("---> Command: %s",command)
             stdin, stdout, stderr = self.sshChannel.exec_command(command,get_pty=True,bufsize=-1)
             #Сохраняем вывод
             data = stdout.read() + stderr.read()
@@ -66,7 +67,7 @@ def ccn_command_handler(coconInt):
         #Если прищёл event на завершение треда
         #И при этом очередь пуста, то выходим
         if coconInt.eventForStop.isSet() and coconInt.coconQueue.empty():
-            print("[DEBUG] Stop event is set. I'm going down...{cocon thread}")
+            logger.info("Stop event is set. I'm going down...{cocon thread}")
             break
         #Если очередь пустая, то делаем паузу. (чтобы не тратить ресурсы)
         elif coconInt.coconQueue.empty():
@@ -77,7 +78,7 @@ def ccn_command_handler(coconInt):
             command = coconInt.coconQueue.get()
             coconInt.coconQueue.task_done()
         else:
-            print("[DEBUG] Get task from CCN Queue. Exec command... {cocon thread}")
+            logger.info("Get task from CCN Queue. Exec command... {cocon thread}")
             #Получаем команду из очереди.
             command = coconInt.coconQueue.get()
             #Отправляем её

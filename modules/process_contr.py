@@ -4,6 +4,8 @@ import threading
 from datetime import datetime
 import subprocess
 import shlex
+import logging
+logger = logging.getLogger("tester")
 
 def RegisterUser (user, mode="reg"):
     if mode == "reg":
@@ -12,8 +14,7 @@ def RegisterUser (user, mode="reg"):
         # Запускаем процесс
         process = start_ua(user.RegCommand, user.RegLogFile)
         if not process:
-            print("    [ERROR] User", user.Number, "not registred. Detail:")
-            print("    --> Can't start process {File not found}")
+            logger.error(" ---| User %s not registred. Detail: Can't start process {SIPp not found}",user.Number)
             user.Status = "Registration process not started."
             # Выставляем Status код равный 1
             user.SetStatusCode(1)
@@ -31,21 +32,19 @@ def RegisterUser (user, mode="reg"):
                 user.SetStatusCode(user.RegProcess.poll())
                 # Делаем сброс таймера
                 user.CleanRegistrationTimer()
-                print("    [ERROR] User", user.Number, "not registred. Detail:")
-                print("    --> Registeration failed. SIPp process return bad exit code.", "ex_code:", user.RegProcess.poll())
+                logger.error(" ---| User %s not registred. Detail: Registeration failed. SIPp process return bad exit code: %d.",user.Number,user.RegProcess.poll())
                 return False
             else:
                 user.Status = "Registered"
                 user.SetStatusCode(user.RegProcess.poll()) 
-                print("    [DEBUG] User", user.Number, "registred at", datetime.strftime(datetime.now(), "%H:%M:%S"), "exp time = ", (int(user.Expires) * 2 / 3))
+                logger.info(" ---| User %s registred at %s exp time = %d",user.Number,str(datetime.strftime(datetime.now(), "%H:%M:%S")),(int(user.Expires) * 2 / 3))
                 return True
         except subprocess.TimeoutExpired:
             user.RegProcess.kill()
             user.Status = "Error of registration (timeout)."
             user.SetStatusCode(2)
             user.CleanRegistrationTimer()
-            print("    [ERROR] User", user.Number, "not registred. Detail:")
-            print("    -->Registeration failed. UA registration process break by timeout.")
+            logger.error(" ---| User %s not registred. Detail: UA registration process break by timeout.",user.Number)
             return False
     elif mode == "unreg":
         try:
@@ -55,8 +54,7 @@ def RegisterUser (user, mode="reg"):
             return False
         process = start_ua(user.UnRegCommand, user.RegLogFile)
         if not process:
-            print("    [ERROR] User registration", user.Number, "not dropped. Detail:")
-            print("    --> Can't start process {File not found}")
+            logger.error(" ---| User registration %s not dropped. Detail: Can't start process {SIPp not found}",user.Number)
             #Закрываем лог файл
             user.RegLogFile.close()
             user.SetStatusCode(3)
@@ -67,15 +65,14 @@ def RegisterUser (user, mode="reg"):
             user.UnRegProcess.communicate(timeout=5)
             if user.UnRegProcess.poll() != 0:
                 user.Status = "Error of drop registration"
-                print("    [ERROR] User registration", user.Number, "not dropped. Detail:")
-                print("    --> Drop failed. SIPp process return bad exit code.")
+                logger.error(" ---| User registration %s not dropped. Detail: SIPp process return bad exit code.",user.Number)
                 user.SetStatusCode(user.RegProcess.poll())
                 #Закрываем лог файл
                 user.RegLogFile.close()
                 return False
             else:
                 user.Status = "Dropped"
-                print("    [DEBUG] User registration", user.Number, " is dropped.")
+                logger.info(" ---| User registration %s is dropped.",user.Number)
                 #Закрываем лог файл
                 user.RegLogFile.close()
                 user.SetStatusCode(user.RegProcess.poll())
@@ -83,14 +80,13 @@ def RegisterUser (user, mode="reg"):
         except subprocess.TimeoutExpired:
             user.UnRegProcess.kill()
             user.Status = "Error of drop (timeout)"
-            print("    [ERROR] User registration", user.Number, "not dropped. Detail:")
-            print("    --> Drop failed. UA registration process break by timeout.")
+            logger.error(" ---| User registration %s not dropped. Detail: UA registration process break by timeout.",user.Number)
             user.SetStatusCode(4)
             #Закрываем лог файл
             user.RegLogFile.close()
             return False
     else:
-        print("    [ERROR] Bad arg {set registration func}")
+        logger.error(" ---| Bad arg {set registration func}")
         return False
 
 
@@ -120,7 +116,7 @@ def start_ua_thread(ua, event_for_stop):
         for commandCount, command in enumerate(ua.Commands,start=1):
             if not event_for_stop.isSet():
                 # Если пришла команда остановить thread выходим
-                print("--> [DEBUG] UA", ua.Name, "with command", commandCount, "recv exit event.")
+                logger.warning("UA %s with command %s recv exit event.",ua.Name,commandCount)
                 ua.SetStatusCode(1)
                 break 
             # Запускаем UA
@@ -129,7 +125,7 @@ def start_ua_thread(ua, event_for_stop):
                 ua.SetStatusCode(2)
                 #Сигналим в соседний thread
                 event_for_stop.clear()
-                print("[ERROR] UA", ua.Name, "not started")
+                logger.error("UA %s not started",ua.Name)
                 return False
             ua.Status = "Starting"
             # Добавляем новый процесс в массив
@@ -138,7 +134,7 @@ def start_ua_thread(ua, event_for_stop):
             time.sleep(0.2)
             if process.poll() != None and process.poll() != 0:
                 ua.Status = "Not Started"
-                print("--> [DEBUG] UA", ua.Name, "with command", commandCount, "not started")
+                logger.error("UA %s with command %s not started.",ua.Name,commandCount)
                 ua.SetStatusCode(3)
                 #Сигналим в соседний thread
                 event_for_stop.clear()
@@ -146,7 +142,7 @@ def start_ua_thread(ua, event_for_stop):
                 return False
             else:
                 ua.Status = "Started"
-                print("--> [DEBUG] UA", ua.Name, "with command", commandCount, "started")
+                logger.error("UA %s with command %s started.",ua.Name,commandCount)
             try:
                 while(event_for_stop.isSet()):
                     code = process.poll()
@@ -161,7 +157,7 @@ def start_ua_thread(ua, event_for_stop):
                     ua.SetStatusCode(4)
                     #Сигналим в соседний thread
                     event_for_stop.clear()
-                    print("--> [DEBUG] UA", ua.Name, "with command", commandCount, "recv exit event.")
+                    logger.warning("UA %s with command %s recv exit event.",ua.Name,commandCount)
                     #print("--> [ERROR] UA", ua.Name, "with command", commandCount, "return", process.poll(), "exit code.")
                     return False      
                 
@@ -171,17 +167,17 @@ def start_ua_thread(ua, event_for_stop):
                         ua.SetStatusCode(process.poll())
                         #Сигналим в соседний thread
                         event_for_stop.clear()
-                        print("--> [ERROR] UA", ua.Name, "with command", commandCount, "return", process.poll(), "exit code.")
+                        logger.error("UA %s with command %s return %d exit code.",ua.Name,commandCount,process.poll())
                         return False
                 else:
                     ua.Status = "Success"
                     ua.SetStatusCode(process.poll())
-                    print("--> [DEBUG] UA", ua.Name, "with command", commandCount, "return", process.poll(), "exit code.")
+                    logger.info("UA %s with command %s return %d exit code.",ua.Name,commandCount,process.poll())
             except subprocess.TimeoutExpired:
                 process.kill()
                 ua.Status = "Killed by timeout"
                 ua.SetStatusCode(5)
-                print("--> [ERROR] UA", ua.Name, "killed by timeout")
+                logger.error("UA %s killed by timeout",ua.Name)
                 #Сигналим в соседний thread
                 event_for_stop.clear()
                 return False
@@ -191,7 +187,7 @@ def start_ua_thread(ua, event_for_stop):
             #Выходим из цикла.
             break
         else:
-            print("--> [DEBUG] UA",ua.Name,"is started in Cyclic mode. Restarting UA processes...")
+            logger.info("UA %s is started in Cyclic mode. Restarting UA processes...",ua.Name)
             #Увеличиваем каунтер цикла
             continue
 
@@ -202,7 +198,7 @@ def start_process_controller(test):
     test.ThreadEvent.set()
    
     #Начинаем запуск UA по очереди
-    print("[DEBUG] Trying to start UA...")
+    logger.info("Trying to start UA...")
     for ua in test.UserAgent + test.BackGroundUA:
         time.sleep(0.01)
         # Инициализируем новый thread
@@ -212,7 +208,7 @@ def start_process_controller(test):
         testThread.start()
         #Разделяем Thread
         if ua.BackGround:
-            print("[DEBUG] UA:",ua.Name,"will be started in background mode.")
+            logger.info("UA: %s will be started in background mode.",ua.Name)
             test.BackGroundThreads.append(testThread)
         else:
             threads.append(testThread)
@@ -269,7 +265,7 @@ def CheckThreads(threads):
             return True
         else:
             time.sleep(1)
-    print("[ERROR] One or more threads not closed")
+    logger.error("One or more threads not closed")
     return False
 
 def CheckUaStatus(user_agents):
@@ -287,7 +283,7 @@ def CheckUserRegStatus(test_users):
 
 def ChangeUsersRegistration(test_users, lock, mode="reg"):
     if lock.locked():
-        print("[WARN] Registration lock object is acquired. Waiting release...")
+        logger.warning("Registration lock object is acquired. Waiting release...")
     if not lock.acquire():
         #не удалось заблокировать ресурс
         return False
@@ -316,7 +312,7 @@ def ChangeUsersRegistration(test_users, lock, mode="reg"):
 
                 for user in test_users:
                     if test_users[user].Status == "Dropped":
-                        print("[WARN] Registaration for user",test_users[user].Login,"already dropped")
+                        logger.warning("Registaration for user %s already dropped",test_users[user].Login)
                         continue
                     #Дропаем только успешные регистрации
                     if test_users[user].ReadStatusCode() == 0:

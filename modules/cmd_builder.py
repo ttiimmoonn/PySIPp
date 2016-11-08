@@ -1,6 +1,9 @@
 import re
 import time
 from datetime import datetime, date
+import logging
+logger = logging.getLogger("tester")
+
 def build_service_feature_command (user, code):
     #Сборка команды для регистрации
     command=""
@@ -49,20 +52,17 @@ def build_sipp_command(test,list,uac_drop_flag=False, show_sip_flow=False):
             try:
                 sipp_sf = command["SourceFile"]
             except KeyError:
-                print("[ERROR] Wrong Command description. Detail:")
-                print("---> UA has no attribute:",sys.exc_info()[1],"{ Test:",test.Name,", UA:",ua.Name,"}")
+                logger.error("Wrong Command description. Detail: UA has no attribute: %s { Test: %s, UA: %s }",sys.exc_info()[1],test.Name,ua.Name)
                 return False
             try:
                 sipp_options = command["Options"]
             except KeyError:
-                print("[ERROR] Wrong Command description. Detail:")
-                print("---> UA has no attribute:",sys.exc_info()[1],"{ Test:",test.Name,", UA:",ua.Name,"}")
+                logger.error("Wrong Command description. Detail: UA has no attribute: %s { Test: %s, UA: %s }",sys.exc_info()[1],test.Name,ua.Name)
                 return False
             try:
                 sipp_type = command["SippType"]
             except KeyError:
-                print("[ERROR] Wrong Command description. Detail:")
-                print("---> UA has no attribute:",sys.exc_info()[1],"{ Test:",test.Name,", UA:",ua.Name,"}")
+                logger.error("Wrong Command description. Detail: UA has no attribute: %s { Test: %s, UA: %s }",sys.exc_info()[1],test.Name,ua.Name)
                 return False
             #Если был передан флаг о сбросе UAC команд, то просто не собираем их.
             if uac_drop_flag:
@@ -149,12 +149,11 @@ def replace_key_value(string, var_list):
                 try:
                     string = string.replace(str(eachVar),str(var_list[eachVar]))
                 except KeyError:
-                    print("[ERROR] Command contain unexpected variable:", eachVar)
+                    logger.error("Command contain unexpected variable: %s", eachVar)
                     return False
         if string.find("%%") != -1:
             if counter == 9:
-                print("[ERROR] Command contain a special character '%%' after replacing key values.")
-                print("--> Command:",string)
+                logger.error("Command contain a special character '%%' after replacing key values. Command: %s",string)
                 return False
             else:
                 continue
@@ -165,12 +164,12 @@ def get_time_with_shift(time_string):
     try:
         shift = int(result.group(2))
     except IndexError:
-        print("[ERROR] Can't get time shift : \" no such group \"")
+        logger.error("Can't get time shift : \" no such group \"")
         return False
     try:
         sign = str(result.group(1))
     except IndexError:
-        print("[ERROR] Can't get sign of shift : \" no such group \"")
+        logger.error("Can't get sign of shift : \" no such group \"")
         return False
     nowTime = time.time()
     if shift:
