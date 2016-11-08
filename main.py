@@ -351,7 +351,7 @@ for test in tests:
 
             elif method == "Print":
                 message = str(item[method])
-                print("\033[32m[TEST_INFO]", message, "\033[1;m")
+                logging.info("\033[32m[TEST_INFO] %s \033[1;m",message)
 
             elif method == "Stop":
                 sys.stdin.flush()
@@ -447,7 +447,7 @@ for test in tests:
                     logger.error("Bag sleep arg. Exit.")
                     coconInt.eventForStop.set()
                     sys.exit(1)
-                print("\033[32m[TEST_INFO] Sleep", sleep_time, "seconds\033[1;m")
+                logging.info("\033[32m[TEST_INFO] Sleep %.1f seconds\033[1;m",sleep_time)
                 time.sleep(sleep_time)
 
             elif method == "StartUA":
