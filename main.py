@@ -595,13 +595,13 @@ for index,test in enumerate(tests):
 
     if test.Status == "Failed":
         failed_test_flag = True
-        logger.info("     Test%d: %s - fail.",index,test.Name)
+        logger.info(" ---| Test%d: %s - fail.",index,test.Name)
 
     elif test.Status == "Complite":
-        logger.info("     Test%d: %s - succ.",index,test.Name)
+        logger.info(" ---| Test%d: %s - succ.",index,test.Name)
         
     else:
-        logger.error("     [ERROR] Unknown test status. %s",test.Name)
+        logger.error("Unknown test status. %s",test.Name)
         failed_test_flag = True
         #Выводим дамп по этому тесту
         get_test_info(test)

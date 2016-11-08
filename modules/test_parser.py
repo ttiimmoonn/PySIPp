@@ -205,6 +205,6 @@ def parse_sys_conf (sys_json):
         logger.error("No %%DEV_DOM variable in system config")
         return False
     if not "%%SF_XML%%" in sys_json:
-        print("[ERROR] No %%SF_XML variable in system config")
+        logger.error("No %%SF_XML variable in system config")
         return False
     return sys_json
