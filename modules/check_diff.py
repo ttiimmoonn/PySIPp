@@ -74,11 +74,11 @@ class diff_time():
 				break
 			msg_diff = self.timestamps[idx + 1] - timestamp
 			if msg_diff < diff + 0.5 and msg_diff > diff - 0.5:
-				logger.info("--> Require timer is %f",round(diff,1))
-				logger.info("--> Current timer is %f",round(msg_diff,1))
-				logger.info("--> Diff between UA %f and %f success",idx + 1,idx)
+				logger.info("--> Require timer is %.1f`",round(diff,1))
+				logger.info("--> Current timer is %.1f",round(msg_diff,1))
+				logger.info("--> Diff between UA %d and %d success",idx + 1,idx)
 			else:
-				logger.error("Diff for method: %s not equal %f. Current diff = %f",method,diff,round(msg_diff,1))
+				logger.error("Diff for method: %s not equal %.1f. Current diff = %.1f",method,diff,round(msg_diff,1))
 				self.Status = "Failed"
 
 		if self.Status == "Failed":
