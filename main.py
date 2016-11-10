@@ -377,7 +377,6 @@ for test in tests:
                         break
                     else:
                         sf_use_uid.append(user_id)
-                    logger.info("Send ServiceFeature code = %s", code)
 
                     try:
                         user = test_users[str(user_id)]
@@ -387,6 +386,7 @@ for test in tests:
                         test.Status = "Failed"
                         break
                 
+                    logger.info("Send ServiceFeature from User %s code = %s",user.Number,code)
                     #Собираем команду для активации сервис фичи
                     command = builder.build_service_feature_command(user,code)
                     #Прогоняем её через словарь

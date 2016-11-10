@@ -37,7 +37,7 @@ def RegisterUser (user, mode="reg"):
             else:
                 user.Status = "Registered"
                 user.SetStatusCode(user.RegProcess.poll()) 
-                logger.info(" ---| User %s registred at %s exp time = %d",user.Number,str(datetime.strftime(datetime.now(), "%H:%M:%S")),(int(user.Expires) * 2 / 3))
+                logger.info(" ---| User %s registred at %s; on port %s; exp time = %d",user.Number,str(datetime.strftime(datetime.now(), "%H:%M:%S")),user.Port,(int(user.Expires) * 2 / 3))
                 return True
         except subprocess.TimeoutExpired:
             user.RegProcess.kill()
