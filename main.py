@@ -28,8 +28,13 @@ def signal_handler(current_signal, frame):
     signal.signal(signal.SIGINT, signal.SIG_IGN)
     logger.info("Receive SIGINT signal. Start test aborting")
     try:
-        if tests and test_desc and test_users and coconInt and reg_lock:
-            stop_test(tests,test_desc,test_users,coconInt,reg_lock)
+        if tests and test_desc and coconInt:
+            if test_users and reg_lock:
+                stop_test(tests,test_desc,test_users,coconInt,reg_lock)
+            else:
+                logger.info("Test no users in description or reg_lock flag is not set.")
+            logger.debug("Start stop_test without reg_lock")
+            stop_test(tests,test_desc,test_users,coconInt)
     except NameError:
         logger.warn("Required variables are missing!")
     #print(threading.current_thread())
@@ -81,14 +86,15 @@ def link_user_to_test(test, users):
                 try:
                     ua.UserObject = users[str(ua.UserId)]
                 except KeyError:
-                    logger.error("User with id = %d not found { UA : %s }",ua.UserId,ua.Name)
+                    logger.error("User with id = %d not found { UA : %s }",int(ua.UserId),ua.Name)
                     return False
             else:
                 logger.error("Duplicate UserId: %d { UA : %s }",int(ua.UserId),ua.Name)
                 return False
     return test
 
-def stop_test(tests,test_desc,test_users,coconInt,reg_lock):
+def stop_test(tests,test_desc,test_users,coconInt,reg_lock=False):
+    logger.debug("Stop CoCoN Thread...")
     if coconInt.coconQueue and coconInt.myThread:
         if coconInt.myThread.is_alive():
             #Чистим текущие задачи из очереди
@@ -101,6 +107,7 @@ def stop_test(tests,test_desc,test_users,coconInt,reg_lock):
             #Отрубаем thread
             #На всякий случай убеждаемся, что ccn thread существует и живой
             coconInt.eventForStop.set()
+    logger.debug("Drop all processes...")
     #Дропаем процессы
     for test in tests:
         if test.Status!="New":
@@ -108,10 +115,14 @@ def stop_test(tests,test_desc,test_users,coconInt,reg_lock):
                 for process in ua.Process:
                     if process.poll() == None:
                         process.kill()
+    logger.debug("Drop all registration...")
     #Разрегистрируем юзеров
-    logger.info("Drop registration of users.")
-    unreg_thread = threading.Thread(target=proc.ChangeUsersRegistration, args=(test_users,reg_lock,"unreg",))
-    unreg_thread.start()
+    if reg_lock and test_users:
+        logger.info("Drop registration of users.")
+        unreg_thread = threading.Thread(target=proc.ChangeUsersRegistration, args=(test_users,reg_lock,"unreg",))
+        unreg_thread.start()
+        #Даём завершиться thread'у разрегистрации
+        unreg_thread.join()
     logger.info("Close log files...")
     if tests:
         for test in tests:
@@ -120,8 +131,6 @@ def stop_test(tests,test_desc,test_users,coconInt,reg_lock):
                     ua.LogFd.close()
     #Даём время на сворачивание thread
     time.sleep(0.2)
-    #Даём завершиться thread'у разрегистрации
-    unreg_thread.join()
     return True
 
 def match_test_numbers(test_numbers):
