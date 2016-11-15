@@ -53,6 +53,7 @@ def createParser ():
     parser.add_argument ('--show_ua_info', action='store_const', const=True)
     parser.add_argument ('--show_sip_flow', action='store_const', const=True)
     parser.add_argument ('--show_test_info', action='store_const', const=True)
+    parser.add_argument ('--show_cocon_output', action='store_const', const=True)
     return parser
 
 def get_test_info (test):
@@ -152,6 +153,7 @@ uac_drop_flag = namespace.drop_uac
 show_sip_flow = namespace.show_sip_flow
 show_ua_info = namespace.show_ua_info
 show_test_info = namespace.show_test_info
+show_cocon_output = namespace.show_cocon_output
 #Забираем описание теста и общие настройки
 jsonData = namespace.test_config.read()
 customSettings = namespace.custom_config.read()
@@ -242,7 +244,7 @@ for test in tests:
     
 #Поднимаем thread для отправки CoCoN command
 logger.info("Start CoCoN thread...")
-coconInt = ssh.coconInterface(test_var)
+coconInt = ssh.coconInterface(test_var, show_cocon_output)
 #Создаём event для остановки thread
 coconInt.eventForStop = threading.Event()
 #Поднимаем thread

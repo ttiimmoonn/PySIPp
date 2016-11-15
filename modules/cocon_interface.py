@@ -7,7 +7,7 @@ import logging
 logger = logging.getLogger("tester")
 
 class coconInterface:
-    def __init__(self,test_var):
+    def __init__(self,test_var, show_cocon_output=False):
         self.Login = str(test_var["%%DEV_USER%%"])
         self.Password = str(test_var["%%DEV_PASS%%"])
         self.Ip = str(test_var["%%SERV_IP%%"])
@@ -17,6 +17,7 @@ class coconInterface:
         self.coconQueue = queue.Queue()
         self.eventForStop = None
         self.myThread = None
+        self.ShowCoConOutput = show_cocon_output
 
     def flush_queue(self):
         logger.info("Flashing CCN Queue. Num of tasks: %s", self.coconQueue.qsize())
@@ -54,7 +55,9 @@ class coconInterface:
             self.sshChannel = None
             #Даём кокону очнуться            
             time.sleep(0.5)
-            #print(data.decode("utf-8", "strict"))
+            if self.ShowCoConOutput:
+                logger.info("CoconOutput: ")
+                print(data.decode("utf-8", "strict"))
             #Возвращаем True
             return True
         else:
