@@ -31,6 +31,10 @@ def parse_user_info (json_users):
             new_user.QParam = user["QParam"]
         except KeyError:
             new_user.QParam = 1
+        try:
+            new_user.SipTransport = user["SipTransport"]
+        except KeyError:
+            new_user.SipTransport = "UDP"
         #Если есть два юзера с одинаковыми id, выходим
         if new_user.UserId in users:
             logger.error("UserId = %d is already in use",int(new_user.UserId))

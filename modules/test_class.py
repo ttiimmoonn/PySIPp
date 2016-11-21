@@ -96,6 +96,7 @@ class UserClass:
         self.UnRegProcess = None
         self.RegLogFile = None
         self.SipGroup = None
+        self.SipTransport = None
         self.UserLock = threading.Lock()
     
     def SetRegistrationTimer(self):

@@ -23,7 +23,7 @@
     To: <sip:[$user_number]@[$user_dom]>
     Call-ID: [call_id]
     CSeq: [cseq] REGISTER
-    Contact: <sip:[$user_number]@[local_ip]:[$user_port]>;q=[$user_q]
+    Contact: <sip:[$user_number]@[local_ip]:[$user_port]>;q=[$user_q];transport=[transport]
     Content-Length: 0
     Expires: [$user_exp]
     Max-Forwards: 70
@@ -48,7 +48,7 @@
     [last_to:]
     [last_call-id:]
     CSeq: [cseq] REGISTER
-    Contact: <sip:[$user_number]@[local_ip]:[$user_port]>;q=[$user_q]
+    Contact: <sip:[$user_number]@[local_ip]:[$user_port]>;q=[$user_q];transport=[transport]
     [authentication]
     Content-Length: 0
     Expires: [$user_exp]
@@ -58,6 +58,5 @@
 
 
 <label id="3"/>
-
 </scenario>
 

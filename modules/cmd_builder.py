@@ -19,6 +19,8 @@ def build_service_feature_command (user, code):
     command+=" -ap " + str(user.Password)
     command+=" -m 1 "
     command+=" -timeout 20s -recv_timeout 20s"
+    if user.SipTransport == "TCP":
+        command+=" -t tn -max_socket 25"
     return command    
     
 def build_reg_command (user,list,mode="reg"):
@@ -40,6 +42,8 @@ def build_reg_command (user,list,mode="reg"):
     command+=" -m 1"
     command+=" -nostdin"
     command+=" -timeout_error"
+    if user.SipTransport == "TCP":
+        command+=" -t tn -max_socket 25"
     command = replace_key_value(command, list)
     if command:
         return command
@@ -98,6 +102,8 @@ def build_sipp_command(test,list,uac_drop_flag=False, show_sip_flow=False):
             if sipp_auth and ua.Type=="User":
                 command += " -s " + ua.UserObject.Number
                 command += " -ap " + ua.UserObject.Password
+                if ua.UserObject.SipTransport == "TCP":
+                    command+=" -t tn -max_socket 25"
             if sipp_type == "uac":
                 command += " -timeout " + str(timeout)
                 command += " -recv_timeout " + str(timeout)
