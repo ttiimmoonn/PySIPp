@@ -96,9 +96,9 @@ def ccn_command_handler(coconInt):
     
 def cocon_configure(CoconCommands,coconInt,test_var):
     CoconCommands = CoconCommands[0]
-    for CoconCmdName in CoconCommands:
+    for CoconCommand in CoconCommands.values():
         #Пропускаем команду через словарь
-        CoconCommand = builder.replace_key_value(CoconCommands[CoconCmdName], test_var)
+        CoconCommand = builder.replace_key_value(CoconCommand, test_var)
         if CoconCommand:
             #Если команда собралась без ошибок отправляем её в thread
             coconInt.coconQueue.put(CoconCommand)
