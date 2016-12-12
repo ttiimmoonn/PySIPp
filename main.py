@@ -19,10 +19,6 @@ import math
 from collections import OrderedDict
 
 
-logging.basicConfig(format = u'%(asctime)-8s %(levelname)-8s %(message)-8s', level = logging.INFO)
-logger = logging.getLogger("tester")
-
-
 
 def signal_handler(current_signal, frame):
     signal.signal(signal.SIGINT, signal.SIG_IGN)
@@ -52,6 +48,7 @@ def createParser ():
     parser.add_argument ('--drop_uac', action='store_const', const=True)
     parser.add_argument ('--show_ua_info', action='store_const', const=True)
     parser.add_argument ('--show_sip_flow', action='store_const', const=True)
+    parser.add_argument ('-l', '--log_file', type=match_file_path,required=False)
     parser.add_argument ('--show_test_info', action='store_const', const=True)
     parser.add_argument ('--show_cocon_output', action='store_const', const=True)
     return parser
@@ -142,6 +139,12 @@ def match_test_numbers(test_numbers):
     else:
         raise argparse.ArgumentTypeError("Arg 'n' does not match required format : num1,num2,num3")
 
+def match_file_path(log_file):
+    match_result =re.search("^([\w.-_]+\/)[\w.-_]+$",log_file)
+    if match_result:
+        return  log_file
+    else:
+        raise argparse.ArgumentTypeError("Log file path is incorrect")
 
 
     
@@ -159,6 +162,7 @@ jsonData = namespace.test_config.read()
 customSettings = namespace.custom_config.read()
 namespace.test_config.close()
 namespace.custom_config.close()
+log_file = namespace.log_file
 
 #Декларируем lock объект для регистрации
 reg_lock = threading.Lock()
@@ -168,6 +172,18 @@ test_users = {}
 tests = []
 #Декларируем словарь пользовательских переменных
 test_var = {}
+
+try:
+    logging.basicConfig(filename=log_file,format = u'%(asctime)-8s %(levelname)-8s %(message)-8s', level = logging.INFO)
+except FileNotFoundError:
+    match_result =re.search("^([\w.-_]+\/)[\w.-_]+$",log_file)
+    fs.create_log_dir(match_result.group(1))
+    logging.basicConfig(filename=log_file,format = u'%(asctime)-8s %(levelname)-8s %(message)-8s', level = logging.INFO)
+except:
+    print("Can't create log dir")
+    sys.exit(1)
+
+logger = logging.getLogger("tester")
 
 logger.info("Reading custom settings...")
 try:
