@@ -20,7 +20,8 @@ def clear_log_dir (log_path):
     for file in os.listdir(log_path):
         try:
             file = log_path + "/" + file
-            if file != "" and os.path.isfile(file):
+            #Удаляем всё кроме основного лог файла.
+            if file != "" and os.path.isfile(file) and file != log_path + "/test.log":
                 os.remove(file)
         except PermissionError:
             logger.error("Сan't clear log folder. Detail: %s",sys.exc_info()[1])
