@@ -24,6 +24,10 @@ def parse_user_info (json_users):
             return False
         #Выставляем опциональные параметры
         try:
+            new_user.RtpPort = user["RtpPort"]
+        except KeyError:
+            new_user.RtpPort = None
+        try:
             new_user.Expires = user["Expires"]
         except KeyError:
             new_user.Expires = 3600

@@ -125,6 +125,8 @@ def build_sipp_command(test,list,uac_drop_flag=False, show_sip_flow=False):
             command += " -message_overwrite false -trace_msg -message_file " + test.LogPath + "/" + "MESSAGE_" + str(ua.Name)
             #Добавляем screen trace
             command += " -screen_overwrite false -trace_screen -screen_file " + test.LogPath + "/" + "SCREEN_" + str(ua.Name)
+            if ua.UserObject.RtpPort:
+                command += " -mp " + ua.UserObject.RtpPort
             if not no_timeout_err:
                 command += " -timeout_error"
             command = replace_key_value(command, list)

@@ -5,6 +5,7 @@ import queue
 import time
 import logging
 logger = logging.getLogger("tester")
+MAX_ATTEMPT = 2
 
 class coconInterface:
     def __init__(self,test_var, show_cocon_output=False):
@@ -17,6 +18,7 @@ class coconInterface:
         self.coconQueue = queue.Queue()
         self.eventForStop = None
         self.myThread = None
+        self.attempt = 0
         self.ShowCoConOutput = show_cocon_output
 
     def flush_queue(self):
@@ -32,9 +34,10 @@ class coconInterface:
         try:
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            client.connect(hostname = self.Ip, username = self.Login, password = self.Password, port = self.Port, timeout=10, look_for_keys=False, allow_agent=False)
+            client.connect(hostname = self.Ip, username = self.Login, password = self.Password, port = self.Port, timeout=5, banner_timeout = 5, look_for_keys=False, allow_agent=False)
         except:
-            logger.error("Can't connect to CoCon interface. {cocon thread}. Try to check connection settings.")
+            if client:
+                client.close()
             self.sshChannel = False
             return False
         self.sshChannel = client
@@ -46,7 +49,10 @@ class coconInterface:
          #Если соединение удалось поднять, то начинаем отправку команды
         if self.sshChannel:
             logger.info("---> Command: %s",command)
-            stdin, stdout, stderr = self.sshChannel.exec_command(command,get_pty=True,bufsize=-1)
+            try:
+                stdin, stdout, stderr = self.sshChannel.exec_command(command,get_pty=True,bufsize=-1, timeout = 15)
+            except:
+                logger.warning("Catch exeption in send_ccn_cmd function.")
             #Сохраняем вывод
             data = stdout.read() + stderr.read()
             #Закрываем ssh соединение
@@ -57,7 +63,7 @@ class coconInterface:
             time.sleep(0.5)
             if self.ShowCoConOutput:
                 logger.info("CoconOutput: ")
-                print(data.decode("utf-8", "strict"))
+                logger.info(data.decode("utf-8", "strict"))
             #Возвращаем True
             return True
         else:
@@ -73,25 +79,35 @@ def ccn_command_handler(coconInt):
             logger.info("Stop event is set. I'm going down...{cocon thread}")
             break
         #Если очередь пустая, то делаем паузу. (чтобы не тратить ресурсы)
-        elif coconInt.coconQueue.empty():
+        if coconInt.coconQueue.empty():
             time.sleep(0.1)
-        elif not coconInt.ConnectionStatus:
+            continue
+        if not coconInt.ConnectionStatus:
             #Если состояние коннекта False, то нет смысла дальше слать команды
             #Просто начинаем разгребать очередь
             command = coconInt.coconQueue.get()
             coconInt.coconQueue.task_done()
+            continue
         else:
-            logger.info("Get task from CCN Queue. Exec command... {cocon thread}")
-            #Получаем команду из очереди.
-            command = coconInt.coconQueue.get()
+            logger.info("Get task from CCN Queue. Exec command. Attempt %d {cocon thread}", coconInt.attempt)
+            #Получаем новую команду из очереди.
+            if coconInt.attempt == 0:
+                command = coconInt.coconQueue.get()
             #Отправляем её
             #Если отправка успешна
             if coconInt.send_command(command):
                 #Если команда прошла успешно, то завершаем задачу. 
                 coconInt.coconQueue.task_done()
+                if coconInt.sshChannel:
+                    coconInt.sshChannel.close()
+                coconInt.attempt = 0
             else:
-                coconInt.ConnectionStatus = False
-                coconInt.coconQueue.task_done()
+                coconInt.attempt += 1
+                if coconInt.attempt > MAX_ATTEMPT:
+                    logger.error("Can't connect to CoCon interface. {cocon thread}. Try to check connection settings.")
+                    coconInt.ConnectionStatus  = False
+                    coconInt.coconQueue.task_done()
+                time.sleep(2)
 
     
 def cocon_configure(CoconCommands,coconInt,test_var):
