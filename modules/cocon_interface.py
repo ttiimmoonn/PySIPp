@@ -37,27 +37,29 @@ class coconInterface:
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             client.connect(hostname = self.Ip, username = self.Login, password = self.Password, port = self.Port, timeout=10, banner_timeout = 10, look_for_keys=False, allow_agent=False)
         except:
-            logger.warning("Exception on ssh connect! Close ssh connection")
+            logger.warning("Exception on ssh connect.")
             if client:
+                logger.debug("Close ssh connect")
                 client.close()
+            logger.debug("Set ssh channel to disable.")
             self.sshChannel = False
 
         if self.sshChannel != False:
             self.sshChannel = client
             return True
         else:
+            logger.debug("Exit from send_ccn_cmd method.")
             return False
 
     def send_command(self,command):
-        #Поднимаем SSH до COCON
-        self.get_channel()
          #Если соединение удалось поднять, то начинаем отправку команды
-        if self.sshChannel:
+        if self.get_channel():
             logger.info("---> Command: %s",command)
             try:
                 stdin, stdout, stderr = self.sshChannel.exec_command(command, get_pty=True, bufsize=-1, timeout = 10)
             except:
                 logger.warning("Exception on exec ssh command! Close ssh connection")
+                return False
             #Сохраняем вывод
             data = stdout.read() + stderr.read()
             #Закрываем ssh соединение

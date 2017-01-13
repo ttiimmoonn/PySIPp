@@ -176,7 +176,7 @@ tests = []
 test_var = {}
 
 try:
-    logging.basicConfig(filename=log_file,format = u'%(asctime)-8s %(levelname)-8s %(message)-8s', filemode='w', level = logging.INFO)
+    logging.basicConfig(filename=log_file,format = u'%(asctime)-8s %(levelname)-8s %(message)-8s', filemode='w', level = logging.DEBUG)
 except FileNotFoundError:
     match_result =re.search("^([\w.-_]+\/)[\w.-_]+$",log_file)
     fs.create_log_dir(match_result.group(1))
