@@ -323,12 +323,11 @@ if len(test_users) != 0:
     if not proc.CheckUserRegStatus(test_users):
         stop_test(tests,test_desc,test_users,coconInt,reg_lock)
         sys.exit(1)   
-
-force_quit_flag = False
 #Запускаем процесс тестирования
-for test in tests:
-    if force_quit and force_quit_flag:
-        break
+for indx,test in enumerate(tests):
+    if indx  > 0:
+        if force_quit and tests[indx - 1].Status == "Failed":
+            break
     logger.info("Start test: %s",test.Name)
     #Выставляем статус теста
     test.Status = "Starting"
@@ -345,7 +344,6 @@ for test in tests:
             #Просто переходим к следующему тесту. 
             if not coconInt.ConnectionStatus:
                 logger.info("Connection Status: %s",coconInt.ConnectionStatus)
-                force_quit_flag = True
                 break
             if test:
                 logger.info("Trying send to CCN all commands from test: %s",test.Name)
@@ -364,12 +362,10 @@ for test in tests:
                             #Если в item нет method CoconCommand, ищём дальше
                             continue
                 #После перебора всего теста, выходим.
-                force_quit_flag = True
                 break
             else:
                 #Если объект теста  равен false, то просто идём к следующему тесту
                 logger.warn("Test object eq false.")
-                force_quit_flag = True
                 break
 
         for method in item:
