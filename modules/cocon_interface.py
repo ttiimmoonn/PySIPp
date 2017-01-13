@@ -4,6 +4,7 @@ import paramiko.ssh_exception as parm_excpt
 import queue
 import time
 import logging
+import socket
 logger = logging.getLogger("tester")
 MAX_ATTEMPT = 2
 
@@ -34,14 +35,18 @@ class coconInterface:
         try:
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            client.connect(hostname = self.Ip, username = self.Login, password = self.Password, port = self.Port, timeout=5, banner_timeout = 5, look_for_keys=False, allow_agent=False)
+            client.connect(hostname = self.Ip, username = self.Login, password = self.Password, port = self.Port, timeout=10, banner_timeout = 10, look_for_keys=False, allow_agent=False)
         except:
+            logger.warning("Exception on ssh connect! Close ssh connection")
             if client:
                 client.close()
             self.sshChannel = False
+
+        if self.sshChannel != False:
+            self.sshChannel = client
+            return True
+        else:
             return False
-        self.sshChannel = client
-        return True
 
     def send_command(self,command):
         #Поднимаем SSH до COCON
@@ -50,13 +55,13 @@ class coconInterface:
         if self.sshChannel:
             logger.info("---> Command: %s",command)
             try:
-                stdin, stdout, stderr = self.sshChannel.exec_command(command,get_pty=True,bufsize=-1, timeout = 15)
+                stdin, stdout, stderr = self.sshChannel.exec_command(command,get_pty=True,bufsize=-1, timeout = 10)
             except:
-                logger.warning("Catch exeption in send_ccn_cmd function.")
-            #Сохраняем вывод
-            data = stdout.read() + stderr.read()
+                logger.warning("Exception on exec ssh command! Close ssh connection")
             #Закрываем ssh соединение
             self.sshChannel.close()
+            #Сохраняем вывод
+            data = stdout.read() + stderr.read()
             #Устанавливаем sshChannel в None
             self.sshChannel = None
             #Даём кокону очнуться            
