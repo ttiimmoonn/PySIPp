@@ -55,13 +55,13 @@ class coconInterface:
         if self.sshChannel:
             logger.info("---> Command: %s",command)
             try:
-                stdin, stdout, stderr = self.sshChannel.exec_command(command,get_pty=True,bufsize=-1, timeout = 10)
+                stdin, stdout, stderr = self.sshChannel.exec_command(command, get_pty=True, bufsize=-1, timeout = 10)
             except:
                 logger.warning("Exception on exec ssh command! Close ssh connection")
-            #Закрываем ssh соединение
-            self.sshChannel.close()
             #Сохраняем вывод
             data = stdout.read() + stderr.read()
+            #Закрываем ssh соединение
+            self.sshChannel.close()
             #Устанавливаем sshChannel в None
             self.sshChannel = None
             #Даём кокону очнуться            
