@@ -48,6 +48,7 @@ def createParser ():
     parser.add_argument ('--drop_uac', action='store_const', const=True)
     parser.add_argument ('--show_ua_info', action='store_const', const=True)
     parser.add_argument ('--show_sip_flow', action='store_const', const=True)
+    parser.add_argument ('--force_quit', action='store_const', const=True)
     parser.add_argument ('-l', '--log_file', type=match_file_path,required=False)
     parser.add_argument ('--show_test_info', action='store_const', const=True)
     parser.add_argument ('--show_cocon_output', action='store_const', const=True)
@@ -153,6 +154,7 @@ arg_parser = createParser()
 namespace = arg_parser.parse_args()
 test_numbers = namespace.test_numbers
 uac_drop_flag = namespace.drop_uac
+force_quit = namespace.force_quit
 show_sip_flow = namespace.show_sip_flow
 show_ua_info = namespace.show_ua_info
 show_test_info = namespace.show_test_info
@@ -322,9 +324,11 @@ if len(test_users) != 0:
         stop_test(tests,test_desc,test_users,coconInt,reg_lock)
         sys.exit(1)   
 
-
+force_quit_flag = False
 #Запускаем процесс тестирования
 for test in tests:
+    if force_quit and force_quit_flag:
+        break
     logger.info("Start test: %s",test.Name)
     #Выставляем статус теста
     test.Status = "Starting"
@@ -341,6 +345,7 @@ for test in tests:
             #Просто переходим к следующему тесту. 
             if not coconInt.ConnectionStatus:
                 logger.info("Connection Status: %s",coconInt.ConnectionStatus)
+                force_quit_flag = True
                 break
             if test:
                 logger.info("Trying send to CCN all commands from test: %s",test.Name)
@@ -358,11 +363,13 @@ for test in tests:
                         else:
                             #Если в item нет method CoconCommand, ищём дальше
                             continue
-                #После перебора всего теста, выходим. 
+                #После перебора всего теста, выходим.
+                force_quit_flag = True
                 break
             else:
                 #Если объект теста  равен false, то просто идём к следующему тесту
                 logger.warn("Test object eq false.")
+                force_quit_flag = True
                 break
 
         for method in item:
@@ -626,6 +633,9 @@ for index,test in enumerate(tests):
 
     elif test.Status == "Complite":
         logger.info(" ---| Test %d: %s - succ.",index,test.Name)
+    elif test.Status == "New":
+        logger.info(" ---| Test %d: %s - not running.",index,test.Name)
+
         
     else:
         logger.error("Unknown test status. %s",test.Name)

@@ -51,6 +51,7 @@ def parse_test_info (json_tests):
     tests = []
     for test in json_tests:
         new_test = testClass.TestClass()
+        new_test.Status = "New"
 
         #Устанавливаем опциональные свойства
         try:
