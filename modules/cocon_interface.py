@@ -4,6 +4,7 @@ import paramiko.ssh_exception as parm_excpt
 import queue
 import time
 import logging
+import random
 import socket
 logger = logging.getLogger("tester")
 MAX_ATTEMPT = 2
@@ -48,7 +49,7 @@ class coconInterface:
             self.sshChannel = client
             return True
         else:
-            logger.debug("Exit from send_ccn_cmd method.")
+            logger.debug("Exit from get_channel method.")
             return False
 
     def send_command(self,command):
@@ -114,7 +115,8 @@ def ccn_command_handler(coconInt):
                     logger.error("Can't connect to CoCon interface. {cocon thread}. Try to check connection settings.")
                     coconInt.ConnectionStatus  = False
                     coconInt.coconQueue.task_done()
-                time.sleep(2)
+                logger.info("CCN overload. Sleep before next attempt.")
+                time.sleep(random.randint(2, 10))
 
     
 def cocon_configure(CoconCommands,coconInt,test_var):
