@@ -6,6 +6,7 @@ import time
 import logging
 import random
 import socket
+import fcntl
 logger = logging.getLogger("tester")
 MAX_ATTEMPT = 2
 
@@ -62,15 +63,26 @@ class coconInterface:
             logger.debug("Exit from get_channel method.")
             return False
 
+    def lock_acquire(self):
+        fcntl.lockf(self.global_ccn_lock, fcntl.LOCK_EX)
+    def lock_release(self):
+        fcntl.lockf(self.global_ccn_lock, fcntl.LOCK_UN)
+
     def send_command(self,command):
          #Если соединение удалось поднять, то начинаем отправку команды
         if self.get_channel():
             logger.info("---> Command: %s",command)
+            if self.global_ccn_lock:
+                logger.info("Try to get global_ccn_lock")
+                self.lock_acquire()
             try:
                 self.sshChannel.sendall(command)
             except:
                  logger.warning("Exception on exec ssh command! Close ssh connection")
                  return False
+            finally:
+                if self.global_ccn_lock:
+                    self.lock_release()
             #ждём когда отпустит ccn
             logger.debug("Waiting for recv_exit_status.")
             self.sshChannel.recv_exit_status()

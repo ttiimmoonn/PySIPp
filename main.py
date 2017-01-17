@@ -264,7 +264,7 @@ for test in tests:
     
 #Поднимаем thread для отправки CoCoN command
 logger.info("Start CoCoN thread...")
-coconInt = ssh.coconInterface(test_var, show_cocon_output)
+coconInt = ssh.coconInterface(test_var, show_cocon_output, global_ccn_lock)
 #Создаём event для остановки thread
 coconInt.eventForStop = threading.Event()
 #Поднимаем thread
