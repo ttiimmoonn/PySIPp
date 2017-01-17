@@ -50,6 +50,7 @@ def createParser ():
     parser.add_argument ('--show_sip_flow', action='store_const', const=True)
     parser.add_argument ('--force_quit', action='store_const', const=True)
     parser.add_argument ('-l', '--log_file', type=match_file_path,required=False)
+    parser.add_argument ('-g', '--global_ccn_lock', type=argparse.FileType('w'),required=False)
     parser.add_argument ('--show_test_info', action='store_const', const=True)
     parser.add_argument ('--show_cocon_output', action='store_const', const=True)
     return parser
@@ -159,6 +160,7 @@ show_sip_flow = namespace.show_sip_flow
 show_ua_info = namespace.show_ua_info
 show_test_info = namespace.show_test_info
 show_cocon_output = namespace.show_cocon_output
+global_ccn_lock = namespace.global_ccn_lock
 #Забираем описание теста и общие настройки
 jsonData = namespace.test_config.read()
 customSettings = namespace.custom_config.read()
@@ -280,6 +282,7 @@ if "PreCoconConf" in test_desc:
     #Переменные для настройки соединения с CoCoN
     if not ssh.cocon_configure(test_desc["PreCoconConf"],coconInt,test_var):
         coconInt.eventForStop.set()
+        coconInt.myThread.join()
         sys.exit(1)
     #Даём кокону очнуться
     time.sleep(1)

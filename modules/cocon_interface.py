@@ -10,7 +10,7 @@ logger = logging.getLogger("tester")
 MAX_ATTEMPT = 2
 
 class coconInterface:
-    def __init__(self,test_var, show_cocon_output=False):
+    def __init__(self,test_var, show_cocon_output=False,global_ccn_lock = None):
         self.Login = str(test_var["%%DEV_USER%%"])
         self.Password = str(test_var["%%DEV_PASS%%"])
         self.Ip = str(test_var["%%SERV_IP%%"])
@@ -26,6 +26,7 @@ class coconInterface:
         self.read_buff = b""
         self.buff_size = 1024
         self.data = b""
+        self.global_ccn_lock = global_ccn_lock
 
     def flush_queue(self):
         logger.info("Flashing CCN Queue. Num of tasks: %s", self.coconQueue.qsize())
@@ -116,10 +117,11 @@ def ccn_command_handler(coconInt):
             time.sleep(0.1)
             continue
         if not coconInt.ConnectionStatus:
-            #Если состояние коннекта False, то нет смысла дальше слать команды
-            #Просто начинаем разгребать очередь
-            command = coconInt.coconQueue.get()
-            coconInt.coconQueue.task_done()
+            if coconInt.coconQueue.qsize() != 0:
+                #Если состояние коннекта False, то нет смысла дальше слать команды
+                #Просто начинаем разгребать очередь
+                command = coconInt.coconQueue.get()
+                coconInt.coconQueue.task_done()
             continue
         else:
             logger.info("Get task from CCN Queue. Exec command. Attempt %d {cocon thread}", coconInt.attempt)
@@ -140,7 +142,8 @@ def ccn_command_handler(coconInt):
                     coconInt.ConnectionStatus  = False
                     coconInt.coconQueue.task_done()
                 logger.info("CCN overload. Sleep before next attempt.")
-                #time.sleep(random.randint(2, 10))
+                #time.sleep(random.randint(2, 4))
+                continue
 
     
 def cocon_configure(CoconCommands,coconInt,test_var):
