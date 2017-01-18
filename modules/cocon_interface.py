@@ -77,15 +77,15 @@ class coconInterface:
             logger.info("---> Command: %s",command)
             try:
                 self.sshChannel.sendall(command)
+                #ждём когда отпустит ccn
+                logger.debug("Waiting for recv_exit_status.")
+                self.sshChannel.recv_exit_status()
             except:
                  logger.warning("Exception on exec ssh command! Close ssh connection")
                  return False
             finally:
                 if self.global_ccn_lock:
                     self.lock_release()
-            #ждём когда отпустит ccn
-            logger.debug("Waiting for recv_exit_status.")
-            self.sshChannel.recv_exit_status()
             logger.debug("Recv ccn output.")
             #Сохраняем вывод
             while True:
