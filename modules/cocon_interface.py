@@ -105,7 +105,8 @@ class coconInterface:
             self.close_connection()
             return True
         else:
-            self.lock_release()
+            if self.global_ccn_lock:
+                self.lock_release()
             #Возвращаем False
             return False
 
