@@ -39,6 +39,9 @@ class coconInterface:
         return True
 
     def get_channel(self):
+        if self.global_ccn_lock:
+            logger.info("Try to get global_ccn_lock")
+            self.lock_acquire()
         try:
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -72,9 +75,6 @@ class coconInterface:
          #Если соединение удалось поднять, то начинаем отправку команды
         if self.get_channel():
             logger.info("---> Command: %s",command)
-            if self.global_ccn_lock:
-                logger.info("Try to get global_ccn_lock")
-                self.lock_acquire()
             try:
                 self.sshChannel.sendall(command)
             except:
@@ -105,6 +105,7 @@ class coconInterface:
             self.close_connection()
             return True
         else:
+            self.lock_release()
             #Возвращаем False
             return False
 
