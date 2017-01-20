@@ -116,7 +116,6 @@ class coconInterface:
         self.sshChannel = None
         self.sshClient = None
         self.read_buff = b""
-        self.data = b""
 
 def ccn_command_handler(coconInt):
     command = ""
@@ -160,12 +159,13 @@ def ccn_command_handler(coconInt):
                 continue
 
     
-def cocon_configure(CoconCommands,coconInt,test_var):
+def cocon_configure(CoconCommands,coconInt,test_var = None):
     CoconCommands = CoconCommands[0]
     cmd_string = ""
     for CoconCommand in CoconCommands.values():
         #Пропускаем команду через словарь
-        CoconCommand = builder.replace_key_value(CoconCommand, test_var)
+        if test_var:
+            CoconCommand = builder.replace_key_value(CoconCommand, test_var)
         if CoconCommand:
             cmd_string += CoconCommand + "\n"
         else:
