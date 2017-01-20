@@ -96,6 +96,8 @@ def build_sipp_command(test,list,uac_drop_flag=False, show_sip_flow=False):
             command += sipp_options
             if ua.Type == "User":
                 command += " -p " + ua.UserObject.Port
+                if ua.UserObject.SipTransport == "TCP":
+                    command+=" -t tn -max_socket 25"
                 if ua.UserObject.RtpPort:
                     command += " -mp " + ua.UserObject.RtpPort
             else:
@@ -104,8 +106,6 @@ def build_sipp_command(test,list,uac_drop_flag=False, show_sip_flow=False):
             if sipp_auth and ua.Type=="User":
                 command += " -s " + ua.UserObject.Number
                 command += " -ap " + ua.UserObject.Password
-                if ua.UserObject.SipTransport == "TCP":
-                    command+=" -t tn -max_socket 25"
             if sipp_type == "uac":
                 command += " -timeout " + str(timeout)
                 command += " -recv_timeout " + str(timeout)

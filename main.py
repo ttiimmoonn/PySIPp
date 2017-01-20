@@ -134,7 +134,7 @@ def stop_test(tests,test_desc,test_users,coconInt,reg_lock=False):
     return True
 
 def match_test_numbers(test_numbers):
-    match_result = re.search("^[0-9]*$|^([0-9]*,)*[0-9]$",test_numbers)
+    match_result = re.search("^[0-9]{1,2}$|^([0-9]{1,2},)*[0-9]{1,2}$",test_numbers)
     if match_result:
         test_numbers = [int(i) for i in test_numbers.split(",")]
         return  test_numbers
