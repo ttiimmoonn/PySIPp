@@ -88,6 +88,7 @@ class coconInterface:
                     self.lock_release()
             logger.debug("Recv ccn output.")
             #Сохраняем вывод
+            self.data = ""
             while True:
                 self.read_buff = self.sshChannel.recv(self.buff_size)
                 if len(self.read_buff) == 0:
