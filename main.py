@@ -394,7 +394,7 @@ for indx,test in enumerate(tests):
                 #Список threads для SF
                 sf_threads=[]
                 sf_use_uid = []
-                logger.info("SendServiceFeature command activate.")
+                logger.info("SendServiceFeature command activated.")
                 #Забираем фича-код и юзера с которого его выполнить
                 #О наличии данных параметров заботится парсер тестов
                 for sf in item[method]:
@@ -473,7 +473,7 @@ for indx,test in enumerate(tests):
                     test.ReplaceUaToComplite()
 
             elif method == "Sleep":
-                logger.info("Sleep command activate.")
+                logger.info("Sleep command activated.")
                 try:
                     sleep_time = float(item[method])
                 except:
@@ -539,12 +539,12 @@ for indx,test in enumerate(tests):
                 #Переносим все активные UA в завершённые
                 test.ReplaceUaToComplite()
             elif method == "CheckDifference":
-                logger.info("CheckDifference command activate.")
+                logger.info("CheckDifference command activated.")
                 test_diff = diff.diff_time(test)
                 if test_diff:
                     for diff_item in item[method]:
                         logger.info("Check difference for method: %s",diff_item["Method"])
-                        diff_time = code = builder.replace_key_value(diff_item["Difference"], test_var)
+                        diff_time = builder.replace_key_value(diff_item["Difference"], test_var)
                         if diff_time:
                             try:
                                 diff_time = float(diff_time)
@@ -561,6 +561,22 @@ for indx,test in enumerate(tests):
                     test_diff.close_stat_files()                        
                 else:
                     logger.error("Command CheckDifference failed. test_diff obj not created.")
+                    test.Status = "Failed"
+                    #Выходим из обработчика метода
+                    break
+            elif method == "CheckTimer":
+                logger.info("CheckTimer command activated.")
+                test_diff = diff.diff_time(test, mode = "timestamp")
+                if test_diff.Status != "Failed":
+                    for diff_item in item[method]:
+                        logger.info("Check difference for msg: %s",diff_item["MsgType"])
+                        test_diff.ckeck_timer(**diff_item)
+                        if test_diff.Status == "Failed":
+                            test.Status = "Failed"
+                            #Выходим из обработчика метода
+                            break
+                else:
+                    logger.error("Command CheckTimer failed. test_diff obj not created.")
                     test.Status = "Failed"
                     #Выходим из обработчика метода
                     break
