@@ -48,52 +48,43 @@ class call():
 		for tr in self.transactions:
 			tr.show_tr_msg()
 
-	# def get_diff_for_msg(self):
-	# 	for i in range(0,len(self.messages) - 1):
-	# 		self.messages[i+1].diff_msg_time = float(self.messages[i+1].timestamp) - float(self.messages[i].timestamp)
-
-	# def get_diff_for_msg_in_tr(self):
-	# 	for tr in self.transactions:
-	# 		for i in range(0,len(tr.messages) - 1):
-	# 			tr.messages[i+1].diff_msg_time_in_tr = float(tr.messages[i+1].timestamp) - float(tr.messages[i].timestamp)
-	
 	def get_retrans_time_seq(self,**kwargs):
 		result_seq = []
 		last_cseq = None
+
 		for tr in self.transactions:
-			if kwargs["method"] in tr.methods:
-				for msg in tr.messages:
-					if msg.method == kwargs["method"]:
-						if msg.msg_type == kwargs["msg_type"]:
-							if kwargs["msg_type"] == "response":
-								if msg.resp_code == kwargs["resp_code"]:
-									if last_cseq:
-										if last_cseq == msg.cseq:
-											result_seq.append(msg.timestamp)
-									else:
-										last_cseq = msg.cseq
-										result_seq.append(msg.timestamp)
-							elif kwargs["msg_type"] == "request":
-								if last_cseq:
-									if last_cseq == msg.cseq:
-										result_seq.append(msg.timestamp)
-								else:
-									last_cseq = msg.cseq
-									result_seq.append(msg.timestamp)
-							else:
-								logger.error("Unknown msg_type %s",kwargs["msg_type"])
-								break
-		if len(result_seq) == 0:
-			return False
-		else:
+			#Если в транзакции нет искомого метода,
+			#уходим на следующую итерацию
+			if not kwargs["method"] in tr.methods:
+				continue
+			for msg in tr.messages:
+				if msg.msg_type != kwargs["msg_type"]:
+					continue
+				if kwargs["msg_type"] == "request":
+					if not last_cseq: last_cseq = msg.cseq
+					if (msg.cseq == last_cseq) and (msg.method == kwargs["method"]):
+						result_seq.append(msg.timestamp)
+						continue
+				if kwargs["msg_type"] == "response":
+					if not last_cseq: last_cseq = msg.cseq
+					if (msg.cseq == last_cseq) and (msg.resp_code == kwargs["resp_code"]) and (msg.method == kwargs["method"]):
+						result_seq.append(msg.timestamp)
+						continue 
+			if result_seq: break
+		if result_seq:
 			return result_seq
+		else:
+			return False
 
 	def get_first_msg_timestamp(self,**kwargs):
 		for tr in self.transactions:
-			if kwargs["method"] in tr.methods:
-				for msg in tr.messages:
-					if msg.method == kwargs["method"]:
-						return msg.timestamp
+			if not kwargs["method"] in tr.methods:
+				continue
+			for msg in tr.messages:
+				if kwargs["msg_type"] == "request" and msg.method == kwargs["method"]:
+					return msg.timestamp
+				if kwargs["msg_type"] == "response" and msg.method == kwargs["method"] and msg.resp_code == kwargs["resp_code"]:
+					return msg.timestamp
 		return False
 
 class transaction ():
@@ -243,7 +234,6 @@ class short_trace_parser():
 				self.Status = False
 				break
 	def get_first_msg_timestamp(self, **kwargs):
-		#Данную функцию необходимо использавать для сообщений типа request
 		result = {}
 		result = OrderedDict(result)
 		for call in self.calls:
@@ -273,6 +263,8 @@ class short_trace_parser():
 				#Иначе говорим False
 				else:
 					result_seq[call] = False
+			else:
+				result_seq[call] = False
 			#Очищаем call_diff для последующей итерации
 			call_diff = []
 		return result_seq
@@ -302,9 +294,10 @@ class timestamp_check():
 
 
 
+
 new_obj = short_trace_parser(fd)
 new_obj.parse_trace_msg()
-request = {"msg_type":"request", "method": "INVITE"}
+request = {"msg_type":"request", "method": "PRACK"}
 print(new_obj.get_retrans_diff(**request))
 print()
 print(new_obj.get_first_msg_timestamp(**request))
