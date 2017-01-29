@@ -1,8 +1,315 @@
-import modules.fs_worker as fs_worker
+#import modules.fs_worker as fs_worker
 import logging
 import math
 import re
+from collections import OrderedDict
+
+logging.basicConfig(format = u'%(asctime)-8s %(levelname)-8s %(message)-8s', filemode='w', level = logging.DEBUG)
 logger = logging.getLogger("tester")
+
+fd = open("/tmp/test.log",'r')
+# for line in fd:
+# 	line = line.split("\t")
+# 	t1,t2,t3,t4,t5,t6,t7,t8,t9 = line
+# 	print(t4)
+
+class call():
+	def __init__(self):
+		self.call_id = None
+		self.messages = []
+		self.transactions = []
+
+	def find_transaction(self, msg):
+		for tr in self.transactions:
+			if tr.branch == msg.branch and tr.cseq == msg.cseq:
+				return tr
+		return False
+
+	def put_msg_to_transaction(self, msg):
+		tr = self.find_transaction(msg)
+		if tr:
+			tr.add_msg(msg)
+		else:
+			new_tr = transaction()
+			self.transactions.append(new_tr)
+			new_tr.messages.append(msg)
+			new_tr.fill_tr_info(msg)
+
+	def add_msg(self,**kwargs):
+		new_msg = message()
+		if not new_msg.fill_msg_info(**kwargs):
+			return False
+		else:
+			self.put_msg_to_transaction(new_msg)
+			self.messages.append(new_msg)
+			return True
+
+	def show_tr_msg(self):
+		for tr in self.transactions:
+			tr.show_tr_msg()
+
+	# def get_diff_for_msg(self):
+	# 	for i in range(0,len(self.messages) - 1):
+	# 		self.messages[i+1].diff_msg_time = float(self.messages[i+1].timestamp) - float(self.messages[i].timestamp)
+
+	# def get_diff_for_msg_in_tr(self):
+	# 	for tr in self.transactions:
+	# 		for i in range(0,len(tr.messages) - 1):
+	# 			tr.messages[i+1].diff_msg_time_in_tr = float(tr.messages[i+1].timestamp) - float(tr.messages[i].timestamp)
+	
+	def get_retrans_time_seq(self,**kwargs):
+		result_seq = []
+		last_cseq = None
+		for tr in self.transactions:
+			if kwargs["method"] in tr.methods:
+				for msg in tr.messages:
+					if msg.method == kwargs["method"]:
+						if msg.msg_type == kwargs["msg_type"]:
+							if kwargs["msg_type"] == "response":
+								if msg.resp_code == kwargs["resp_code"]:
+									if last_cseq:
+										if last_cseq == msg.cseq:
+											result_seq.append(msg.timestamp)
+									else:
+										last_cseq = msg.cseq
+										result_seq.append(msg.timestamp)
+							elif kwargs["msg_type"] == "request":
+								if last_cseq:
+									if last_cseq == msg.cseq:
+										result_seq.append(msg.timestamp)
+								else:
+									last_cseq = msg.cseq
+									result_seq.append(msg.timestamp)
+							else:
+								logger.error("Unknown msg_type %s",kwargs["msg_type"])
+								break
+		if len(result_seq) == 0:
+			return False
+		else:
+			return result_seq
+
+	def get_first_msg_timestamp(self,**kwargs):
+		for tr in self.transactions:
+			if kwargs["method"] in tr.methods:
+				for msg in tr.messages:
+					if msg.method == kwargs["method"]:
+						return msg.timestamp
+		return False
+
+class transaction ():
+	def __init__(self):
+		self.branch = None
+		self.messages = []
+		self.methods = []
+		self.cseq = None
+
+	def fill_tr_info(self,msg):
+		self.branch = msg.branch
+		self.cseq = msg.cseq
+		if not msg.method in self.methods:
+			self.methods.append(msg.method)
+
+
+	def add_msg(self,msg):
+		self.messages.append(msg)
+		if not msg.method in self.methods:
+			self.methods.append(msg.method)
+
+	def show_tr_msg(self):
+		logger.debug("Trasaction %s, methods: %s. ",self.branch, " ".join(self.methods))
+		for msg in self.messages:
+			msg.show_msg_info()
+
+class message ():
+	def __init__(self):
+		self.branch = None
+		self.date = None
+		self.time = None
+		self.method = None
+		self.uri = None
+		self.cseq = None
+		self.msg_type = None
+		self.direction = None
+		self.timestamp = None
+		self.resp_code = None
+		self.resp_desc = None
+
+
+		self.req_r  = r'([A-Z]*)\s(sip:.*)\sSIP\/2.0'
+		self.res_r  = r'SIP\/2\.0\s([0-9]{3})\s(.*)'
+		self.cseq_r = r'([\d]*)\s([A-Z]*)'
+
+	def show_msg_info(self):
+		print()
+		logger.debug("Msg msg_type: %s",str(self.msg_type))
+		logger.debug("Msg dir: %s",str(self.direction))
+		logger.debug("Msg date: %s",str(self.date))
+		logger.debug("Msg time: %s",str(self.time))
+		logger.debug("Msg uri: %s",str(self.uri))
+		logger.debug("Msg method: %s",str(self.method))
+		logger.debug("Msg cseq: %s",str(self.cseq))
+		logger.debug("Msg timestamp: %s",str(self.timestamp))
+		logger.debug("Response code: %s",str(self.resp_code))
+		logger.debug("Response desc: %s",str(self.resp_desc))
+		logger.debug("diff_msg_time: %f",self.diff_msg_time)
+		logger.debug("diff_msg_time_in_tr: %f",self.diff_msg_time_in_tr)
+		print()
+
+
+	def is_request(self, start_line):
+		if re.search(self.req_r, start_line):
+			return True
+	def is_response(self, start_line):
+		if re.search(self.res_r, start_line):
+			return True
+
+	def fill_msg_info(self,**kwargs):
+		try:
+			self.date = kwargs["date"]
+			self.time = kwargs["time"]
+			self.timestamp = kwargs["timestamp"]
+			self.direction = kwargs["direction"]
+			self.branch = kwargs["branch"]
+		except KeyError:
+			logger.error("Req call param not found.")
+			return False
+		if self.is_request(kwargs["start_line"]):
+			msg_search = re.search(self.req_r, kwargs["start_line"])
+			self.msg_type = "request"
+			self.uri = msg_search.group(2)
+		elif self.is_response(kwargs["start_line"]):
+			msg_search = re.search(self.res_r, kwargs["start_line"])
+			self.msg_type = "response"
+			self.resp_code = msg_search.group(1)
+			self.resp_desc = msg_search.group(2)
+		else:
+			logger.error("Unknown type of message. Can't parse start_line: %s",str(kwargs["start_line"]))
+			return False
+
+		msg_search = re.search(self.cseq_r, kwargs["cseq"])
+		if msg_search:
+			self.cseq   = msg_search.group(1)
+			self.method = msg_search.group(2)
+		else:
+			logger.error("Unknown cseq header format. Can't parse cseq from: %s",str(kwargs["cseq"]))
+			return False
+		return True
+
+class short_trace_parser():
+	def __init__(self, trace_fd):
+		self.Status = True
+		self.calls = []
+		self.trace_fd = trace_fd
+
+	def find_call(self, call_id):
+		for call in self.calls:
+			if call.call_id == call_id:
+				return call
+		return False
+
+	def get_call_dict(self,*args):
+		try:
+			date, time, timestamp, direction,call_id,cseq, start_line, branch = args
+		except:
+			logger.error("Can't split short_msg line: \n%s", " ".join(args))
+			self.status = False
+			return False
+		return {"date" : date, "time" : time, "timestamp" : timestamp,
+				"direction": direction, "call_id" : call_id, "cseq" : cseq,
+				"start_line" : start_line , "branch" : branch}
+
+	def parse_trace_msg(self):
+		for line in self.trace_fd:
+			call_dict = self.get_call_dict(*line.split("\t"))
+			if call_dict:
+				#Пытаемся найти вызов по call_id
+				parse_call = self.find_call(call_dict["call_id"])
+				if parse_call:
+					#Если нашли, то добавляем сообщение в существующий вызов
+					if not parse_call.add_msg(**call_dict):
+						self.Status = False
+						break
+
+				else:
+					#Если не нашли, то создаём новый вызов и добаляем туда сообщение
+					new_call = call()
+					self.calls.append(new_call)
+					logger.debug("Create new call obj. Call-ID: %s",call_dict["call_id"])
+					new_call.call_id = call_dict["call_id"]
+					if not new_call.add_msg(**call_dict):
+						self.Status = False
+						break
+			else:
+				self.Status = False
+				break
+	def get_first_msg_timestamp(self, **kwargs):
+		#Данную функцию необходимо использавать для сообщений типа request
+		result = {}
+		result = OrderedDict(result)
+		for call in self.calls:
+			result[call.call_id] = call.get_first_msg_timestamp(**kwargs)
+		return result
+
+	def get_retrans_diff(self, **kwargs):
+		#Получаем последовательность временных меток для нужного сообщения
+		call_seq = self.get_retrans_time_seq(**kwargs)
+		#Массив для хранения diff в пределах одного вызова
+		call_diff = []
+		#Словарь для хранения результатов по всем вызовам
+		result_seq = {}
+		result_seq = OrderedDict(result_seq)
+		#Начинаем расчёт diff для всех вызовов
+		for call in call_seq:
+			new_seq = call_seq[call]
+			if new_seq:
+				#Начинаем считать diff только для последовательностей, длина которых больше 1.
+				if len(new_seq) > 1:
+					#Расчёт diff
+					for i in range(0, len(new_seq) - 1):
+						call_diff.append(float(new_seq[i+1])-float(new_seq[i]))
+				#Если в call_diff есть значения, то записываем их result
+				if call_diff:
+					result_seq[call] = call_diff
+				#Иначе говорим False
+				else:
+					result_seq[call] = False
+			#Очищаем call_diff для последующей итерации
+			call_diff = []
+		return result_seq
+
+
+	def get_retrans_time_seq(self,**kwargs):
+		result_seq = {}
+		#Делаем словарь упорядоченным, чтобы вызовы шли по порядку.
+		result_seq = OrderedDict(result_seq)
+		#Запрашиваем последовательности timestamp для всех вызовов
+		for call in self.calls:
+			result_seq[call.call_id] = (call.get_retrans_time_seq(**kwargs))
+		return result_seq
+
+
+
+class timestamp_check():
+	def __init__(self,test):
+		self.ua_timestamp_obj = {}
+		self.Status = True
+
+		for ua in test.CompliteUA:
+			stat_file = fs_worker.get_fd(ua.TimeStampFile)
+			if stat_file:
+				self.ua_timestamp_obj[ua.UserId] = short_trace_parser(stat_file)
+				self.ua_timestamp_obj[ua.UserId].parse_trace_msg()
+
+
+
+new_obj = short_trace_parser(fd)
+new_obj.parse_trace_msg()
+request = {"msg_type":"request", "method": "INVITE"}
+print(new_obj.get_retrans_diff(**request))
+print()
+print(new_obj.get_first_msg_timestamp(**request))
+exit(1)
+
 class diff_time():
 	def __init__(self,test, mode="stat"):
 		self.diff_array = {}
