@@ -138,6 +138,7 @@ def ccn_command_handler(coconInt):
                 coconInt.coconQueue.task_done()
             continue
         else:
+            print("command:",command)
             logger.info("Get task from CCN Queue. Exec command. Attempt %d {cocon thread}", coconInt.attempt)
             #Получаем новую команду из очереди.
             if coconInt.attempt == 0:
@@ -162,6 +163,8 @@ def ccn_command_handler(coconInt):
     
 def cocon_configure(CoconCommands,coconInt,test_var = None):
     CoconCommands = CoconCommands[0]
+    if not CoconCommands:
+        return True
     cmd_string = ""
     for CoconCommand in CoconCommands.values():
         #Пропускаем команду через словарь

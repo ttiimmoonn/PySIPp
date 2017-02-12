@@ -47,6 +47,7 @@ class UserAgentClass:
         self.UserObject = None
         self.BackGround = None
         self.UALock = threading.Lock()
+        self.ShortTrParser = None
     
     def GetServiceFetureUA(self,command,code,user_obj,user_id):
         #Добавляем новый тип UA

@@ -6,7 +6,7 @@ import modules.fs_worker as fs
 import modules.cocon_interface as ssh
 import modules.test_class as test_class
 import modules.show_call_flow as stat_module
-import modules.check_diff as diff
+import modules.diff_calc as diff_calc
 import logging
 import re
 import signal
@@ -178,7 +178,7 @@ tests = []
 test_var = {}
 
 try:
-    logging.basicConfig(filename=log_file,format = u'%(asctime)-8s %(levelname)-8s %(message)-8s', filemode='w', level = logging.DEBUG)
+    logging.basicConfig(filename=log_file,format = u'%(asctime)-8s %(levelname)-8s %(message)-8s', filemode='w', level = logging.INFO)
 except FileNotFoundError:
     match_result =re.search("^([\w.-_]+\/)[\w.-_]+$",log_file)
     fs.create_log_dir(match_result.group(1))
@@ -564,22 +564,38 @@ for indx,test in enumerate(tests):
                     test.Status = "Failed"
                     #Выходим из обработчика метода
                     break
-            elif method == "CheckTimer":
-                logger.info("CheckTimer command activated.")
-                test_diff = diff.diff_time(test, mode = "timestamp")
-                if test_diff.Status != "Failed":
-                    for diff_item in item[method]:
-                        logger.info("Check difference for msg: %s",diff_item["MsgType"])
-                        test_diff.ckeck_timer(**diff_item)
-                        if test_diff.Status == "Failed":
-                            test.Status = "Failed"
-                            #Выходим из обработчика метода
-                            break
-                else:
-                    logger.error("Command CheckTimer failed. test_diff obj not created.")
+            elif method == "CheckRetransmission":
+                logger.info("CheckRetransmission command activated.")
+                test_diff = diff_calc.diff_timestamp(test)
+                if test_diff.Status == "Failed":
                     test.Status = "Failed"
-                    #Выходим из обработчика метода
                     break
+                for diff_item in item[method]:
+                    msg_info = {}
+                    msg_info["msg_type"] = diff_item["Msg"][0]["MsgType"].lower()
+                    if diff_item["Msg"][0]["Code"] == "None":
+                        msg_info["resp_code"] = None
+                    else:
+                        msg_info["resp_code"] = diff_item["Msg"][0]["Code"]
+                    msg_info["method"] = diff_item["Msg"][0]["Method"].upper()
+                    chk_ua = diff_item["UA"].split(",")
+                    test_diff.get_retrans_diff(*chk_ua,**msg_info)
+                    test_diff.get_first_msg_timestamp(*chk_ua,**msg_info)
+                    print(test_diff.get_retrans_duration(*chk_ua,**msg_info))
+
+                # if test_diff.Status != "Failed":
+                #     for diff_item in item[method]:
+                #         logger.info("Check difference for msg: %s",diff_item["MsgType"])
+                #         test_diff.ckeck_timer(**diff_item)
+                #         if test_diff.Status == "Failed":
+                #             test.Status = "Failed"
+                #             #Выходим из обработчика метода
+                #             break
+                # else:
+                #     logger.error("Command CheckTimer failed. test_diff obj not created.")
+                #     test.Status = "Failed"
+                #     #Выходим из обработчика метода
+                #     break
             else:
                 #Если передана неизвесная команда, то выходим
                 test.Status = "Failed"
