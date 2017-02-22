@@ -572,6 +572,7 @@ for indx,test in enumerate(tests):
                     break
                 for diff_item in item[method]:
                     msg_info = {}
+                    timer_name = diff_item["Timer"]
                     msg_info["msg_type"] = diff_item["Msg"][0]["MsgType"].lower()
                     if diff_item["Msg"][0]["Code"] == "None":
                         msg_info["resp_code"] = None
@@ -579,9 +580,13 @@ for indx,test in enumerate(tests):
                         msg_info["resp_code"] = diff_item["Msg"][0]["Code"]
                     msg_info["method"] = diff_item["Msg"][0]["Method"].upper()
                     chk_ua = diff_item["UA"].split(",")
-                    test_diff.get_retrans_diff(*chk_ua,**msg_info)
-                    test_diff.get_first_msg_timestamp(*chk_ua,**msg_info)
-                    print(test_diff.get_retrans_duration(*chk_ua,**msg_info))
+                    test_diff.compare_timer_seq(timer_name,*chk_ua,**msg_info)
+                    if test_diff.Status == "Failed":
+                        test.Status = "Failed"
+                        break
+                    #print(test_diff.get_retrans_diff(*chk_ua,**msg_info))
+                    #print(test_diff.get_first_msg_timestamp(*chk_ua,**msg_info))
+                    #print(test_diff.get_retrans_duration(*chk_ua,**msg_info))
 
                 # if test_diff.Status != "Failed":
                 #     for diff_item in item[method]:

@@ -198,7 +198,7 @@ def start_process_controller(test):
     test.ThreadEvent.set()
    
     #Начинаем запуск UA по очереди
-    logger.info("Trying to start UA...")
+    logger.info("Try to start UA...")
     for ua in test.UserAgent + test.BackGroundUA:
         time.sleep(0.01)
         # Инициализируем новый thread

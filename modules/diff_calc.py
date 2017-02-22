@@ -2,20 +2,45 @@ import modules.trace_parser as tr_parser
 import modules.fs_worker as fs_worker
 from collections import OrderedDict
 import logging
+import math
 logger = logging.getLogger("tester")
 
+
+
 class diff_timestamp():
-	def __init__(self,test):	
+	def __init__(self,test):
 		self.Status = None
 		self.ua_with_traces = {}
-		for ua in test.CompliteUA:
-			if ua.ShortTrParser:
-				self.ua_with_traces[ua.UserId] = ua
-				continue
-			if ua.TimeStampFile:
-				stat_file = fs_worker.get_fd(ua.TimeStampFile)
-			else:
-				continue
+		self.t1 = 0.5
+		self.t2 = 4.0
+		self.tr_timeout = 64 * self.t1
+		self.seq_inv_retrans = []
+		self.seq_non_inv_retrans = []
+		#Получаем временные последовательности для таймеров. 
+		self.get_inv_retrans_seq()
+		self.get_non_inv_retrans_seq()
+		#Парсим short_msg log
+		test.CompliteUA = list(map(self.parse_short_trace_msg, test.CompliteUA))
+
+	def seq_compare(self,seq_a,seq_b,max_diff=0.05):
+		logger.info("--| SEQ A: %s",' '.join(map(str,[round(x,1)for x in seq_a])))
+		logger.info("--| SEQ B: %s",' '.join(map(str,[round(x,1)for x in seq_b])))
+		try:
+			for a,b in zip(seq_a,seq_b):
+				if math.fabs(float(a)-float(b)) > max_diff:
+					logger.warning("--| Compare complite. Result: fail")
+					self.Status = "Failed"
+					return False
+		except:
+			logger.warning("--| Exception in seq_compare function.")
+			self.Status = "Failed"
+			return False
+		logger.info("--| Compare complite. Result: succ")
+		return True
+
+	def parse_short_trace_msg(self,ua):
+		if ua.TimeStampFile:
+			stat_file = fs_worker.get_fd(ua.TimeStampFile)
 			if stat_file:
 				logger.info("Parse short_msg_file for UA %s",str(ua.UserObject.Number))
 				ua.ShortTrParser = tr_parser.short_trace_parser(stat_file)
@@ -25,15 +50,28 @@ class diff_timestamp():
 				if ua.ShortTrParser.Status == "Failed":
 					logger.error("Parse complite for UA %s. Result: fail.",str(ua.UserObject.Number))
 					self.Status = "Failed"
-					break
 				else:
 					logger.info("Parse complite for UA %s. Result: succ.",str(ua.UserObject.Number))
 					self.ua_with_traces[ua.UserId] = ua
 			else:
 				logger.error("Parse complite for UA %s. Result: fail.",str(ua.UserObject.Number))
 				self.Status = "Failed"
+		return ua
 
-
+	def get_inv_retrans_seq(self):
+		diff = self.t1
+		while diff < self.tr_timeout:
+			self.seq_inv_retrans.append(diff)
+			diff = diff *2
+	def get_non_inv_retrans_seq(self):
+		diff = self.t1
+		while diff < self.tr_timeout:
+			if diff < self.t2:
+				self.seq_non_inv_retrans.append(diff)
+				diff = diff * 2
+			else:
+				self.seq_non_inv_retrans.append(self.t2)
+				diff += 4
 
 	def get_first_msg_timestamp(self,*args,**kwargs):
 		#args - ua_id для которых выполняется функция.
@@ -42,27 +80,27 @@ class diff_timestamp():
 		#для запросов - {"msg_type":"request", "method": "BYE", "resp_code": None}
 		result = {}
 		result = OrderedDict(result)
-		logger.info("Trying to found first msg timestamp")
+		logger.info("Try to found first msg timestamp")
 		logger.info("--| MSG param: type_of_msg - %s; method - %s; resp_code - %s", kwargs["msg_type"], kwargs["method"], kwargs["resp_code"])
 		for ua_id in args:
-			logger.info("--| Searching first msg timestamp for user with UserId %s",ua_id)
 			try:
 				ua = self.ua_with_traces[ua_id]				
 			except KeyError:
 				logger.error("--| Timestamp not found. User with id: %s without traces", ua_id)
 				self.Status = "Failed"
 				return False
+			logger.info("--| Search first msg timestamp for user: %s",str(ua.UserObject.Number))
 			ua_msg_timestamp = {}
 			ua_msg_timestamp = OrderedDict(ua_msg_timestamp)
 			for call in ua.ShortTrParser.calls:
 				ua_msg_timestamp[call.call_id] = call.get_first_msg_timestamp(**kwargs)
 				if ua_msg_timestamp[call.call_id]:
-					logger.info("--| Timestamp for msg found. Call: %s", call.call_id)
+					logger.info("--| Msg timestamp for call: %s found.", call.call_id)
 				else:
-					logger.info("--| Timestamp for msg not found. Call: %s", call.call_id)
+					logger.info("--| Msg timestamp for call: %s not found.", call.call_id)
 			result[ua_id] = ua_msg_timestamp
 		return result
-	
+
 	def get_diff(self,seq):
 		msg_diff = []
 		for count,timestp in enumerate(seq):
@@ -75,16 +113,16 @@ class diff_timestamp():
 	def get_retrans_diff(self,*args,**kwargs):
 		result = {}
 		result = OrderedDict(result)
-		logger.info("Trying to find msg retarnsmission.")
+		logger.info("Try to find msg retarnsmission.")
 		logger.info("--| MSG param: type_of_msg - %s; method - %s; resp_code - %s", kwargs["msg_type"], kwargs["method"], kwargs["resp_code"])
 		for ua_id in args:
-			logger.info("--| Searching retrans for user with id: %s",str(ua_id))
 			try:
-				ua = self.ua_with_traces[ua_id]				
+				ua = self.ua_with_traces[ua_id]
 			except KeyError:
 				logger.error("--| Retrans not detected. User with id: %s without traces", ua_id)
 				self.Status = "Failed"
-				return False		
+				return False
+			logger.info("--| Search retrans for user: %s", str(ua.UserObject.Number))
 			#Получаем последовательность временных меток для нужного сообщения
 			call_seq = self.get_retrans_time_seq(ua,**kwargs)
 			#Словарь для хранения результатов по всем вызовам
@@ -100,7 +138,6 @@ class diff_timestamp():
 			result[ua_id] = result_seq
 		return result
 
-
 	def get_retrans_time_seq(self,ua,**kwargs):
 		result_seq = {}
 		#Делаем словарь упорядоченным, чтобы вызовы шли по порядку.
@@ -109,9 +146,9 @@ class diff_timestamp():
 		for call in ua.ShortTrParser.calls:
 			result_seq[call.call_id] = (call.get_retrans_time_seq(**kwargs))
 			if result_seq[call.call_id]:
-				logger.info("--| Retrans detected. Call: %s",call.call_id)
+				logger.info("--| Retrans for call: %s detected.",call.call_id)
 			else:
-				logger.info("--| Retrans not detected. Call: %s",call.call_id)
+				logger.info("--| Retrans for call: %s not detected.",call.call_id)
 		return result_seq
 
 	def get_retrans_duration(self, *args,**kwargs):
@@ -119,23 +156,58 @@ class diff_timestamp():
 		result = OrderedDict(result)
 		logger.info("Trying to find msg retarnsmission duration.")
 		for ua_id in args:
-			logger.info("--| Searching msg retarnsmission duration for user with UserId %s",ua_id)
 			try:
-				ua = self.ua_with_traces[ua_id]				
+				ua = self.ua_with_traces[ua_id]
 			except KeyError:
 				logger.error("--| Msg retrans duration not found. User with id: %s without traces", ua_id)
 				self.Status = "Failed"
 				return False
+			logger.info("--| Searching msg retarnsmission duration for user %s",str(ua.UserObject.Number))
 			ua_msg_timestamp = {}
 			ua_msg_timestamp = OrderedDict(ua_msg_timestamp)
 			for call in ua.ShortTrParser.calls:
 				ua_msg_timestamp[call.call_id] = call.get_retrans_duration(**kwargs)
 				if ua_msg_timestamp[call.call_id]:
-					logger.info("--| Msg retrans duration found. Call: %s", call.call_id)
+					logger.info("--| Msg retrans duration for call: %s found.", call.call_id)
 				else:
-					logger.info("--| Msg retrans duration not found. Call: %s", call.call_id)
+					logger.info("--| Msg retrans duration for call: %s not found.", call.call_id)
 			result[ua_id] = ua_msg_timestamp
 		return result
+
+	def compare_timer_seq(self,timer_name,*args,**kwargs):
+		req_seq = []
+		ua_seq_info = {}
+		if timer_name in ["A"]:
+			req_seq = self.seq_inv_retrans
+			ua_seq_info = self.get_retrans_diff(*args,**kwargs)
+		elif timer_name in ["B", "F", "H"]:
+			req_seq.append(self.tr_timeout - 0.5)
+			ua_seq_info = self.get_retrans_duration(*args,**kwargs)
+		elif timer_name in ["E", "G"]:
+			req_seq = self.seq_non_inv_retrans
+			ua_seq_info = self.get_retrans_diff(*args,**kwargs)
+		else:
+			logger.error("Unknown timer name: %s",str(timer_name))
+			self.Status = "Failed"
+		if req_seq and ua_seq_info:
+			for ua_id in args:
+				for call in ua_seq_info[ua_id]:
+					if ua_seq_info[ua_id][call]:
+						logger.info("--| Try to compare (call-id: %s):",call)
+						self.seq_compare(ua_seq_info[ua_id][call],req_seq)
+					else:
+						logger.error("--| Campare failed. No retrans in call: %s",str(call))
+						self.Status = "Failed"
+
+
+
+
+
+
+
+
+
+
 
 class diff_time():
 	def __init__(self,test, mode="stat"):
@@ -224,7 +296,7 @@ class diff_time():
 			return False
 		for user_id in ua_args[0]:
 			user_id = int(user_id)
-			logger.debug("Trying to check msg diff for user: %d, timer: %s", user_id, str(timer_name))
+			logger.debug("Try to check msg diff for user: %d, timer: %s", user_id, str(timer_name))
 			if timer_name == "A":
 				timer_seq_diff = (0.5, 1, 2, 4, 8, 16)
 				if self.check_on_seq(user_id, timer_seq_diff):

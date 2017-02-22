@@ -58,10 +58,12 @@ class call():
 		return result_seq
 
 	def get_retrans_duration(self,**kwargs):
+		result = []
 		retrans_msg = self.get_retrans_time_seq(**kwargs)
 		if not retrans_msg:
 			return False
-		return float(retrans_msg[len(retrans_msg) -1 ]) - float(retrans_msg[0])
+		result.append(float(retrans_msg[len(retrans_msg) -1 ]) - float(retrans_msg[0]))
+		return result
 
 	def get_first_msg_timestamp(self,**kwargs):
 		for tr in self.transactions:
