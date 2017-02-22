@@ -554,7 +554,7 @@ for indx,test in enumerate(tests):
                         msg_info["resp_code"] = diff_item["Msg"][0]["Code"]
                     msg_info["method"] = diff_item["Msg"][0]["Method"].upper()
                     chk_ua = diff_item["UA"].split(",")
-                    test_diff.compare_msg_diff(timer_name,*chk_ua,**msg_info)
+                    test_diff.compare_msg_diff(req_diff,*chk_ua,**msg_info)
                     if test_diff.Status == "Failed":
                         test.Status = "Failed"
                         break
