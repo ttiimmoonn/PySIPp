@@ -540,30 +540,25 @@ for indx,test in enumerate(tests):
                 test.ReplaceUaToComplite()
             elif method == "CheckDifference":
                 logger.info("CheckDifference command activated.")
-                test_diff = diff.diff_time(test)
-                if test_diff:
-                    for diff_item in item[method]:
-                        logger.info("Check difference for method: %s",diff_item["Method"])
-                        diff_time = builder.replace_key_value(diff_item["Difference"], test_var)
-                        if diff_time:
-                            try:
-                                diff_time = float(diff_time)
-                            except ValueError:
-                                logger.error("Difference must have integer value")
-                                test.Status = "Failed"
-                                #Выходим из обработчика метода
-                                break
-                        test_diff.check_diff(diff_item["Method"], diff_time, *diff_item["UA"].split(","))
-                        if test_diff.Status == "Failed":
-                            test.Status = "Failed"
-                            #Выходим из обработчика метода
-                            break
-                    test_diff.close_stat_files()                        
-                else:
-                    logger.error("Command CheckDifference failed. test_diff obj not created.")
+                test_diff = diff_calc.diff_timestamp(test)
+                if test_diff.Status == "Failed":
                     test.Status = "Failed"
-                    #Выходим из обработчика метода
                     break
+                for diff_item in item[method]:
+                    msg_info = {}
+                    req_diff = diff_item["Difference"]
+                    msg_info["msg_type"] = diff_item["Msg"][0]["MsgType"].lower()
+                    if diff_item["Msg"][0]["Code"] == "None":
+                        msg_info["resp_code"] = None
+                    else:
+                        msg_info["resp_code"] = diff_item["Msg"][0]["Code"]
+                    msg_info["method"] = diff_item["Msg"][0]["Method"].upper()
+                    chk_ua = diff_item["UA"].split(",")
+                    test_diff.compare_msg_diff(timer_name,*chk_ua,**msg_info)
+                    if test_diff.Status == "Failed":
+                        test.Status = "Failed"
+                        break
+
             elif method == "CheckRetransmission":
                 logger.info("CheckRetransmission command activated.")
                 test_diff = diff_calc.diff_timestamp(test)
@@ -584,23 +579,6 @@ for indx,test in enumerate(tests):
                     if test_diff.Status == "Failed":
                         test.Status = "Failed"
                         break
-                    #print(test_diff.get_retrans_diff(*chk_ua,**msg_info))
-                    #print(test_diff.get_first_msg_timestamp(*chk_ua,**msg_info))
-                    #print(test_diff.get_retrans_duration(*chk_ua,**msg_info))
-
-                # if test_diff.Status != "Failed":
-                #     for diff_item in item[method]:
-                #         logger.info("Check difference for msg: %s",diff_item["MsgType"])
-                #         test_diff.ckeck_timer(**diff_item)
-                #         if test_diff.Status == "Failed":
-                #             test.Status = "Failed"
-                #             #Выходим из обработчика метода
-                #             break
-                # else:
-                #     logger.error("Command CheckTimer failed. test_diff obj not created.")
-                #     test.Status = "Failed"
-                #     #Выходим из обработчика метода
-                #     break
             else:
                 #Если передана неизвесная команда, то выходим
                 test.Status = "Failed"

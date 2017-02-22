@@ -189,7 +189,7 @@ class diff_timestamp():
 		else:
 			logger.error("Unknown timer name: %s",str(timer_name))
 			self.Status = "Failed"
-		if req_seq and ua_seq_info:
+		if self.Status != "Failed":
 			for ua_id in args:
 				for call in ua_seq_info[ua_id]:
 					if ua_seq_info[ua_id][call]:
@@ -199,6 +199,11 @@ class diff_timestamp():
 						logger.error("--| Campare failed. No retrans in call: %s",str(call))
 						self.Status = "Failed"
 
+	def compare_msg_diff(self,diffrence,*args,**kwargs):
+		ua_msg_timestamp = self.get_first_msg_timestamp(*args, **kwargs)
+		if self.Status != "Failed":
+			for ua_id in args:
+				print(ua_msg_timestamp[ua_id])
 
 
 
