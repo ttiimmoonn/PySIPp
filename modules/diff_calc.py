@@ -26,7 +26,7 @@ class diff_timestamp():
 		logger.info("--| COM SEQ: %s",' '.join(map(str,[round(x,1)for x in sequence])))
 		logger.info("--| REQ VAL: %s",req_value)
 		for value in sequence:
-			if math.fabs(value - req_value) > max_diff:
+			if math.fabs(float(value) - float(req_value)) > max_diff:
 				logger.warning("--| Compare complite. Result: fail")
 				self.Status = "Failed"				
 				return False
@@ -211,7 +211,6 @@ class diff_timestamp():
 						self.Status = "Failed"
 
 	def compare_msg_diff(self,diffrence,*args,**kwargs):
-		logger.info("Try to compare msg diff sequence with: %d", float(diffrence))
 		ua_msg_timestamp = self.get_first_msg_timestamp(*args, **kwargs)
 		if self.Status != "Failed":
 			timestamps = []
@@ -220,6 +219,7 @@ class diff_timestamp():
 				count_of_call = len(ua_calls)
 				for timestamp in ua_calls.values():
 					timestamps.append(timestamp)
+			logger.info("Try to compare msg diff sequence with: %d", float(diffrence))
 			for i in range(count_of_call):
 				msg_diff = self.get_diff(timestamps[i::count_of_call])
 				self.value_compare(msg_diff,diffrence)
