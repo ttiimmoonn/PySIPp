@@ -210,19 +210,36 @@ class diff_timestamp():
 						logger.error("--| Campare failed. No retrans in call: %s",str(call))
 						self.Status = "Failed"
 
-	def compare_msg_diff(self,diffrence,*args,**kwargs):
+	def compare_msg_diff(self,diffrence,mode = "between_ua",*args,**kwargs):
 		ua_msg_timestamp = self.get_first_msg_timestamp(*args, **kwargs)
 		if self.Status != "Failed":
-			timestamps = []
-			msg_diff = []
-			for ua_calls in ua_msg_timestamp.values():
-				count_of_call = len(ua_calls)
-				for timestamp in ua_calls.values():
-					timestamps.append(timestamp)
-			logger.info("Try to compare msg diff sequence with: %d", float(diffrence))
-			for i in range(count_of_call):
-				msg_diff = self.get_diff(timestamps[i::count_of_call])
-				self.value_compare(msg_diff,diffrence)
+			if mode == "between_ua":
+				timestamps = []
+				msg_diff = []
+				try:
+					for ua_calls in ua_msg_timestamp.values():
+						count_of_call = len(ua_calls)
+						for timestamp in ua_calls.values():
+							timestamps.append(timestamp)
+					logger.info("Try to compare msg diff sequence with: %f. Mode: %s" , float(diffrence), str(mode))
+					for i in range(count_of_call):
+						msg_diff = self.get_diff(timestamps[i::count_of_call])
+						self.value_compare(msg_diff,diffrence)
+				except:
+					logger.error("Exeption in compare_msg_diff function. Mode: %s", str(mode))
+					self.Status = "Failed"
+					return False
+			elif mode == "inner_ua":
+				for ua_calls in ua_msg_timestamp.values():
+					timestamps = []
+					msg_diff = []
+					for timestamp in ua_calls.values():
+						timestamps.append(timestamp)
+					msg_diff = self.get_diff(timestamps)
+					logger.info("Try to compare msg diff sequence with: %f. Mode: %s" , float(diffrence), str(mode))
+					self.value_compare(msg_diff,diffrence)
+
+
 
 
 
