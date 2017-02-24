@@ -210,7 +210,7 @@ class diff_timestamp():
 						logger.error("--| Campare failed. No retrans in call: %s",str(call))
 						self.Status = "Failed"
 
-	def compare_msg_diff(self,diffrence,mode = "between_ua",*args,**kwargs):
+	def compare_msg_diff(self,diffrence,mode,*args,**kwargs):
 		ua_msg_timestamp = self.get_first_msg_timestamp(*args, **kwargs)
 		if self.Status != "Failed":
 			if mode == "between_ua":

@@ -547,6 +547,7 @@ for indx,test in enumerate(tests):
                 for diff_item in item[method]:
                     msg_info = {}
                     req_diff = diff_item["Difference"]
+                    diff_mode = diff_item["Mode"]
                     msg_info["msg_type"] = diff_item["Msg"][0]["MsgType"].lower()
                     if diff_item["Msg"][0]["Code"] == "None":
                         msg_info["resp_code"] = None
@@ -554,7 +555,7 @@ for indx,test in enumerate(tests):
                         msg_info["resp_code"] = diff_item["Msg"][0]["Code"]
                     msg_info["method"] = diff_item["Msg"][0]["Method"].upper()
                     chk_ua = diff_item["UA"].split(",")
-                    test_diff.compare_msg_diff(req_diff,*chk_ua,**msg_info)
+                    test_diff.compare_msg_diff(req_diff,diff_mode,*chk_ua,**msg_info)
                     if test_diff.Status == "Failed":
                         test.Status = "Failed"
                         break
