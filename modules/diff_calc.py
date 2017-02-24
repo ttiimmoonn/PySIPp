@@ -202,14 +202,15 @@ class diff_timestamp():
 	def compare_msg_diff(self,diffrence,*args,**kwargs):
 		ua_msg_timestamp = self.get_first_msg_timestamp(*args, **kwargs)
 		if self.Status != "Failed":
-			for ua_id in args:
-				print(ua_msg_timestamp[ua_id])
-
-
-
-
-
-
+			timestamps = []
+			msg_diff = []
+			for ua_calls in a.values():
+				count_of_call = len(ua_calls)
+				for timestamp in ua_calls.values():
+					timestamps.append(timestamp)
+			for i in range(count_of_call):
+				msg.diff = self.get_diff(timestamps[i::count_of_call])
+				print(msg_diff)
 
 
 
