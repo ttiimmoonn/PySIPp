@@ -22,6 +22,17 @@ class diff_timestamp():
 		#Парсим short_msg log
 		test.CompliteUA = list(map(self.parse_short_trace_msg, test.CompliteUA))
 
+	def value_compare(self, sequence, req_value, max_diff=0.05):
+		logger.info("--| COM SEQ: %s",' '.join(map(str,[round(x,1)for x in sequence])))
+		logger.info("--| REQ VAL: %s",req_value)
+		for value in sequence:
+			if math.fabs(value - req_value) > max_diff:
+				logger.warning("--| Compare complite. Result: fail")
+				self.Status = "Failed"				
+				return False
+		logger.info("--| Compare complite. Result: succ")
+		return True
+
 	def seq_compare(self,seq_a,seq_b,max_diff=0.05):
 		logger.info("--| SEQ A: %s",' '.join(map(str,[round(x,1)for x in seq_a])))
 		logger.info("--| SEQ B: %s",' '.join(map(str,[round(x,1)for x in seq_b])))
@@ -200,17 +211,18 @@ class diff_timestamp():
 						self.Status = "Failed"
 
 	def compare_msg_diff(self,diffrence,*args,**kwargs):
+		logger.info("Try to compare msg diff sequence with: %d", float(diffrence))
 		ua_msg_timestamp = self.get_first_msg_timestamp(*args, **kwargs)
 		if self.Status != "Failed":
 			timestamps = []
 			msg_diff = []
-			for ua_calls in a.values():
+			for ua_calls in ua_msg_timestamp.values():
 				count_of_call = len(ua_calls)
 				for timestamp in ua_calls.values():
 					timestamps.append(timestamp)
 			for i in range(count_of_call):
-				msg.diff = self.get_diff(timestamps[i::count_of_call])
-				print(msg_diff)
+				msg_diff = self.get_diff(timestamps[i::count_of_call])
+				self.value_compare(msg_diff,diffrence)
 
 
 
