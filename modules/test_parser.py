@@ -137,10 +137,8 @@ def parse_test_info (json_tests):
                             logger.error("Wrong CheckDifference description. Detail: CheckDifference has no attribute: \"Method\"")
                             return False
 
-                        try:
-                            int(section["Difference"])
-                        except ValueError:
-                            logger.error("Diffenrence must be int. CheckDifference section.")
+                        if not section["Difference"].isdigit()  and re.search("^\%\%[a-zA-Z_\-0-9]+\%\%$",section["Difference"]) == None:
+                            logger.error("Diffenrence must be int or var: %%VAR%%.  CheckDifference section.")
                             return False
 
                         if msg_info["MsgType"].lower() == "request":

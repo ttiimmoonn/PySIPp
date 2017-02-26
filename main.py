@@ -547,6 +547,7 @@ for indx,test in enumerate(tests):
                 for diff_item in item[method]:
                     msg_info = {}
                     req_diff = diff_item["Difference"]
+                    req_diff = builder.replace_key_value(req_diff, test_var)
                     diff_mode = diff_item["Mode"]
                     msg_info["msg_type"] = diff_item["Msg"][0]["MsgType"].lower()
                     if diff_item["Msg"][0]["Code"] == "None":
