@@ -111,20 +111,51 @@ def parse_test_info (json_tests):
                             try:
                                 int(msg_info["Code"])
                             except ValueError:
-                                logger.error("For response msg Code must be int. CheckRetransmission section")
+                                logger.error("Code must be int for response msg. CheckRetransmission section")
                                 return False
                     except KeyError:
-                        logger.error("Wrong CheckRetransmission description. Detail: CheckRetransmission has no attribute: \"%s\"",sys.exc_info()[1])
+                        logger.error("Wrong CheckRetransmission description. Detail: CheckRetransmission has no attribute: %s",sys.exc_info()[1])
                         return False
                     
-            
-#            if "CheckDifference" in item:
-#                for chk_diff in item["CheckDifference"]:
-#                    try:
-#                        float(chk_diff["Difference"])
-#                    except:
-#                         print("[ERROR] Difference in CheckDifference command must have a float value. { Bad Diff:",chk_diff["Difference"],"}")
-#                         return False
+            if "CheckDifference" in item:
+                for section in item["CheckDifference"]:
+                    try:
+                        if not section["Mode"] in ["between_ua","inner_ua"]:
+                            logger.error("Unknown Mode: \"%s\" in CheckDifference section. Allowed Modes: %s",section["Mode"],", ".join(["between_ua","inner_ua"]))
+                            return False
+
+                        if re.search("^[0-9]{1,2}$|^([0-9]{1,2},)+[0-9]{1,2}$",section["UA"]) == None:
+                            logger.error("Wrong format for UA option in CheckDifference section. Use: id1,id2,id3 or id")
+                            return False
+
+                        msg_info = section["Msg"][0]
+                        if not msg_info["MsgType"].lower() in ["request", "response"]:
+                            logger.error("Unknown MsgType: \"%s\" in CheckDifference section. Allowed: %s",msg_info["MsgType"], ", ".join( ["request", "response"]))
+                            return False
+
+                        if not "Method" in msg_info:
+                            logger.error("Wrong CheckDifference description. Detail: CheckDifference has no attribute: \"Method\"")
+                            return False
+
+                        try:
+                            int(section["Difference"])
+                        except ValueError:
+                            logger.error("Diffenrence must be int. CheckDifference section.")
+                            return False
+
+                        if msg_info["MsgType"].lower() == "request":
+                            if msg_info["Code"] != "None":
+                                logger.error("For request msg Code must be None. CheckDifference section")
+                                return False
+                        else:
+                            try:
+                                int(msg_info["Code"])
+                            except ValueError:
+                                logger.error("Code must be int for response msg. CheckDifference section")
+                                return False
+                    except KeyError:
+                        logger.error("Wrong CheckDifference description. Detail: CheckDifference has no attribute: %s",sys.exc_info()[1])
+                        return False
         tests.append(new_test)
     return tests
 def parse_user_agent (test,ua_desc):
