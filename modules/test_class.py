@@ -4,6 +4,7 @@ import modules.fs_worker as fs
 
 class TestClass:
     def __init__(self):
+        self.TestId = None
         self.UserAgent = []
         self.CompliteUA = []
         self.BackGroundUA = []
@@ -40,7 +41,6 @@ class UserAgentClass:
         self.Type = None
         self.WriteStat = None
         self.TimeStampFile = None
-        self.StatFile = None
         self.UserId = None
         self.Port = None
         self.LogFd = None

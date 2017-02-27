@@ -50,10 +50,10 @@ def parse_user_info (json_users):
 def parse_test_info (json_tests):
     #Создаём массив для тестов
     tests = []
-    for test in json_tests:
+    for count,test in enumerate(json_tests):
         new_test = testClass.TestClass()
         new_test.Status = "New"
-
+        new_test.TestId = count
         #Устанавливаем опциональные свойства
         try:
             new_test.Name = test["Name"]

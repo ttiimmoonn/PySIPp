@@ -506,7 +506,7 @@ for indx,test in enumerate(tests):
                 #Линкуем лог файлы и UA
                 logger.info("Linking of LogFd with UA object...")
                 for ua in test.UserAgent + test.BackGroundUA:
-                    log_fd = fs.open_log_file(ua.Name,log_path)
+                    log_fd = fs.open_log_file(ua.Name + "_TEST" + str(test.TestId),log_path)
                     if not log_fd:
                         break
                     else:

@@ -21,7 +21,7 @@ def build_service_feature_command (user, code):
     command+=" -timeout 20s -recv_timeout 20s"
     if user.SipTransport == "TCP":
         command+=" -t tn -max_socket 25"
-    return command    
+    return command
     
 def build_reg_command (user,list,mode="reg"):
     #Сборка команды для регистрации
@@ -116,16 +116,13 @@ def build_sipp_command(test,list,uac_drop_flag=False, show_sip_flow=False):
             
             #Если был передан флаг для записи timestamp, то добавляем соотвествующие ключи
             if ua.WriteStat:
-                stat_file = test.LogPath + "/" + "STAT_" + str(ua.Name)
-                ua.StatFile = stat_file
-                command += " -trace_logs -log_file " + str(stat_file)
-                timestamp_file = test.LogPath + "/" + "TIMESTAMP_" + str(ua.Name)
+                timestamp_file = test.LogPath + "/" + "TIMESTAMP_" + str(ua.Name) + "_TEST" + str(test.TestId)
                 ua.TimeStampFile = timestamp_file
                 command += " -shortmessage_overwrite false -trace_shortmsg -shortmessage_file " + str(timestamp_file)
             #Добавляем message trace
-            command += " -message_overwrite false -trace_msg -message_file " + test.LogPath + "/" + "MESSAGE_" + str(ua.Name)
+            command += " -message_overwrite false -trace_msg -message_file " + test.LogPath + "/" + "MESSAGE_" + str(ua.Name) + "_TEST" + str(test.TestId)
             #Добавляем screen trace
-            command += " -screen_overwrite false -trace_screen -screen_file " + test.LogPath + "/" + "SCREEN_" + str(ua.Name)
+            command += " -screen_overwrite false -trace_screen -screen_file " + test.LogPath + "/" + "SCREEN_" + str(ua.Name) + "_TEST" + str(test.TestId)
             if not no_timeout_err:
                 command += " -timeout_error"
             command = replace_key_value(command, list)

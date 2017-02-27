@@ -28,7 +28,7 @@ class diff_timestamp():
 		for value in sequence:
 			if math.fabs(float(value) - float(req_value)) > max_diff:
 				logger.warning("--| Compare complite. Result: fail")
-				self.Status = "Failed"				
+				self.Status = "Failed"
 				return False
 		logger.info("--| Compare complite. Result: succ")
 		return True
@@ -95,7 +95,7 @@ class diff_timestamp():
 		logger.info("--| MSG param: type_of_msg - %s; method - %s; resp_code - %s", kwargs["msg_type"], kwargs["method"], kwargs["resp_code"])
 		for ua_id in args:
 			try:
-				ua = self.ua_with_traces[ua_id]				
+				ua = self.ua_with_traces[ua_id]
 			except KeyError:
 				logger.error("--| Timestamp not found. User with id: %s without traces", ua_id)
 				self.Status = "Failed"

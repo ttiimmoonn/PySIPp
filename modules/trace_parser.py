@@ -9,6 +9,7 @@ class call():
 		self.call_id = None
 		self.messages = []
 		self.transactions = []
+		self.last_timestamp = None
 
 	def find_transaction(self, msg):
 		for tr in self.transactions:
@@ -33,6 +34,12 @@ class call():
 		else:
 			self.put_msg_to_transaction(new_msg)
 			self.messages.append(new_msg)
+			if not self.last_timestamp:
+				self.last_timestamp = new_msg.timestamp
+				new_msg.diff_msg_time = 0
+			else:
+				new_msg.diff_msg_time = float(new_msg.timestamp) - float(self.last_timestamp)
+				self.last_timestamp = new_msg.timestamp
 			return True
 
 	def show_tr_msg(self):
@@ -142,9 +149,8 @@ class message ():
 		self.timestamp = None
 		self.resp_code = None
 		self.resp_desc = None
-		self.hash = None
-
-
+		self.msg_hash = None
+		self.diff_msg_time = None
 		self.req_r  = r'([A-Z]*)\s(sip:.*)\sSIP\/2.0'
 		self.res_r  = r'SIP\/2\.0\s([0-9]{3})\s(.*)'
 		self.cseq_r = r'([\d]*)\s([A-Z]*)'
@@ -161,7 +167,7 @@ class message ():
 		logger.info("Msg timestamp: %s",str(self.timestamp))
 		logger.info("Response code: %s",str(self.resp_code))
 		logger.info("Response desc: %s",str(self.resp_desc))
-		# logger.debug("diff_msg_time: %f",self.diff_msg_time)
+		logger.info("diff_msg_time: %f",self.diff_msg_time)
 		# logger.debug("diff_msg_time_in_tr: %f",self.diff_msg_time_in_tr)
 		logger.info("msg_hash: %s",self.msg_hash)
 		print()
