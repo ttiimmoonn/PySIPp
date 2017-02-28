@@ -5,7 +5,7 @@ import modules.process_contr as proc
 import modules.fs_worker as fs
 import modules.cocon_interface as ssh
 import modules.test_class as test_class
-import modules.show_call_flow as stat_module
+import modules.show_call_flow as sip_call_flow
 import modules.diff_calc as diff_calc
 import logging
 import re
@@ -626,11 +626,10 @@ stop_test(tests,test_desc,test_users,coconInt,reg_lock)
 
 if show_sip_flow:
     for test in tests:
-        for ua in test.CompliteUA:
-            if ua.WriteStat:
-                print()
-                logger.info("SIP flow for %s:",ua.Name)
-                stat_module.get_seq_statistics(ua.TimeStampFile)
+        logger.info("Call flows for TEST %d:",test.TestId)
+        test_diff = diff_calc.diff_timestamp(test)
+        call_flow = sip_call_flow.sip_flow(test_diff)
+        call_flow.print_flow()
 
 
 #Производим расчёт результатов теста

@@ -3,62 +3,38 @@ import re
 import logging
 logger = logging.getLogger("tester")
 class sip_flow():
-	def __init__(self,stat_file):
-		#Подключаем файл со статистикой
-		self.Fd=fs_worker.get_fd(stat_file)
-		if self.Fd:
-			self.Calls={}
-			#разделяем звонки
-			self.separate_calls()
-			#сортируем сообщения по времени
-			self.sort_call_messages()
+	def __init__(self,trace_obj):
+		self.trace_obj = trace_obj
 
-	def separate_calls(self):
-		#Example
-		#2016-08-08      16:21:24.073266 1470648084.073266       S       BG:sip-t:05398bf15cd4b7ea:05398bf1647de1b5      CSeq:1 INVITE   SIP/2.0 100 Trying
-		for line in self.Fd:
-			#На данном этапе необходимо разделить все вызовы по call_id
-			stat_line = line.split()
-			if stat_line[4] in self.Calls:
-				#Если уже создан массив под данный call_id,
-				#просто добавляем сообщение в массив
-				self.Calls[stat_line[4]].append(stat_line)
-			else:
-				#Если массива нет, то создаём его и добавляем сообщение.
-				self.Calls[stat_line[4]]=[]
-				self.Calls[stat_line[4]].append(stat_line)
-
-	def sort_call_messages(self):
-		#Далее нужно отсортировать массивы вызовов, по времени
-		for call in self.Calls:
-			#Сортируем сообщения в списках по timestamp
-			self.Calls[call].sort(key=self.call_sort_key)
-	
-	def call_sort_key(self,sorting_list):
-		return float(sorting_list[2])
+	def str_to_red(self,string):
+		return str("\033[1;31m" + string +  "\033[1;m")
 
 	def print_flow(self):
-		for call in self.Calls:
-			for indx,msg in enumerate(self.Calls[call]):
-				if indx < len(self.Calls[call]) - 1:
-					diff = float(self.Calls[call][indx + 1][2]) - float(self.Calls[call][indx][2])
-				if msg[3] == "R":
-					message_str = str(msg[1]+" ") + "│ ◀────RECV───── "
-				elif msg[3] == "S":
-					message_str = str(msg[1]+" ") + "│ ─────SEND────▶ "
-				message_str += " ".join(msg[7:]).strip()
-				message_str = re.sub(" sip:(.*)@([\w.:;/=\s]*)","", message_str)
-				message_str = re.sub(" SIP/2.0","", message_str).strip()
-				print(message_str)
-				if indx < len(self.Calls[call]) - 1:
-					print("\033[1;31m"+ "Diff: + " +  "%0.3f" % (float(round(diff,3))) + "\033[1;m   │")
-			print()
-			print()
+		for ua in self.trace_obj.ua_with_traces.values():
+			logger.info("Flow for user: %s",str(ua.UserObject.Number))
+			for call in ua.ShortTrParser.calls:
+				logger.info("Call Flow for Call-ID: %s \n",call.call_id)
+				print_string = ""
+				print_string += " ".ljust(26," ") + "SIPp" + "\n"
+				print_string += " ".ljust(27," ") + "┯"
+				print(print_string)
+				for count,msg in enumerate(call.messages):
+					print_string = ""
+					print_string += msg.date + " "
+					print_string += msg.time + " "
+					if msg.direction == "R": print_string += "│ ◀────RECV───── "
+					if msg.direction == "S": print_string += "│ ◀────SEND───── "
+					if msg.msg_type  == "request":print_string += msg.method + ": " + msg.uri
+					if msg.msg_type  == "response":print_string += str(msg.resp_code) + " " + msg.resp_desc
+					try:
+						print_string += "\n"
+						print_string += self.str_to_red("           Diff:"+ str(round(call.messages[count+1].diff_msg_time,1))).ljust(39," ")
+						print_string += "│"
+					except IndexError:
+						pass
+					print(print_string)
 
 
 
 
-def get_seq_statistics(stat_file):
-	new_flow = sip_flow(stat_file)
-	if new_flow.Fd:
-		new_flow.print_flow()
+
