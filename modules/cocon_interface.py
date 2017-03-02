@@ -184,4 +184,16 @@ def cocon_configure(CoconCommands,coconInt,test_var = None):
     else:
         return False
 
-
+#For pakru tests
+def cocon_push_string_command(coconCommands,coconInt):
+    cmd_string = coconCommands
+    cmd_string += "exit\n"
+    #Если команда собралась без ошибок отправляем её в thread
+    coconInt.coconQueue.put(cmd_string)
+    #Ждём пока thread разгребёт очередь
+    coconInt.coconQueue.join()
+    #Проверяем, что все команды были отправлены
+    if coconInt.ConnectionStatus:
+        return True
+    else:
+        return False
