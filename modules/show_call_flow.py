@@ -23,7 +23,7 @@ class sip_flow():
 					print_string += msg.date + " "
 					print_string += msg.time + " "
 					if msg.direction == "R": print_string += "│ ◀────RECV───── "
-					if msg.direction == "S": print_string += "│ ◀────SEND───── "
+					if msg.direction == "S": print_string += "│ ─────SEND────▶ "
 					if msg.msg_type  == "request":print_string += msg.method + ": " + msg.uri
 					if msg.msg_type  == "response":print_string += str(msg.resp_code) + " " + msg.resp_desc
 					try:
