@@ -179,11 +179,11 @@ test_var = {}
 
 
 try:
-    logging.basicConfig(filename=log_file,format = u'%(asctime)-8s %(levelname)s [%(module)s -> %(funcName)s:%(lineno)d] %(message)-8s', filemode='w', level = logging.INFO)
+    logging.basicConfig(filename=log_file,format = u'%(asctime)-8s %(levelname)-8s [%(module)s -> %(funcName)s:%(lineno)d] %(message)-8s', filemode='w', level = logging.INFO)
 except FileNotFoundError:
     match_result =re.search("^([\w.-_]+\/)[\w.-_]+$",log_file)
     fs.create_log_dir(match_result.group(1))
-    logging.basicConfig(filename=log_file,format = u'%(asctime)-8s %(levelname)s [%(module)s -> %(funcName)s:%(lineno)d] %(message)-8s', filemode='w', level = logging.INFO)
+    logging.basicConfig(filename=log_file,format = u'%(asctime)-8s %(levelname)-8s [%(module)s -> %(funcName)s:%(lineno)d] %(message)-8s', filemode='w', level = logging.INFO)
 except:
     logger.error("Can't create log dir")
     sys.exit(1)

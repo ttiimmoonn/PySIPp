@@ -226,7 +226,7 @@ class diff_timestamp():
 					logger.info("Try to compare msg diff sequence with: %f. Mode: %s" , float(diffrence), str(mode))
 					for i in range(count_of_call):
 						msg_diff = self.get_diff(timestamps[i::count_of_call])
-						self.value_compare(msg_diff,diffrence)
+						self.value_compare(msg_diff,diffrence,max_diff=0.2)
 				except:
 					logger.error("Exeption in compare_msg_diff function. Mode: %s", str(mode))
 					self.Status = "Failed"
@@ -239,4 +239,4 @@ class diff_timestamp():
 						timestamps.append(timestamp)
 					msg_diff = self.get_diff(timestamps)
 					logger.info("Try to compare msg diff sequence with: %f. Mode: %s" , float(diffrence), str(mode))
-					self.value_compare(msg_diff,diffrence)
+					self.value_compare(msg_diff,diffrence,max_diff=0.2)
