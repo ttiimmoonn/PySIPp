@@ -113,6 +113,9 @@ def build_sipp_command(test,list,uac_drop_flag=False, show_sip_flow=False):
                     command += " -set CGPNDOM " + ua.UserObject.SipDomain
             else:
                 command += " -timeout " + str(timeout)
+
+            #Выставляем ленивый режим детектирования перепосылок.
+            command += " -rtcheck loose"
             
             #Если был передан флаг для записи timestamp, то добавляем соотвествующие ключи
             if ua.WriteStat:
