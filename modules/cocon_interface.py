@@ -95,7 +95,7 @@ class coconInterface:
                     break
                 else:
                     self.data += self.read_buff
-            #Даём кокону очнуться            
+            #Даём кокону очнуться
             time.sleep(0.1)
             if self.ShowCoConOutput:
                 logger.info("CoconOutput: ")
@@ -104,7 +104,12 @@ class coconInterface:
             #Закрываем ssh соединение
             logger.debug("Close ssh connection.")
             self.close_connection()
-            return True
+            #Проверяем, что в output нет следующей подстроки temporary locked
+            if self.data.decode("utf-8", "strict").find("temporary locked") != -1:
+                logger.warning("Command temporary locked. Try retrans cmd to ccn...")
+                return False
+            else:
+                return True
         else:
             if self.global_ccn_lock:
                 self.lock_release()
@@ -153,10 +158,10 @@ def ccn_command_handler(coconInt):
                 coconInt.attempt += 1
                 if coconInt.attempt > MAX_ATTEMPT:
                     logger.error("Can't connect to CoCon interface. {cocon thread}. Try to check connection settings.")
-                    coconInt.ConnectionStatus  = False
+                    coconInt.ConnectionStatus = False
                     coconInt.coconQueue.task_done()
                 logger.info("CCN overload. Sleep before next attempt.")
-                #time.sleep(random.randint(2, 4))
+                time.sleep(random.randint(2, 5))
                 continue
 
     
