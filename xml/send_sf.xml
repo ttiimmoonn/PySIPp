@@ -43,7 +43,7 @@
 
 
 <!--Если получено 401 идем на label 2 и отсылаем INVITE c аутентификацией -->
-<recv response="401" auth="true" next="2">
+<recv response="401" optional="true" auth="true" next="2">
     <action>
         <!--Забрали CSeq -->
         <ereg regexp="[0-9]+" search_in="hdr" header="CSeq:" assign_to="last_cseq"/>
