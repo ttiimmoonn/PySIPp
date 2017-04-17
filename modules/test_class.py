@@ -99,6 +99,9 @@ class UserClass:
         self.RegLogFile = None
         self.SipGroup = None
         self.SipTransport = None
+        self.UserIP = None
+        #Для тестирования регистраций с левого ip:port
+        self.FakePort = None
         self.UserLock = threading.Lock()
     
     def SetRegistrationTimer(self):

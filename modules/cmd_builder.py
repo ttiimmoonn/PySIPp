@@ -31,7 +31,12 @@ def build_reg_command (user,list,mode="reg"):
     command+="%%EXTER_IP%%" + ":" + "%%EXTER_PORT%%" + " "
     command+="-i " + "%%IP%%" + " "
     command+=" -set DOMAIN " + str(user.SipDomain)
-    command+=" -set PORT " + str(user.Port)
+    if user.UserIP != None:
+        command+=" -set USER_IP " + str(user.UserIP)
+    if user.FakePort != None:
+        command+=" -set PORT " + str(user.FakePort)
+    else:
+        command+=" -set PORT " + str(user.Port)
     if mode == "reg":
         command+=" -set EXPIRES " + str(user.Expires)
     elif mode == "unreg":
