@@ -99,7 +99,7 @@ class TestProcessor():
 
     def _execSippProcess(self):
         self.NowRunningThreads = proc.start_process_controller(self.NowRunningTest)
-        if len(self.NowRunningTest.UserAgent) > 1:
+        if len(self.NowRunningTest.UserAgent) > 0:
             logger.info("Waiting for closing threads...")
             if not proc.CheckThreads(self.NowRunningThreads):
                 logger.error("One of UAs return bad exit code")
