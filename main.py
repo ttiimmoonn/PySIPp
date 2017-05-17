@@ -1,6 +1,7 @@
 #!/usr/local/bin/python3.5
 import modules.test_parser as parser
 import modules.cmd_builder as builder
+import modules.test_processor as processor
 import modules.process_contr as proc
 import modules.fs_worker as fs
 import modules.cocon_interface as ssh
@@ -75,23 +76,6 @@ def get_test_info (test):
         for command in ua.Commands:
             print("      ",command)
         print("")
-
-def link_user_to_test(test, users):
-    #Массив для использованных id
-    use_id = []
-    for ua in test.UserAgent + test.BackGroundUA:
-        if ua.Type == "User":
-            if not int(ua.UserId) in use_id:
-                use_id.append(int(ua.UserId))
-                try:
-                    ua.UserObject = users[str(ua.UserId)]
-                except KeyError:
-                    logger.error("User with id = %d not found { UA : %s }",int(ua.UserId),ua.Name)
-                    return False
-            else:
-                logger.error("Duplicate UserId: %d { UA : %s }",int(ua.UserId),ua.Name)
-                return False
-    return test
 
 def stop_test(tests,test_desc,test_users,coconInt,reg_lock=False):
     logger.debug("Stop CoCoN Thread...")
@@ -326,302 +310,22 @@ if len(test_users) != 0:
     reg_thread.join()
     if not proc.CheckUserRegStatus(test_users):
         stop_test(tests,test_desc,test_users,coconInt,reg_lock)
-        sys.exit(1)   
-#Запускаем процесс тестирования
-for indx,test in enumerate(tests):
-    if indx  > 0:
-        if force_quit and tests[indx - 1].Status == "Failed":
-            break
-    logger.info("Start test: %s",test.Name)
-    #Выставляем статус теста
-    test.Status = "Starting"
-    #Читаем индекс и команду из описания теста
-    #Индекс нужен для того, чтобы знать на какой команде мы остановились, когда тест получит статус failed
-    for index,item in enumerate(test.TestProcedure):
-        #Если статус теста Failed заканчиваем процесс тестирования
-        if not test or test.Status == "Failed":
-            #На данном этапе мы поняли, что тест провалился. Нужно предусмотреть деконфигурацию ссв.
-            #Пока сделаю следующее. Если тест свалился, то я ищу все оставшиеся CoconCommand
-            #и отправляю их на ссв.
-            
-            #Если отвалилось соединение с cocon, то дальше можно не пытаться ничего слать.
-            #Просто переходим к следующему тесту. 
-            if not coconInt.ConnectionStatus:
-                logger.info("Connection Status: %s",coconInt.ConnectionStatus)
-                break
-            if test:
-                logger.info("Trying send to CCN all commands from test: %s",test.Name)
-                #Берём срез массива от индекса, где у нас всё упало и до конца
-                for item in test.TestProcedure[index:]:
-                    for method in item:
-                        #Если метод равен CoconCommand, то отправляем команды в CCN handler
-                        if method == "CoconCommand":
-                            #Если не удалось отправить команду, выходим
-                            if not ssh.cocon_configure(item[method],coconInt,test_var):
-                                break
-                            else:
-                                #Если метод не CoconCommand, ищём дальше
-                                continue
-                        else:
-                            #Если в item нет method CoconCommand, ищём дальше
-                            continue
-                #После перебора всего теста, выходим.
-                break
-            else:
-                #Если объект теста  равен false, то просто идём к следующему тесту
-                logger.warn("Test object eq false.")
-                break
-
-        for method in item:
-            if method == "CoconCommand":
-                logger.info("Send commands to CoCon...")
-                #Переменные для настройки соединения с CoCoN
-                if not ssh.cocon_configure(item[method],coconInt,test_var):  
-                    #Выставляем статус теста
-                    test.Status = "Failed"
-                    break
-                else:
-                    time.sleep(1)
-
-            elif method == "Print":
-                message = str(item[method])
-                logging.info("\033[32m[TEST_INFO] %s \033[1;m",message)
-
-            elif method == "Stop":
-                sys.stdin.flush()
-                input("\033[1;31m[TEST_INFO] Test stopped. Please press any key to continue...\033[1;m")
-
-            elif method == "ServiceFeature":
-                #Список threads для SF
-                sf_threads=[]
-                sf_use_uid = []
-                logger.info("SendServiceFeature command activated.")
-                #Забираем фича-код и юзера с которого его выполнить
-                #О наличии данных параметров заботится парсер тестов
-                for sf in item[method]:
-                    code = sf['code']
-                    user_id = str(sf['userId'])
-                    code = builder.replace_key_value(code, test_var)
-                    if not code:
-                        test.Status = "Failed"
-                        break
-                    if user_id in sf_use_uid:
-                        logger.error("Duplicated UserId in ServiceFeature item: { UA : %d }",user_id)
-                        test.Status = "Failed"
-                        break
-                    else:
-                        sf_use_uid.append(user_id)
-
-                    try:
-                        user = test_users[str(user_id)]
-                    except:
-                        logger.error("Can't get User Object with. ID = %d not found.",user_id)
-                        #Выставляем статус теста
-                        test.Status = "Failed"
-                        break
-                
-                    logger.info("Send ServiceFeature from User %s code = %s",user.Number,code)
-                    #Собираем команду для активации сервис фичи
-                    command = builder.build_service_feature_command(user,code)
-                    #Прогоняем её через словарь
-                    command = builder.replace_key_value(command, test_var)
-                
-                    if not command:
-                        #Выставляем статус теста
-                        test.Status = "Failed"
-                        break
-                
-                    service_ua = test_class.UserAgentClass()
-                    service_ua = service_ua.GetServiceFetureUA(command,code,user,user_id)
-                    sf_log_name = "SF_" + str(service_ua.Name)
-                    log_file = fs.open_log_file(sf_log_name,log_path)
-                    if not log_file:
-                        #Выставляем статус теста
-                        test.Status = "Failed"
-                        break
-                    else:
-                        service_ua.LogFd = log_file
-                    #Добавляем сервис UA в активные UA теста
-                    test.UserAgent.append(service_ua)
-
-                if test.Status == "Failed":
-                    break
-                #Запускаем активацию фича-кода через процесс контроллер
-                sf_thread = proc.start_process_controller(test)
-
-                #Проверяем, что вернувшиеся треды закрыты:
-                logger.info("Waiting for closing threads...")
-                if not proc.CheckThreads(sf_thread):
-                    test.ThreadEvent.clear()
-                    time.sleep(1)
-                    #Переносим отработавшие UA в завершенные
-                    test.Status = "Failed"
-                    test.ReplaceUaToComplite()
-                    logger.info("Sleep on 32s")
-                    time.sleep(32)
-                    break
-                #Проверяем UA на статусы
-                logger.info("Check process StatusCode...")
-                if not proc.CheckUaStatus(test.UserAgent):
-                    #Переносим отработавшие UA в завершенные
-                    test.ReplaceUaToComplite()
-                    logging.error("Can't send Feature code %s",code)
-                    test.Status = "Failed"
-                    logger.info("Sleep on 32s")
-                    time.sleep(32)
-                    break
-                else:
-                    test.ReplaceUaToComplite()
-
-            elif method == "Sleep":
-                logger.info("Sleep command activated.")
-                try:
-                    sleep_time = float(item[method])
-                except:
-                    logger.error("Bag sleep arg. Exit.")
-                    coconInt.eventForStop.set()
-                    sys.exit(1)
-                logging.info("\033[32m[TEST_INFO] Sleep %.1f seconds\033[1;m",sleep_time)
-                time.sleep(sleep_time)
-
-            elif method == "StartUA":
-                logger.info("StartUA command activate.")
-                #Парсим Юзер агентов 
-                logger.info("Parsing UA from test.")
-                test = parser.parse_user_agent(test,item[method])
-                if not test:
-                    #Если неправильное описание юзер агентов, то выходим
-                    break
-                #Линкуем UA с объектами юзеров.
-                logger.info("Linking UA object with User object...")
-                test = link_user_to_test(test, test_users)
-                #Если есть ошибки при линковке, то выходим
-                if not test:
-                    break
-                #Собираем команды для UA.
-                logger.info("Building of SIPp commands for UA...")
-                test = builder.build_sipp_command(test,test_var,uac_drop_flag, show_sip_flow)
-                #Если есть ошибки при сборке, то выходим
-                if not test:
-                    break
-                #Линкуем лог файлы и UA
-                logger.info("Linking of LogFd with UA object...")
-                for ua in test.UserAgent + test.BackGroundUA:
-                    log_fd = fs.open_log_file(ua.Name + "_TEST" + str(test.TestId),log_path)
-                    if not log_fd:
-                        break
-                    else:
-                        ua.LogFd = log_fd
-                #Если все предварительные процедуры выполнены успешно,
-                #то запускаем процессы
-                threads = proc.start_process_controller(test)
-                logger.info("Waiting for closing threads...")
-                if not proc.CheckThreads(threads):
-                    #Переносим отработавшие UA в завершенные
-                    #Останавливаем все thread
-                    test.ThreadEvent.clear()
-                    #Даём thread завершиться
-                    time.sleep(1)
-                    test.Status = "Failed"
-                    test.ReplaceUaToComplite()
-                    logger.info("Sleep on 32s")
-                    time.sleep(32)
-                    break
-                #Проверяем UA на статусы
-                logger.info("Check process StatusCode...")
-                if not proc.CheckUaStatus(test.UserAgent):
-                    #Переносим отработавшие UA в завершенные
-                    test.ReplaceUaToComplite()
-                    logger.error("One of UAs return bad exit code")
-                    test.Status = "Failed"
-                    logger.info("Sleep on 32s")
-                    time.sleep(32)
-                    break
-                #Переносим все активные UA в завершённые
-                test.ReplaceUaToComplite()
-            elif method == "CheckDifference":
-                logger.info("CheckDifference command activated.")
-                test_diff = diff_calc.diff_timestamp(test)
-                if test_diff.Status == "Failed":
-                    test.Status = "Failed"
-                    break
-                for diff_item in item[method]:
-                    msg_info = {}
-                    req_diff = diff_item["Difference"]
-                    req_diff = builder.replace_key_value(req_diff, test_var)
-                    diff_mode = diff_item["Mode"]
-                    msg_info["msg_type"] = diff_item["Msg"][0]["MsgType"].lower()
-                    if diff_item["Msg"][0]["Code"] == "None":
-                        msg_info["resp_code"] = None
-                    else:
-                        msg_info["resp_code"] = diff_item["Msg"][0]["Code"]
-                    msg_info["method"] = diff_item["Msg"][0]["Method"].upper()
-                    chk_ua = diff_item["UA"].split(",")
-                    test_diff.compare_msg_diff(req_diff,diff_mode,*chk_ua,**msg_info)
-                    if test_diff.Status == "Failed":
-                        test.Status = "Failed"
-                        break
-
-            elif method == "CheckRetransmission":
-                logger.info("CheckRetransmission command activated.")
-                test_diff = diff_calc.diff_timestamp(test)
-                if test_diff.Status == "Failed":
-                    test.Status = "Failed"
-                    break
-                for diff_item in item[method]:
-                    msg_info = {}
-                    timer_name = diff_item["Timer"]
-                    msg_info["msg_type"] = diff_item["Msg"][0]["MsgType"].lower()
-                    if diff_item["Msg"][0]["Code"] == "None":
-                        msg_info["resp_code"] = None
-                    else:
-                        msg_info["resp_code"] = diff_item["Msg"][0]["Code"]
-                    msg_info["method"] = diff_item["Msg"][0]["Method"].upper()
-                    chk_ua = diff_item["UA"].split(",")
-                    test_diff.compare_timer_seq(timer_name,*chk_ua,**msg_info)
-                    if test_diff.Status == "Failed":
-                        test.Status = "Failed"
-                        break
-            else:
-                #Если передана неизвесная команда, то выходим
-                test.Status = "Failed"
-                logger.error("Unknown metod: %s in test procedure. Test aborting.",method)
-                break
-    #Устанавливаем статус теста в завершён
-    if test == False:
-        logger.error("Test procedure failed. Aborting...")
-        stop_test(tests,test_desc,test_users,coconInt,reg_lock)
         sys.exit(1)
 
-    if len(test.WaitBackGroundUA) > 0:
-        logger.info("Waiting for closing threads which started in background mode...")
-        if not proc.CheckThreads(test.BackGroundThreads):
-            test.ThreadEvent.clear()
-            #Даём thread завершиться
-            time.sleep(1)
-            #Переносим отработавшие UA в завершенные
-            test.Status = "Failed"
-            logger.info("Sleep on 32s")
-            test.CompliteBgUA()
-            time.sleep(32)
-        elif not proc.CheckUaStatus(test.WaitBackGroundUA):
-            #Переносим отработавшие UA в завершенные
-            test.CompliteBgUA()
-            logger.error("One of UAs return bad exit code")
-            test.Status = "Failed"
-            logger.info("Sleep on 32s")
-            time.sleep(32)
-        else:
-            test.CompliteBgUA()
+test_pr_config = {}
+test_pr_config["Tests"] = tests
+test_pr_config["ForceQuitFlag"] = force_quit
+test_pr_config["Users"] = test_users
+test_pr_config["Trunks"] = []
+test_pr_config["CoconInt"] = coconInt
+test_pr_config["TestVar"] = test_var
+test_pr_config["ShowSipFlowFlag"] = show_sip_flow
+test_pr_config["UacDropFlag"] = uac_drop_flag
+test_pr_config["LogPath"] = log_path
 
-    if test.Status != "Failed":
-        test.Status = "Complite"
+test_processor = processor.TestProcessor(**test_pr_config)
+test_processor.StartTestProcessor()
 
-        logger.info("Test: %s complite", test.Name)
-    else:
-        logger.error("Test: %s failed.",test.Name)
-
-            
 #Запускаем стоп тест
 stop_test(tests,test_desc,test_users,coconInt,reg_lock)
 

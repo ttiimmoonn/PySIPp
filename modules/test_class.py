@@ -16,7 +16,12 @@ class TestClass:
         self.TestProcedure = None
         self.Status = None
         self.LogPath = None
-    
+        self.StartTime = None
+        self.StopTime = None
+
+    def getTestDuration(self):
+        return round(self.StopTime - self.StartTime,1)
+
     def ReplaceUaToComplite(self):
         self.CompliteUA += self.UserAgent
         self.UserAgent = []
@@ -49,13 +54,13 @@ class UserAgentClass:
         self.UALock = threading.Lock()
         self.ShortTrParser = None
     
-    def GetServiceFetureUA(self,command,code,user_obj,user_id):
+    def GetServiceFetureUA(self,code,user_obj):
         #Добавляем новый тип UA
         self.Type = "ServiceFeatureUA"
-        self.Commands.append(command)
+        self.Commands = []
         self.Name = "SF_CODE_" + code
         self.UserObject = user_obj
-        self.UserId = user_id
+        self.UserId = user_obj.UserId
         return self
 
     def ReadStatusCode(self):

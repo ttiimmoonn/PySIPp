@@ -74,7 +74,7 @@ class coconInterface:
     def send_command(self,command):
          #Если соединение удалось поднять, то начинаем отправку команды
         if self.get_channel():
-            logger.info("---> Command: %s\n",command)
+            logger.info("---> Command: %s",command)
             try:
                 self.sshChannel.sendall(command)
                 #ждём когда отпустит ccn

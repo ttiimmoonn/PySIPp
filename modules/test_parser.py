@@ -13,7 +13,7 @@ def parse_user_info (json_users):
         #Проверяем наличие обязательных параметров
         try:
             new_user.Status = "New"
-            new_user.UserId = user["UserId"]
+            new_user.UserId = int(user["UserId"])
             new_user.Number = user["Number"]
             new_user.Login = user["Login"]
             new_user.Password = user["Password"]
@@ -184,7 +184,7 @@ def parse_user_agent (test,ua_desc):
                 #Для Trunk: Port
                 if new_ua.Type == "User":
                     try:
-                        new_ua.UserId = ua["UserId"]
+                        new_ua.UserId = int(ua["UserId"])
                     except KeyError:
                         logger.error("Wrong UA description. Detail: UA has no attribute: %s { Test: %s }",sys.exc_info()[1],test.Name)
                         return False
@@ -230,7 +230,7 @@ def parse_user_agent (test,ua_desc):
             #Если в тесте нет UA, то выходим
             logger.error("Wrong UA description. Detail: UA has no attribute: %s { Test: %s }",sys.exc_info()[1],test.Name)
             return False
-        return test
+        return True
 
 def parse_test_var (test_desc):
     #Парсим пользовательские переменные

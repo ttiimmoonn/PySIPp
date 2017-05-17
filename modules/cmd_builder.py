@@ -4,26 +4,8 @@ from datetime import datetime, date
 import logging
 logger = logging.getLogger("tester")
 
-def build_service_feature_command (user, code):
-    #Сборка команды для регистрации
-    command=""
-    command+="%%SIPP_PATH%%" + " "
-    command+="-sf " + "%%SF_XML%%" + " "
-    command+="%%EXTER_IP%%" + ":" + "%%EXTER_PORT%%" + " "
-    command+="-i " + "%%IP%%" + " "
-    command+=" -p " + str(user.Port)
-    command+=" -set CDPN " + str(code)
-    command+=" -set CDPNDOM " + str(user.SipDomain)
-    command+=" -set CGPNDOM " + str(user.SipDomain)
-    command+=" -s " + str(user.Login)
-    command+=" -ap " + str(user.Password)
-    command+=" -m 1 "
-    command+=" -timeout 20s -recv_timeout 20s"
-    if user.SipTransport == "TCP":
-        command+=" -t tn -max_socket 25"
-    return command
-    
-def build_reg_command (user,list,mode="reg"):
+
+def build_reg_command (user,test_var,mode="reg"):
     #Сборка команды для регистрации
     command=""
     command+="%%SIPP_PATH%%" + " "
@@ -49,12 +31,34 @@ def build_reg_command (user,list,mode="reg"):
     command+=" -timeout_error"
     if user.SipTransport == "TCP":
         command+=" -t tn -max_socket 25"
-    command = replace_key_value(command, list)
+    command = replace_key_value(command, test_var)
     if command:
         return command
     else:
         return False
-def build_sipp_command(test,list,uac_drop_flag=False, show_sip_flow=False):
+
+def build_service_feature_command (user, code, test_var):
+    #Сборка команды для регистрации
+    command=""
+    command+="%%SIPP_PATH%%" + " "
+    command+="-sf " + "%%SF_XML%%" + " "
+    command+="%%EXTER_IP%%" + ":" + "%%EXTER_PORT%%" + " "
+    command+="-i " + "%%IP%%" + " "
+    command+=" -p " + str(user.Port)
+    command+=" -set CDPN " + str(code)
+    command+=" -set CDPNDOM " + str(user.SipDomain)
+    command+=" -set CGPNDOM " + str(user.SipDomain)
+    command+=" -s " + str(user.Login)
+    command+=" -ap " + str(user.Password)
+    command+=" -m 1 "
+    command+=" -timeout 20s -recv_timeout 20s"
+    if user.SipTransport == "TCP":
+        command+=" -t tn -max_socket 25"
+    command = replace_key_value(command,test_var)
+    return command
+
+
+def build_sipp_command(test,test_var,uac_drop_flag=False, show_sip_flow=False):
     for ua in test.UserAgent + test.BackGroundUA:
          #Пытаемся достать параметры команды
          for command in ua.RawJsonCommands:
@@ -133,7 +137,7 @@ def build_sipp_command(test,list,uac_drop_flag=False, show_sip_flow=False):
             command += " -screen_overwrite false -trace_screen -screen_file " + test.LogPath + "/" + "SCREEN_" + str(ua.Name) + "_TEST" + str(test.TestId)
             if not no_timeout_err:
                 command += " -timeout_error"
-            command = replace_key_value(command, list)
+            command = replace_key_value(command, test_var)
             if command:
                 ua.Commands.append(command)
             else:
