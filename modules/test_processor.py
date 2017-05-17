@@ -147,6 +147,11 @@ class TestProcessor():
             logger.error("Creating log files for UA failed.")
             return False
 
+        for ua in self.NowRunningTest.UserAgent + self.NowRunningTest.BackGroundUA:
+            logging.info("PortInfo for UA: %s", ua.Name)
+            logging.info("---| UA Port:     %s", str(ua.UserObject.Port))
+            logging.info("---| UA RtpPort:  %s", str(ua.UserObject.RtpPort))
+
         if not self._execSippProcess():
             self.NowRunningTest.Status = "Failed"
             return False
