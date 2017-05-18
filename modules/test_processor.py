@@ -149,8 +149,12 @@ class TestProcessor():
 
         for ua in self.NowRunningTest.UserAgent + self.NowRunningTest.BackGroundUA:
             logging.info("PortInfo for UA: %s", ua.Name)
-            logging.info("---| UA Port:     %s", str(ua.UserObject.Port))
-            logging.info("---| UA RtpPort:  %s", str(ua.UserObject.RtpPort))
+            logging.info("---| UA Type:     %s", str(ua.Type))
+            if ua.Type == "User":
+                logging.info("---| UA Port:     %s", str(ua.UserObject.Port))
+                logging.info("---| UA RtpPort:  %s", str(ua.UserObject.RtpPort))
+            elif ua.Type == "Trunk":
+                logging.info("---| UA Port:     %s", str(ua.Port))
 
         if not self._execSippProcess():
             self.NowRunningTest.Status = "Failed"
