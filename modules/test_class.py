@@ -89,6 +89,7 @@ class UserClass:
         self.Timer = None
         self.Status = "New"
         self.StatusCode = None
+        self.RegType = None
         self.Number = None
         self.Login = None
         self.Password = None

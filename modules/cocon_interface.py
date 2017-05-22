@@ -47,7 +47,7 @@ class coconInterface:
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             client.connect(hostname = self.Ip, username = self.Login, password = self.Password, port = self.Port, timeout=10, banner_timeout = 10, look_for_keys=False, allow_agent=False)
             self.sshClient = client
-        except:
+        except KeyError:
             logger.warning("Exception on ssh connect.")
             if client:
                 logger.debug("Close ssh connect")

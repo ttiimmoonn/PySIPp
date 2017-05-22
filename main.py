@@ -24,18 +24,43 @@ from collections import OrderedDict
 def signal_handler(current_signal, frame):
     signal.signal(signal.SIGINT, signal.SIG_IGN)
     logger.info("Receive SIGINT signal. Start test aborting")
-    try:
-        if tests and test_desc and coconInt:
-            if test_users and reg_lock:
-                stop_test(tests,test_desc,test_users,coconInt,reg_lock)
-            else:
-                logger.info("Test no users in description or reg_lock flag is not set.")
-            logger.debug("Start stop_test without reg_lock")
-            stop_test(tests,test_desc,test_users,coconInt)
-    except NameError:
-        logger.warn("Required variables are missing!")
-    #print(threading.current_thread())
+    if not 'test_processor' in globals():
+        cp_test_processor = False
+    else:
+        cp_test_processor = test_processor
+    if not 'test_desc' in globals():
+        cp_test_desc = False
+    else:
+        cp_test_desc = test_desc
+    if not 'coconInt' in globals():
+        cp_coconInt = False
+    else:
+        cp_coconInt = coconInt
+    stop_test(cp_test_processor,cp_test_desc,cp_coconInt)
     sys.exit(1)
+
+
+def stop_test(test_processor,test_desc,coconInt):
+    logger.debug("Stop CoCoN Thread...")
+    if coconInt:
+        if coconInt.coconQueue and coconInt.myThread:
+            if coconInt.myThread.is_alive():
+                #Чистим текущие задачи из очереди
+                coconInt.flush_queue()
+                #Засовываем команды на деконфигурацию в очередь
+                if test_desc:
+                    if "PostCoconConf" in test_desc:
+                        logger.info("Deconfigure of ECSS-10 system...")
+                        #Переменные для настройки соединения с CoCoN
+                        ssh.cocon_configure(test_desc["PostCoconConf"],coconInt,test_var)
+                #Отрубаем thread
+                #На всякий случай убеждаемся, что ccn thread существует и живой
+                coconInt.eventForStop.set()
+    if test_processor:
+        test_processor.StopTestProcessor()
+
+
+
 
 
 #Добавляем трап на SIGINT
@@ -77,45 +102,6 @@ def get_test_info (test):
             print("      ",command)
         print("")
 
-def stop_test(tests,test_desc,test_users,coconInt,reg_lock=False):
-    logger.debug("Stop CoCoN Thread...")
-    if coconInt.coconQueue and coconInt.myThread:
-        if coconInt.myThread.is_alive():
-            #Чистим текущие задачи из очереди
-            coconInt.flush_queue()
-            #Засовываем команды на деконфигурацию в очередь
-            if "PostCoconConf" in test_desc:
-                logger.info("Deconfigure of ECSS-10 system...")
-                #Переменные для настройки соединения с CoCoN
-                ssh.cocon_configure(test_desc["PostCoconConf"],coconInt,test_var)
-            #Отрубаем thread
-            #На всякий случай убеждаемся, что ccn thread существует и живой
-            coconInt.eventForStop.set()
-    logger.debug("Drop all processes...")
-    #Дропаем процессы
-    for test in tests:
-        if test.Status!="New":
-            for ua in test.UserAgent + test.WaitBackGroundUA:
-                for process in ua.Process:
-                    if process.poll() == None:
-                        process.kill()
-    logger.debug("Drop all registration...")
-    #Разрегистрируем юзеров
-    if reg_lock and test_users:
-        logger.info("Drop registration of users.")
-        unreg_thread = threading.Thread(target=proc.ChangeUsersRegistration, args=(test_users,reg_lock,"unreg",))
-        unreg_thread.start()
-        #Даём завершиться thread'у разрегистрации
-        unreg_thread.join()
-    logger.info("Close log files...")
-    if tests:
-        for test in tests:
-            for ua in test.CompliteUA:
-                if ua.LogFd:
-                    ua.LogFd.close()
-    #Даём время на сворачивание thread
-    time.sleep(0.2)
-    return True
 
 def match_test_numbers(test_numbers):
     match_result = re.search("^[0-9]{1,2}$|^([0-9]{1,2},)*[0-9]{1,2}$",test_numbers)
@@ -163,11 +149,11 @@ test_var = {}
 
 
 try:
-    logging.basicConfig(filename=log_file,format = u'%(asctime)-8s %(levelname)-8s [%(module)s -> %(funcName)s:%(lineno)d] %(message)-8s', filemode='w', level = logging.INFO)
+    logging.basicConfig(filename=log_file,format = u'%(asctime)-8s %(levelname)-8s [%(module)s -> %(funcName)s:%(lineno)d] %(message)-8s', filemode='w', level = logging.DEBUG)
 except FileNotFoundError:
     match_result =re.search("^([\w.-_]+\/)[\w.-_]+$",log_file)
     fs.create_log_dir(match_result.group(1))
-    logging.basicConfig(filename=log_file,format = u'%(asctime)-8s %(levelname)-8s [%(module)s -> %(funcName)s:%(lineno)d] %(message)-8s', filemode='w', level = logging.INFO)
+    logging.basicConfig(filename=log_file,format = u'%(asctime)-8s %(levelname)-8s [%(module)s -> %(funcName)s:%(lineno)d] %(message)-8s', filemode='w', level = logging.DEBUG)
 except:
     logger.error("Can't create log dir")
     sys.exit(1)
@@ -272,46 +258,6 @@ if "PreCoconConf" in test_desc:
     #Даём кокону очнуться
     time.sleep(1)
 
-if len(test_users) != 0:
-    #Собираем команды для регистрации абонентов
-    logger.info("Building of registration command for UA...")
-    for key in test_users:
-        command = builder.build_reg_command(test_users[key],test_var)
-        if command:
-            test_users[key].RegCommand = command
-        else:
-            coconInt.eventForStop.set()
-            sys.exit(1)
-
-    #Собираем команды для сброса регистрации абонентов
-    logger.info("Building command for dropping of users registration...")
-    for key in test_users:
-        command = builder.build_reg_command(test_users[key],test_var,"unreg")
-        if command:
-            test_users[key].UnRegCommand = command
-        else:
-            coconInt.eventForStop.set()
-            sys.exit(1)
-    #Врубаем регистрацию для всех юзеров
-    logger.info("Starting of registration...")
-    #Декларируем массив для thread регистрации
-    for user in test_users:
-        reg_log_name = "REG_" + str(test_users[user].Number)
-        log_file = fs.open_log_file(reg_log_name,log_path)
-        #Если не удалось создать лог файл, то выходим
-        if not log_file:
-            coconInt.eventForStop.set()
-            sys.exit(1)
-        else:
-            test_users[user].RegLogFile = log_file
-
-    reg_thread = threading.Thread(target=proc.ChangeUsersRegistration, args=(test_users,reg_lock))
-    reg_thread.start()
-    reg_thread.join()
-    if not proc.CheckUserRegStatus(test_users):
-        stop_test(tests,test_desc,test_users,coconInt,reg_lock)
-        sys.exit(1)
-
 test_pr_config = {}
 test_pr_config["Tests"] = tests
 test_pr_config["ForceQuitFlag"] = force_quit
@@ -327,7 +273,7 @@ test_processor = processor.TestProcessor(**test_pr_config)
 test_processor.StartTestProcessor()
 
 #Запускаем стоп тест
-stop_test(tests,test_desc,test_users,coconInt,reg_lock)
+stop_test(test_processor,test_desc,coconInt)
 
 if show_sip_flow:
     for test in tests:

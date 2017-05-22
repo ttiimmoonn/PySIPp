@@ -9,8 +9,9 @@ logger = logging.getLogger("tester")
 
 def RegisterUser (user, mode="reg"):
     if mode == "reg":
-        # Взводим timer 
-        user.SetRegistrationTimer()
+        # Взводим timer если нет флага onetimereg
+        if not user.RegOneTime:
+            user.SetRegistrationTimer()
         # Запускаем процесс
         process = start_ua(user.RegCommand, user.RegLogFile)
         if not process:

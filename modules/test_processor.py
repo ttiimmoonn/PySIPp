@@ -8,7 +8,7 @@ import modules.fs_worker as fs
 import sys
 import time
 from datetime import datetime
-
+import threading
 import logging
 logger = logging.getLogger("tester")
 
@@ -40,6 +40,87 @@ class TestProcessor():
         self.NowRunningTest = None
         self.NowRunningThreads = []
 
+        #Регистрации юзеров
+        self.RegLock = threading.Lock()
+        self.RegThread = None
+
+
+    def StopTestProcessor(self):
+        self.Status = "Stopping test_processor"
+
+        logger.debug("Drop all SIPp processes...")
+        
+        #Дропаем процессы
+        if self.NowRunningTest != None:
+            for ua in self.NowRunningTest.UserAgent + self.NowRunningTest.WaitBackGroundUA:
+                for process in ua.Process:
+                    if process.poll() == None:
+                        process.kill()
+
+        #Разрегистрируем юзеров
+        if self.RegLock and len(self.Users) > 0:
+            logger.info("Drop registration of users.")
+            unreg_thread = threading.Thread(target=proc.ChangeUsersRegistration, args=(self.Users,self.RegLock,"unreg",))
+            unreg_thread.start()
+            #Даём завершиться thread'у разрегистрации
+            unreg_thread.join()
+
+        logger.info("Close log files...")
+        if self.Tests:
+            for test in self.Tests:
+                for ua in test.CompliteUA:
+                    if ua.LogFd:
+                        ua.LogFd.close()
+        #Даём время на сворачивание thread
+        time.sleep(0.2)
+        return True
+
+    def _StartUserRegistration(self):
+        #Врубаем регистрацию для всех юзеров
+        logger.info("Starting of registration...")
+        if not self._buildRegCommands():
+            self.Status = "Failed"
+            return False
+        self.Status = "Register users"
+        #Декларируем массив для thread регистрации
+        for user in self.Users.items():
+            log_file = fs.open_log_file("REG_" + str(user[1].Number),self.LogPath)
+            #Если не удалось создать лог файл, то выходим
+            if not log_file:
+                self.Status = "Failed"
+                return False
+            else:
+                user[1].RegLogFile = log_file
+
+        self.RegThread  = threading.Thread(target=proc.ChangeUsersRegistration, args=(self.Users,self.RegLock))
+        self.RegThread.start()
+        self.RegThread.join()
+        if not proc.CheckUserRegStatus(self.Users):
+            self.Status = "Failed"
+            return False
+        self.Status = "Registration Complite"
+        return True
+
+
+    def _buildRegCommands(self):
+        if len(self.Users) > 0:
+            #Собираем команды для регистрации абонентов
+            logger.info("Building of registration command for UA...")
+            for user in self.Users.values():
+                command = builder.build_reg_command(user,self.TestVar)
+                if command:
+                    user.RegCommand = command
+                else:
+                    return False
+            #Собираем команды для сброса регистрации абонентов
+            logger.info("Building command for dropping of users registration...")
+            for user in self.Users.values():
+                command = builder.build_reg_command(user,self.TestVar,"unreg")
+                if command:
+                    user.UnRegCommand = command
+                else:
+                    return False
+        return True
 
     def _getTestItemGen(self,Test):
         for item in Test:
@@ -102,7 +183,7 @@ class TestProcessor():
         if len(self.NowRunningTest.UserAgent) > 0:
             logger.info("Waiting for closing threads...")
             if not proc.CheckThreads(self.NowRunningThreads):
-                logger.error("One of UAs return bad exit code")
+                logger.error("One of UA's thread not closed.")
                 #Останавливаем все thread
                 self.NowRunningTest.ThreadEvent.clear()
                 #Переносим отработавшие UA в завершенные
@@ -115,6 +196,7 @@ class TestProcessor():
             logger.info("Check process StatusCode...")
             if not proc.CheckUaStatus(self.NowRunningTest.UserAgent):
                 #Переносим отработавшие UA в завершенные
+                logger.error("One of UAs return bad exit code")
                 self.NowRunningTest.ReplaceUaToComplite()
                 self._sleep()
                 return False
@@ -275,6 +357,7 @@ class TestProcessor():
         if len(self.NowRunningTest.WaitBackGroundUA) > 0:
             logger.info("Waiting for closing threads which started in background mode...")
             if not proc.CheckThreads(self.NowRunningTest.BackGroundThreads):
+                logger.error("One of Bg UA's thread not closed.")
                 self.NowRunningTest.ThreadEvent.clear()
                 #Переносим отработавшие UA в завершенные
                 self.NowRunningTest.Status = "Failed"
@@ -298,6 +381,10 @@ class TestProcessor():
 
 
     def StartTestProcessor(self):
+        if not self._StartUserRegistration():
+            self.Status == "Failed"
+            return False
+
         for test in self.Tests:
             logger.info("Start test: %s",test.Name)
             self.NowRunningTest = test

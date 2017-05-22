@@ -25,6 +25,10 @@ def parse_user_info (json_users):
             return False
         #Выставляем опциональные параметры
         try:
+            new_user.RegOneTime = user["OneTime"]
+        except KeyError:
+            new_user.RegOneTime = False
+        try:
             new_user.UserIP = user["UserIP"]
         except KeyError:
             new_user.UserIP = None
