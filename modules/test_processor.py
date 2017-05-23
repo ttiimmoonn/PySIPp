@@ -72,7 +72,7 @@ class TestProcessor():
                     if ua.LogFd:
                         ua.LogFd.close()
         #Даём время на сворачивание thread
-        time.sleep(0.2)
+        self._sleep(0.2)
         return True
 
     def _StartUserRegistration(self):
@@ -362,13 +362,13 @@ class TestProcessor():
                 #Переносим отработавшие UA в завершенные
                 self.NowRunningTest.Status = "Failed"
                 self.NowRunningTest.CompliteBgUA()
-                self.sleep()
+                self._sleep()
             elif not proc.CheckUaStatus(self.NowRunningTest.WaitBackGroundUA):
                 #Переносим отработавшие UA в завершенные
                 logger.error("One of UAs return bad exit code")
                 self.NowRunningTest.Status = "Failed"
                 self.NowRunningTest.CompliteBgUA()
-                time.sleep(32)
+                self._sleep()
             else:
                 self.NowRunningTest.CompliteBgUA()
 

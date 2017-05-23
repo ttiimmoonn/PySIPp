@@ -7,6 +7,9 @@ import shlex
 import logging
 logger = logging.getLogger("tester")
 
+def SubscribeToUser(user):
+    pass
+
 def RegisterUser (user, mode="reg"):
     if mode == "reg":
         # Взводим timer если нет флага onetimereg
