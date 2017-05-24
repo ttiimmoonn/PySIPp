@@ -25,6 +25,7 @@ class diff_timestamp():
 	def value_compare(self, sequence, req_value, max_diff=0.05):
 		logger.info("--| COM SEQ: %s",' '.join(map(str,[round(x,1)for x in sequence])))
 		logger.info("--| REQ VAL: %s",req_value)
+		logger.info("--| Max diff: %s",str(max_diff))
 		for value in sequence:
 			if math.fabs(float(value) - float(req_value)) > max_diff:
 				logger.warning("--| Compare complite. Result: fail")
@@ -36,6 +37,7 @@ class diff_timestamp():
 	def seq_compare(self,seq_a,seq_b,max_diff=0.05):
 		logger.info("--| SEQ A: %s",' '.join(map(str,[round(x,1)for x in seq_a])))
 		logger.info("--| SEQ B: %s",' '.join(map(str,[round(x,1)for x in seq_b])))
+		logger.info("--| Max diff: %s",str(max_diff))
 		try:
 			for a,b in zip(seq_a,seq_b):
 				if math.fabs(float(a)-float(b)) > max_diff:
@@ -226,7 +228,7 @@ class diff_timestamp():
 					logger.info("Try to compare msg diff sequence with: %f. Mode: %s" , float(diffrence), str(mode))
 					for i in range(count_of_call):
 						msg_diff = self.get_diff(timestamps[i::count_of_call])
-						self.value_compare(msg_diff,diffrence,max_diff=0.2)
+						self.value_compare(msg_diff,diffrence,max_diff=0.5)
 				except:
 					logger.error("Exeption in compare_msg_diff function. Mode: %s", str(mode))
 					self.Status = "Failed"
@@ -239,4 +241,4 @@ class diff_timestamp():
 						timestamps.append(timestamp)
 					msg_diff = self.get_diff(timestamps)
 					logger.info("Try to compare msg diff sequence with: %f. Mode: %s" , float(diffrence), str(mode))
-					self.value_compare(msg_diff,diffrence,max_diff=0.2)
+					self.value_compare(msg_diff,diffrence,max_diff=0.5)
