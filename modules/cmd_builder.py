@@ -172,9 +172,19 @@ def replace_key_value(string, var_list):
                 return False
             else:
                 continue
+    string = replace_len_function(string)
     return string
 
-def get_time_with_shift(time_string):   
+def replace_len_function(string):
+    pattern = re.compile(r'len\((.*)\)')
+    match = re.search(pattern, string)
+    while match:
+        string = re.sub(pattern, str(len(match.group(1))), string, count=1)
+        match = re.search(pattern, string)
+    return string
+
+
+def get_time_with_shift(time_string):
     result=re.match("%%NowTime([+,-]?)([0-9]{0,4})%%",time_string)
     try:
         shift = int(result.group(2))
@@ -194,7 +204,3 @@ def get_time_with_shift(time_string):
             nowTime -= shift
     #Возвращаем время
     return datetime.fromtimestamp(nowTime).strftime('%H%M')
-
-
-
-
