@@ -102,7 +102,11 @@ def preexec_process():
 
 def start_ua (command, fd):
 # Запуск подпроцесса регистрации
-    args = shlex.split(str(command))
+    try:
+        args = shlex.split(str(command))
+    except ValueError:
+        logger.error("Can't split command: %s",command)
+        return False
     try:
         # Пытаемся создать новый SIPp процесс.
         ua_process = subprocess.Popen(args, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=fd, preexec_fn = preexec_process)
