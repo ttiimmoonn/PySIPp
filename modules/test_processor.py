@@ -48,6 +48,8 @@ class TestProcessor():
     def StopTestProcessor(self):
         self.Status = "Stopping test_processor"
 
+        #Для корректного завершения теста нужно выслать все ccn_cmd, которые он непослал.
+        self._SendAllCcnCmd()
         logger.debug("Drop all SIPp processes...")
         
         #Дропаем процессы

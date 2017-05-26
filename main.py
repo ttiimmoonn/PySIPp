@@ -42,6 +42,8 @@ def signal_handler(current_signal, frame):
 
 def stop_test(test_processor,test_desc,coconInt):
     logger.debug("Stop CoCoN Thread...")
+    if test_processor:
+        test_processor.StopTestProcessor()
     if coconInt:
         if coconInt.coconQueue and coconInt.myThread:
             if coconInt.myThread.is_alive():
@@ -56,9 +58,6 @@ def stop_test(test_processor,test_desc,coconInt):
                 #Отрубаем thread
                 #На всякий случай убеждаемся, что ccn thread существует и живой
                 coconInt.eventForStop.set()
-    if test_processor:
-        test_processor.StopTestProcessor()
-
 
 
 
