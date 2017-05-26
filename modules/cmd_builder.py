@@ -147,18 +147,18 @@ def build_sipp_command(test,test_var,uac_drop_flag=False, show_sip_flow=False):
 def replace_key_value(string, var_list):
     for counter in list(range(10)):
         #Ищем все переменные в исходной строке
-        command_vars = re.findall(r'%%[\w\.+-]*%%',string)
+        command_vars = re.findall(r'%%.*?%%',string)
         for eachVar in command_vars:
             #Если кто запросил текущее время +/- временной сдвиг в формате %%NowTime[+/-][delta]%%,
             #то отправляем данную переменную в функцию сборки времени.
-            if re.match("%%NowTime([+,-]?)([0-9]{0,4})%%",eachVar):
+            if re.match(r'%%NowTime([+,-]?)([0-9]{0,4})(;.*)?%%',eachVar):
                 shift_time=get_time_with_shift(eachVar)
                 if shift_time:
-                    string = string.replace(str(eachVar),str(shift_time))
+                    string = string.replace(str(eachVar),str(shift_time),1)
                 else:
                     return False
             elif re.match("%%NowWeekDay%%",eachVar):
-                string = string.replace(str(eachVar),str(datetime.today().isoweekday()))
+                string = string.replace(str(eachVar),str(datetime.today().isoweekday()),1)
             #Ищем значение в словаре.
             else:
                 try:
@@ -185,17 +185,30 @@ def replace_len_function(string):
 
 
 def get_time_with_shift(time_string):
-    result=re.match("%%NowTime([+,-]?)([0-9]{0,4})%%",time_string)
+    result=re.match(r'%%NowTime([+,-]?)([0-9]{0,4})(;.*)?%%',time_string)
     try:
         shift = int(result.group(2))
     except IndexError:
         logger.error("Can't get time shift : \" no such group \"")
         return False
+    except ValueError:
+        shift = 0
     try:
         sign = str(result.group(1))
     except IndexError:
         logger.error("Can't get sign of shift : \" no such group \"")
         return False
+    except ValueError:
+        sign = "+"
+    #Если передали формат, то забираем его, иначе присваиваем дефолтный формат
+    try:
+        format_time = str(result.group(3)).replace(";","")
+    except IndexError:
+        logger.error("Can't get time format : \" no such group \"")
+
+    if format_time == "None":
+        format_time = "%H%M"
+
     nowTime = time.time()
     if shift:
         if sign == "+":
@@ -203,4 +216,4 @@ def get_time_with_shift(time_string):
         elif sign == "-":
             nowTime -= shift
     #Возвращаем время
-    return datetime.fromtimestamp(nowTime).strftime('%H%M')
+    return datetime.fromtimestamp(nowTime).strftime(format_time)
