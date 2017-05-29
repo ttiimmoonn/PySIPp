@@ -157,8 +157,12 @@ def replace_key_value(string, var_list):
                     string = string.replace(str(eachVar),str(shift_time),1)
                 else:
                     return False
-            elif re.match("%%NowWeekDay%%",eachVar):
-                string = string.replace(str(eachVar),str(datetime.today().isoweekday()),1)
+            elif re.match(r'\%\%NowWeekDay([+,-]?)([1-6]{1})?\%\%',eachVar):
+                shift_weekday=get_weekday_with_shift(eachVar)
+                if shift_weekday:
+                    string = string.replace(str(eachVar),str(shift_weekday),1)
+                else:
+                    return False
             #Ищем значение в словаре.
             else:
                 try:
@@ -183,6 +187,34 @@ def replace_len_function(string):
         match = re.search(pattern, string)
     return string
 
+def get_weekday_with_shift(weekday_string):
+    result = re.match(r'%%NowWeekDay([+,-]?)([1-6]{0,4})%%',weekday_string)
+    try:
+        shift = int(result.group(2))
+    except IndexError:
+        logger.error("Can't get time shift : \" no such group \"")
+        return False
+    except ValueError:
+        shift = 0
+    try:
+        sign = str(result.group(1))
+    except IndexError:
+        logger.error("Can't get sign of shift : \" no such group \"")
+        return False
+    except ValueError:
+        sign = "+"
+    now_day = int(datetime.today().isoweekday())
+    if shift:
+        if sign == "+":
+            now_day += shift
+            if now_day > 7:
+                now_day -= 7
+        elif sign == "-":
+            now_day -= shift
+            if now_day < 1:
+                now_day = 7 + now_day
+    return now_day
+
 
 def get_time_with_shift(time_string):
     result=re.match(r'%%NowTime([+,-]?)([0-9]{0,4})(;.*)?%%',time_string)
@@ -205,6 +237,8 @@ def get_time_with_shift(time_string):
         format_time = str(result.group(3)).replace(";","")
     except IndexError:
         logger.error("Can't get time format : \" no such group \"")
+    except ValueError:
+        format_time = "%H%M"
 
     if format_time == "None":
         format_time = "%H%M"
