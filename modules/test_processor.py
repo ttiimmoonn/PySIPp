@@ -376,10 +376,11 @@ class TestProcessor():
                 self.NowRunningTest.CompliteBgUA()
 
     def _SendAllCcnCmd(self):
-        logger.info("Trying send to CCN all commands from test: %s",self.NowRunningTest.Name)
-        for item in self.GenForItem:
-            if item[0] == "CoconCommand":
-                ssh.cocon_configure(item[1],self.CoconInt,self.TestVar)
+        if self.NowRunningTest != None:
+            logger.info("Trying send to CCN all commands from test: %s",self.NowRunningTest.Name)
+            for item in self.GenForItem:
+                if item[0] == "CoconCommand":
+                    ssh.cocon_configure(item[1],self.CoconInt,self.TestVar)
 
 
 
