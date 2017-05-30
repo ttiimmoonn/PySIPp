@@ -166,8 +166,12 @@ except (ValueError, KeyError, TypeError):
     logger.error("Wrong JSON format of test config. Detail: %s",sys.exc_info()[1])
     sys.exit(1)
 
-custom_settings = parser.parse_sys_conf(custom_settings["SystemVars"][0])
-if not custom_settings:
+try:
+    custom_settings = parser.parse_sys_conf(custom_settings["SystemVars"][0])
+    if not custom_settings:
+        sys.exit(1)
+except KeyError:
+    logger.error("Custom config without \"SystemVars\"")
     sys.exit(1)
 
 
@@ -291,20 +295,14 @@ for index,test in enumerate(tests):
     #Если передавали параметр -n 1,3,4, то используем данные индексы.
     if test_numbers:
         index = test_numbers[index]
-
     if test.Status == "Failed":
-        failed_test_flag = True
         logger.info(" ---| Test %d: %s - fail.",index,test.Name)
-
     elif test.Status == "Complite":
         logger.info(" ---| Test %d: %s - succ.",index,test.Name)
     elif test.Status == "New":
         logger.info(" ---| Test %d: %s - not running.",index,test.Name)
-
-        
     else:
         logger.error("Unknown test status. %s",test.Name)
-        failed_test_flag = True
         #Выводим дамп по этому тесту
         get_test_info(test)
 if show_ua_info:
@@ -314,7 +312,7 @@ if show_ua_info:
         else:
             logger.error("Test obj corrupted. Get test info failed!")
 
-if failed_test_flag:
+if test_processor.failed_test_flag:
     sys.exit(1)
 else:
     sys.exit(0)

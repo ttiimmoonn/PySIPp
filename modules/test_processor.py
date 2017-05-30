@@ -44,6 +44,8 @@ class TestProcessor():
         self.RegLock = threading.Lock()
         self.RegThread = None
 
+        self.failed_flag = False
+
 
     def StopTestProcessor(self):
         self.Status = "Stopping test_processor"
@@ -78,18 +80,16 @@ class TestProcessor():
         return True
 
     def _StartUserRegistration(self):
+        self.Status = "Register users"
         #Врубаем регистрацию для всех юзеров
         logger.info("Starting of registration...")
         if not self._buildRegCommands():
-            self.Status = "Failed"
             return False
-        self.Status = "Register users"
         #Декларируем массив для thread регистрации
         for user in self.Users.items():
             log_file = fs.open_log_file("REG_" + str(user[1].Number),self.LogPath)
             #Если не удалось создать лог файл, то выходим
             if not log_file:
-                self.Status = "Failed"
                 return False
             else:
                 user[1].RegLogFile = log_file
@@ -98,9 +98,7 @@ class TestProcessor():
         self.RegThread.start()
         self.RegThread.join()
         if not proc.CheckUserRegStatus(self.Users):
-            self.Status = "Failed"
             return False
-        self.Status = "Registration Complite"
         return True
 
 
@@ -386,9 +384,13 @@ class TestProcessor():
 
     def StartTestProcessor(self):
         if not self._StartUserRegistration():
-            self.Status == "Failed"
+            self.Status == "Registration Failed"
+            self.failed_flag = True
             return False
+        else:
+            self.Status = "Registration Complite"
 
+        self.Status = "Test pocessing"
         for test in self.Tests:
             logger.info("Start test: %s",test.Name)
             self.NowRunningTest = test
@@ -396,9 +398,9 @@ class TestProcessor():
             self.NowRunningTest.StartTime = time.time()
             self._RunTestProcedure(test)
             self.NowRunningTest.StopTime = time.time()
-            if test.Status == "Failed":
+            if self.NowRunningTest.Status == "Failed":
                 logger.error("Test: %s failed.",test.Name)
-                self.Status = "Failed"
+                self.failed_flag = True
                 if self.ForceQuitFlag:
                     break
             else:
