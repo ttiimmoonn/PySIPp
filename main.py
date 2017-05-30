@@ -288,8 +288,6 @@ if show_sip_flow:
 
 #Производим расчёт результатов теста
 logger.info("Test info:")
-failed_test_flag = False
-
 #Если статус теста Failed, то поднимаем flag.
 for index,test in enumerate(tests):
     #Если передавали параметр -n 1,3,4, то используем данные индексы.
@@ -312,7 +310,8 @@ if show_ua_info:
         else:
             logger.error("Test obj corrupted. Get test info failed!")
 
-if test_processor.failed_test_flag:
+
+if test_processor.failed_flag:
     sys.exit(1)
 else:
     sys.exit(0)
