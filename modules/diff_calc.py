@@ -39,6 +39,11 @@ class diff_timestamp():
 		logger.info("--| SEQ B: %s",' '.join(map(str,[round(x,1)for x in seq_b])))
 		logger.info("--| Max diff: %s",str(max_diff))
 		try:
+			if len(seq_a) != len(seq_b):
+				logger.warning("--| Can't compare sequence with different length. len seq_a: %d,len seq_b: %d",len(seq_a),len(seq_b))
+				self.Status = "Failed"
+				return False
+
 			for a,b in zip(seq_a,seq_b):
 				if math.fabs(float(a)-float(b)) > max_diff:
 					logger.warning("--| Compare complite. Result: fail")
