@@ -48,12 +48,20 @@ class coconInterface:
             client.connect(hostname = self.Ip, username = self.Login, password = self.Password, port = self.Port, timeout=10, banner_timeout = 10, look_for_keys=False, allow_agent=False)
             self.sshClient = client
         except KeyError:
+            logger.warning("KeyError exception on ssh connect.")
+            if client:
+                logger.debug("Close ssh connect")
+                client.close()
+            logger.debug("Set ssh channel to disable.")
+            self.Client = False
+        except:
             logger.warning("Exception on ssh connect.")
             if client:
                 logger.debug("Close ssh connect")
                 client.close()
             logger.debug("Set ssh channel to disable.")
             self.Client = False
+
 
         if self.sshClient:
             try:
@@ -104,7 +112,13 @@ class coconInterface:
             #Закрываем ssh соединение
             logger.debug("Close ssh connection.")
             self.close_connection()
-            #Проверяем, что в output нет следующей подстроки temporary locked
+            #Проверяем, что команда существует
+            if (self.data.decode("utf-8", "strict").find("There is no such command:") != -1 or
+               self.data.decode("utf-8", "strict").find("Command error:") != -1 or
+               self.data.decode("utf-8", "strict").find("Invalid command's arguments:") != -1):
+                    logger.error("Find \"There is no such command:\" substring in ccn output.")
+                    return False
+            #Проверяем, что в output нет следующей подстроки: temporary locked
             if self.data.decode("utf-8", "strict").find("temporary locked") != -1:
                 logger.warning("Command temporary locked. Try retrans cmd to ccn...")
                 return False
