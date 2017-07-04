@@ -9,7 +9,10 @@ def build_reg_command (user,test_var,mode="reg"):
     #Сборка команды для регистрации
     command=""
     command+="%%SIPP_PATH%%" + " "
-    command+="-sf " + "%%REG_XML%%" + " "
+    if user.Script == None:
+        command+="-sf " + "%%REG_XML%%" + " "
+    else:
+        command+="-sf "  + "%%SRC_PATH%%" + "/" + user.Script + " "
     command+="%%EXTER_IP%%" + ":" + "%%EXTER_PORT%%" + " "
     command+="-i " + "%%IP%%" + " "
     command+=" -set DOMAIN " + str(user.SipDomain)
@@ -29,6 +32,8 @@ def build_reg_command (user,test_var,mode="reg"):
     command+=" -m 1"
     command+=" -nostdin"
     command+=" -timeout_error"
+    if user.BindPort != None:
+        command+=" -p " + user.BindPort
     if user.SipTransport == "TCP":
         command+=" -t tn -max_socket 25"
     command = replace_key_value(command, test_var)
@@ -135,6 +140,8 @@ def build_sipp_command(test,test_var,uac_drop_flag=False, show_sip_flow=False):
             command += " -message_overwrite false -trace_msg -message_file " + test.LogPath + "/" + "MESSAGE_" + str(ua.Name) + "_TEST" + str(test.TestId)
             #Добавляем screen trace
             command += " -screen_overwrite false -trace_screen -screen_file " + test.LogPath + "/" + "SCREEN_" + str(ua.Name) + "_TEST" + str(test.TestId)
+            #Добавляем error trace
+            command += " -error_overwrite false -trace_err -error_file " + test.LogPath + "/" + "ERROR_" + str(ua.Name) + "_TEST" + str(test.TestId)
             if not no_timeout_err:
                 command += " -timeout_error"
             command = replace_key_value(command, test_var)

@@ -52,6 +52,14 @@ def parse_user_info (json_users):
             new_user.SipTransport = user["SipTransport"]
         except KeyError:
             new_user.SipTransport = "UDP"
+        try:
+            new_user.Mode = user["Mode"]
+        except KeyError:
+            new_user.Mode = "Auto"
+        try:
+            new_user.BindPort = user["BindPort"]
+        except KeyError:
+            new_user.BindPort = None
         #Если есть два юзера с одинаковыми id, выходим
         if new_user.UserId in users:
             logger.error("UserId = %d is already in use",int(new_user.UserId))
@@ -166,6 +174,28 @@ def parse_test_info (json_tests):
                     except KeyError:
                         logger.error("Wrong CheckDifference description. Detail: CheckDifference has no attribute: %s",sys.exc_info()[1])
                         return False
+            if "ManualReg" in item:
+                try:
+                    for user_id, reg_scripts in item["ManualReg"].items():
+                        try:
+                            int(user_id)
+                        except ValueError:
+                            logger.error("Wrong ManualReg description. Detail: UserId must be int. Current value: %s",str(user_id))
+                            return False
+                        try:
+                            str(reg_scripts["script"])
+                        except KeyError:
+                            logger.error("Wrong ManualReg description. Detail: ManualReg has no attribute: %s",sys.exc_info()[1])
+                            return False
+                        try:
+                            if not reg_scripts["need_drop"] in ["True", "False"]:
+                                logger.error("Wrong ManualReg description. Detail: wrong value of need_drop attr. Allowed values: %s, Current value: %s", ", ".join(["True","False"]),reg_scripts["need_drop"])
+                                return False
+                        except:
+                            logger.error("Wrong ManualReg description. Detail: ManualReg has no attribute: %s",sys.exc_info()[1])
+                            return False
+                except:
+                    pass
         tests.append(new_test)
     return tests
 def parse_user_agent (test,ua_desc):
@@ -250,6 +280,7 @@ def parse_test_var (test_desc):
             test_var[str(userId + "." + "SipDomain" + "%%")] = str(user["SipDomain"])
             test_var[str(userId + "." + "SipGroup" + "%%")] = str(user["SipGroup"])
             test_var[str(userId + "." + "Number" + "%%")] = str(user["Number"])
+            test_var[str(userId + "." + "Port" + "%%")] = str(user["Port"])
     except KeyError:
         pass
     return test_var

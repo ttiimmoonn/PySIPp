@@ -19,9 +19,10 @@ class TestProcessor():
 
         #Словарь для сборки команд
         self.TestVar = kwargs["TestVar"]
-
         #Объекты юзеров и транков
         self.Users = kwargs["Users"]
+        self.AutoRegUsers = {user_id: user for user_id, user in kwargs["Users"].items() if user.Mode == "Auto"}
+        self.ManualRegUsers = {user_id: user for user_id, user in kwargs["Users"].items() if user.Mode == "Manual"}
         self.Trunks = kwargs["Trunks"]
 
         #Генератор Item для TestProcedure
@@ -62,12 +63,8 @@ class TestProcessor():
                         process.kill()
 
         #Разрегистрируем юзеров
-        if self.RegLock and len(self.Users) > 0:
-            logger.info("Drop registration of users.")
-            unreg_thread = threading.Thread(target=proc.ChangeUsersRegistration, args=(self.Users,self.RegLock,"unreg",))
-            unreg_thread.start()
-            #Даём завершиться thread'у разрегистрации
-            unreg_thread.join()
+        if self.RegLock and len(self.AutoRegUsers) > 0:
+            self._StopUserRegistration(self.AutoRegUsers)
 
         logger.info("Close log files...")
         if self.Tests:
@@ -79,14 +76,24 @@ class TestProcessor():
         self._sleep(0.2)
         return True
 
-    def _StartUserRegistration(self):
+    def _StopUserRegistration(self, reg_users):
+        logger.info("Drop registration of users.")
+        unreg_thread = threading.Thread(target=proc.ChangeUsersRegistration, args=(reg_users,self.RegLock,"unreg",))
+        unreg_thread.start()
+        #Даём завершиться thread'у разрегистрации
+        unreg_thread.join()
+        if not proc.CheckUserRegStatus(reg_users):
+            return False
+        return True
+
+    def _StartUserRegistration(self, reg_users):
         self.Status = "Register users"
+        if not self._buildRegCommands(reg_users):
+            return False
         #Врубаем регистрацию для всех юзеров
         logger.info("Starting of registration...")
-        if not self._buildRegCommands():
-            return False
         #Декларируем массив для thread регистрации
-        for user in self.Users.items():
+        for user in reg_users.items():
             log_file = fs.open_log_file("REG_" + str(user[1].Number),self.LogPath)
             #Если не удалось создать лог файл, то выходим
             if not log_file:
@@ -94,27 +101,28 @@ class TestProcessor():
             else:
                 user[1].RegLogFile = log_file
 
-        self.RegThread  = threading.Thread(target=proc.ChangeUsersRegistration, args=(self.Users,self.RegLock))
+        self.RegThread  = threading.Thread(target=proc.ChangeUsersRegistration, args=(reg_users,self.RegLock))
         self.RegThread.start()
         self.RegThread.join()
-        if not proc.CheckUserRegStatus(self.Users):
+        if not proc.CheckUserRegStatus(reg_users):
             return False
         return True
 
 
-    def _buildRegCommands(self):
-        if len(self.Users) > 0:
+    def _buildRegCommands(self, users):
+        if len(users) > 0:
             #Собираем команды для регистрации абонентов
             logger.info("Building of registration command for UA...")
-            for user in self.Users.values():
+            for user in users.values():
                 command = builder.build_reg_command(user,self.TestVar)
                 if command:
                     user.RegCommand = command
                 else:
                     return False
+
             #Собираем команды для сброса регистрации абонентов
             logger.info("Building command for dropping of users registration...")
-            for user in self.Users.values():
+            for user in users.values():
                 command = builder.build_reg_command(user,self.TestVar,"unreg")
                 if command:
                     user.UnRegCommand = command
@@ -135,7 +143,7 @@ class TestProcessor():
                 if not ua.UserId in use_id:
                     use_id.append(ua.UserId)
                     try:
-                        ua.UserObject = self.Users[ua.UserId]
+                        ua.UserObject = self.AutoRegUsers[ua.UserId]
                     except KeyError:
                         logger.error("User with id = %d not found { UA : %s }",int(ua.UserId),ua.Name)
                         return False
@@ -264,7 +272,7 @@ class TestProcessor():
 
             #Ищём нужного нам юзера
             try:
-                user = self.Users[sf_uid]
+                user = self.AutoRegUsers[sf_uid]
             except KeyError:
                 logger.error("Can't get User Object with. ID = %d not found.",sf_uid)
                 self.NowRunningTest.Status = "Failed"
@@ -380,10 +388,31 @@ class TestProcessor():
                 if item[0] == "CoconCommand":
                     ssh.cocon_configure(item[1],self.CoconInt,self.TestVar)
 
+    def _RegUserManual(self, reg_scripts):
+        for user_id, mode in  reg_scripts.items():
+            if not int(user_id) in self.ManualRegUsers.keys():
+                logger.error("Can't find userId: %d in ManualRegUsers dict.", int(user_id))
+                self.NowRunningTest.Status="Failed"
+                return 1
+        reg_users = {user_id: user for user_id, user in self.ManualRegUsers.items() if str(user_id) in reg_scripts.keys()}
+        for user_id, user in reg_users.items():
+            user.Script = reg_scripts[str(user_id)]["script"]
+            #Выставляем флаг разовой регистрации
+            user.RegOneTime = True
+        #Запускаем процесс регистрации
+        if not self._StartUserRegistration(reg_users):
+            self.NowRunningTest.Status="Failed"
+        drop_users = {user_id: user for user_id, user in reg_users.items() if reg_scripts[str(user_id)]["need_drop"]=="True"}
+        if not self._StopUserRegistration(drop_users):
+            self.NowRunningTest.Status="Failed"
+
+
+
+
 
 
     def StartTestProcessor(self):
-        if not self._StartUserRegistration():
+        if not self._StartUserRegistration(self.AutoRegUsers):
             self.Status == "Registration Failed"
             self.failed_flag = True
             return False
@@ -435,9 +464,11 @@ class TestProcessor():
                 self._execCheckDifference(item[1])
             elif item[0] == "CheckRetransmission":
                 self._execCheckRetransmission(item[1])
+            elif item[0] == "ManualReg":
+                self._RegUserManual(item[1])
             else:
                 logger.error("Unknown metod: %s in test procedure. Test aborting.",item[0])
-                self.NowRunningTest.Status = False
+                self.NowRunningTest.Status = "Failed"
                 break
             if self.NowRunningTest.Status == "Failed":
                 self._SendAllCcnCmd()

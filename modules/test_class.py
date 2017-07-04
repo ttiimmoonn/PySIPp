@@ -87,6 +87,7 @@ class UserAgentClass:
 class UserClass:
     def __init__(self):
         self.Timer = None
+        self.RegOneTime = False
         self.Status = "New"
         self.StatusCode = None
         self.RegType = None
@@ -109,6 +110,11 @@ class UserClass:
         #Для тестирования регистраций с левого ip:port
         self.FakePort = None
         self.UserLock = threading.Lock()
+        #Для тестов регистрации, необходимо поддержать manual режим
+        self.Script = None
+        self.Mode = None
+        self.BindPort = None
+
     
     def SetRegistrationTimer(self):
         self.Timer = threading.Timer((int(self.Expires) * 2 / 3), proc.RegisterUser, args=(self,) , kwargs=None)

@@ -116,8 +116,7 @@ class coconInterface:
             if (self.data.decode("utf-8", "strict").find("There is no such command:") != -1 or
                self.data.decode("utf-8", "strict").find("Command error:") != -1 or
                self.data.decode("utf-8", "strict").find("Invalid command's arguments:") != -1):
-                    logger.error("Find \"There is no such command:\" substring in ccn output.")
-                    return False
+                    logger.warning("Find \"There is no such command:|Command error:|Invalid command's arguments:\" substring in ccn output.")
             #Проверяем, что в output нет следующей подстроки: temporary locked
             if self.data.decode("utf-8", "strict").find("temporary locked") != -1:
                 logger.warning("Command temporary locked. Try retrans cmd to ccn...")
