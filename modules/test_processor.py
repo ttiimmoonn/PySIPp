@@ -143,7 +143,7 @@ class TestProcessor():
                 if not ua.UserId in use_id:
                     use_id.append(ua.UserId)
                     try:
-                        ua.UserObject = self.AutoRegUsers[ua.UserId]
+                        ua.UserObject = self.Users[ua.UserId]
                     except KeyError:
                         logger.error("User with id = %d not found { UA : %s }",int(ua.UserId),ua.Name)
                         return False
