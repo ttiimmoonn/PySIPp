@@ -117,14 +117,16 @@ def build_sipp_command(test,test_var,uac_drop_flag=False, show_sip_flow=False):
             else:
                 command += " -p " + ua.Port
             command+=" -nostdin"
+
             if sipp_auth and ua.Type=="User":
-                command += " -s " + ua.UserObject.Number
                 command += " -ap " + ua.UserObject.Password
+
             if sipp_type == "uac":
                 command += " -timeout " + str(timeout)
                 command += " -recv_timeout " + str(timeout)
                 if ua.Type=="User":
                     command += " -set CGPNDOM " + ua.UserObject.SipDomain
+                    command += " -s " + ua.UserObject.Number
             else:
                 command += " -timeout " + str(timeout)
 
