@@ -110,6 +110,7 @@ def build_sipp_command(test,test_var,uac_drop_flag=False, show_sip_flow=False):
             command += sipp_options
             if ua.Type == "User":
                 command += " -p " + ua.UserObject.Port
+                command += " -s " + ua.UserObject.Login
                 if ua.UserObject.SipTransport == "TCP":
                     command+=" -t tn -max_socket 25"
                 if ua.UserObject.RtpPort:
@@ -126,7 +127,6 @@ def build_sipp_command(test,test_var,uac_drop_flag=False, show_sip_flow=False):
                 command += " -recv_timeout " + str(timeout)
                 if ua.Type=="User":
                     command += " -set CGPNDOM " + ua.UserObject.SipDomain
-                    command += " -s " + ua.UserObject.Number
             else:
                 command += " -timeout " + str(timeout)
 
