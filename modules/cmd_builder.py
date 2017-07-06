@@ -132,6 +132,9 @@ def build_sipp_command(test,test_var,uac_drop_flag=False, show_sip_flow=False):
 
             #Выставляем ленивый режим детектирования перепосылок.
             command += " -rtcheck loose"
+
+            #Выставляем переменную DISPLAYTEST
+            command += " -set DISPLAYTEST \"" + test.Name.replace('_',' ').upper() + " ID:" + str(test.TestId) + "\""
             
             #Если был передан флаг для записи timestamp, то добавляем соотвествующие ключи
             if ua.WriteStat:
