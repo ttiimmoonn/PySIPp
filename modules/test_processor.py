@@ -393,7 +393,11 @@ class TestProcessor():
             if not int(user_id) in self.ManualRegUsers.keys():
                 logger.error("Can't find userId: %d in ManualRegUsers dict.", int(user_id))
                 self.NowRunningTest.Status="Failed"
-                return 1
+                return False
+            #Затычка. По идеи это должен был сделать парсер теста.
+            if not "need_drop" in reg_scripts[user_id]:
+                reg_scripts[user_id]["need_drop"] = "False"
+
         reg_users = {user_id: user for user_id, user in self.ManualRegUsers.items() if str(user_id) in reg_scripts.keys()}
         for user_id, user in reg_users.items():
             user.Script = reg_scripts[str(user_id)]["script"]
@@ -405,6 +409,19 @@ class TestProcessor():
         drop_users = {user_id: user for user_id, user in reg_users.items() if reg_scripts[str(user_id)]["need_drop"]=="True"}
         if not self._StopUserRegistration(drop_users):
             self.NowRunningTest.Status="Failed"
+
+    def _DropManualReg(self, drop_user_id):
+        drop_users={}
+        for user_id in drop_user_id:
+            if not int(user_id) in self.ManualRegUsers.keys():
+                logger.error("Can't find userId: %d in ManualRegUsers dict.", int(user_id))
+                self.NowRunningTest.Status="Failed"
+                return False
+            else:
+                drop_users[int(user_id)]=self.ManualRegUsers[int(user_id)]
+        if not self._StopUserRegistration(drop_users):
+            self.NowRunningTest.Status="Failed"
+            return False
 
 
 
@@ -466,6 +483,8 @@ class TestProcessor():
                 self._execCheckRetransmission(item[1])
             elif item[0] == "ManualReg":
                 self._RegUserManual(item[1])
+            elif item[0] == "DropManualReg":
+                self._DropManualReg(item[1])
             else:
                 logger.error("Unknown metod: %s in test procedure. Test aborting.",item[0])
                 self.NowRunningTest.Status = "Failed"

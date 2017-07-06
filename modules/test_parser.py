@@ -96,6 +96,7 @@ def parse_test_info (json_tests):
                 except:
                     logger.error("Sleep command must have a int value.")
                     return False
+                continue
             if "ServiceFeature" in item:
                 for sf in item["ServiceFeature"]:
                     try:
@@ -103,6 +104,7 @@ def parse_test_info (json_tests):
                     except:
                         logger.error("UserId in ServiceFeature command must have a int value. { Bad UserID: %s}",sf["userId"])
                         return False
+                continue
             if "CheckRetransmission" in item:
                 for section in item["CheckRetransmission"]:
                     try:
@@ -136,7 +138,7 @@ def parse_test_info (json_tests):
                     except KeyError:
                         logger.error("Wrong CheckRetransmission description. Detail: CheckRetransmission has no attribute: %s",sys.exc_info()[1])
                         return False
-                    
+                continue
             if "CheckDifference" in item:
                 for section in item["CheckDifference"]:
                     try:
@@ -174,6 +176,7 @@ def parse_test_info (json_tests):
                     except KeyError:
                         logger.error("Wrong CheckDifference description. Detail: CheckDifference has no attribute: %s",sys.exc_info()[1])
                         return False
+                continue
             if "ManualReg" in item:
                 try:
                     for user_id, reg_scripts in item["ManualReg"].items():
@@ -191,11 +194,20 @@ def parse_test_info (json_tests):
                             if not reg_scripts["need_drop"] in ["True", "False"]:
                                 logger.error("Wrong ManualReg description. Detail: wrong value of need_drop attr. Allowed values: %s, Current value: %s", ", ".join(["True","False"]),reg_scripts["need_drop"])
                                 return False
-                        except:
-                            logger.error("Wrong ManualReg description. Detail: ManualReg has no attribute: %s",sys.exc_info()[1])
-                            return False
+                        except KeyError:
+                            pass
                 except:
-                    pass
+                    logger.error("Some Exception in ManualReg cmd")
+                    return False
+                continue
+            if "DropManualReg" in item:
+                for user_id in  item["DropManualReg"]:
+                    try:
+                        int(user_id)
+                    except ValueError:
+                        logger.error("User id in DropManualReg command must be integer")
+                        return False
+                continue
         tests.append(new_test)
     return tests
 def parse_user_agent (test,ua_desc):
