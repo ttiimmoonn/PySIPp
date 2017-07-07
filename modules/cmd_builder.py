@@ -152,7 +152,7 @@ def build_sipp_command(test,test_var,uac_drop_flag=False, show_sip_flow=False):
 
             #Если был передан флаг для записи timestamp, то добавляем соотвествующие ключи
             if ua.WriteStat:
-                timestamp_file = test.LogPath + "/" + LOG_PREFIX + "/" + "TIMESTAMP"
+                timestamp_file = test.LogPath + "/" + LOG_PREFIX + "TIMESTAMP"
                 ua.TimeStampFile = timestamp_file
                 command += " -shortmessage_overwrite false -trace_shortmsg -shortmessage_file " + str(timestamp_file)
             #Добавляем message trace
