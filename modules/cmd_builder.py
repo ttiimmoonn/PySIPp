@@ -152,15 +152,15 @@ def build_sipp_command(test,test_var,uac_drop_flag=False, show_sip_flow=False):
 
             #Если был передан флаг для записи timestamp, то добавляем соотвествующие ключи
             if ua.WriteStat:
-                timestamp_file = test.LogPath + "/" + LOG_PREFIX + "TIMESTAMP"
+                timestamp_file = test.LogPath + "/" + LOG_PREFIX + ua.Name + "_TIMESTAMP"
                 ua.TimeStampFile = timestamp_file
                 command += " -shortmessage_overwrite false -trace_shortmsg -shortmessage_file " + str(timestamp_file)
             #Добавляем message trace
-            command += " -message_overwrite false -trace_msg -message_file " + test.LogPath + "/" + LOG_PREFIX + "MESSAGE"
+            command += " -message_overwrite false -trace_msg -message_file " + test.LogPath + "/" + LOG_PREFIX + ua.Name + "_MESSAGE"
             #Добавляем screen trace
-            command += " -screen_overwrite false -trace_screen -screen_file " + test.LogPath + "/" + LOG_PREFIX + "SCREEN"
+            command += " -screen_overwrite false -trace_screen -screen_file " + test.LogPath + "/" + LOG_PREFIX + ua.Name + "_SCREEN"
             #Добавляем error trace
-            command += " -error_overwrite false -trace_err -error_file " + test.LogPath + "/" + LOG_PREFIX + "ERROR"
+            command += " -error_overwrite false -trace_err -error_file " + test.LogPath + "/" + LOG_PREFIX + ua.Name + "_ERROR"
             if not no_timeout_err:
                 command += " -timeout_error"
             command = replace_key_value(command, test_var)
