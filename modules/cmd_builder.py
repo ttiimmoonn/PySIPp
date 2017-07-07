@@ -5,7 +5,7 @@ import logging
 logger = logging.getLogger("tester")
 
 
-def build_reg_command (user,test_var,mode="reg"):
+def build_reg_command (user,log_path,test_var,mode="reg"):
     #Сборка команды для регистрации
     command=""
     command+="%%SIPP_PATH%%" + " "
@@ -36,13 +36,18 @@ def build_reg_command (user,test_var,mode="reg"):
         command+=" -p " + user.BindPort
     if user.SipTransport == "TCP":
         command+=" -t tn -max_socket 25"
+    LOG_PREFIX = "REG_" + "NUMBER_" + str(user.Number) + "_"
+    #Добавляем message trace
+    command += " -message_overwrite false -trace_msg -message_file " + log_path + "/" + LOG_PREFIX + "MESSAGE"
+    #Добавляем error trace
+    command += " -error_overwrite false -trace_err -error_file " + log_path + "/" + LOG_PREFIX + "ERROR"
     command = replace_key_value(command, test_var)
     if command:
         return command
     else:
         return False
 
-def build_service_feature_command (user, code, test_var):
+def build_service_feature_command (test,user, code, test_var):
     #Сборка команды для регистрации
     command=""
     command+="%%SIPP_PATH%%" + " "
@@ -60,6 +65,11 @@ def build_service_feature_command (user, code, test_var):
     if user.SipTransport == "TCP":
         command+=" -t tn -max_socket 25"
     command = replace_key_value(command,test_var)
+    LOG_PREFIX = "TEST_" + str(test.TestId) + "_NUMBER_" + str(user.Number) + "_SF_" + code + "_"
+    #Добавляем message trace
+    command += " -message_overwrite false -trace_msg -message_file " + test.LogPath + "/" + LOG_PREFIX + "MESSAGE"
+    #Добавляем error trace
+    command += " -error_overwrite false -trace_err -error_file " + test.LogPath + "/" + LOG_PREFIX + "ERROR"
     return command
 
 
@@ -132,18 +142,25 @@ def build_sipp_command(test,test_var,uac_drop_flag=False, show_sip_flow=False):
 
             #Выставляем ленивый режим детектирования перепосылок.
             command += " -rtcheck loose"
-            
+
+            if ua.Type == "User":
+                LOG_PREFIX = "TEST_" + str(test.TestId) + "_NUMBER_" + str(ua.UserObject.Number) + "_"
+            elif ua.Type == "Trunk":
+                LOG_PREFIX = "TEST_" + str(test.TestId) + "_TRUNK_PORT_" + str(ua.Port) + "_"
+            else:
+                LOG_PREFIX = "TEST_" + str(test.TestId) + "_UNKNOWN_TYPE_"
+
             #Если был передан флаг для записи timestamp, то добавляем соотвествующие ключи
             if ua.WriteStat:
-                timestamp_file = test.LogPath + "/" + "TIMESTAMP_" + str(ua.Name) + "_TEST" + str(test.TestId)
+                timestamp_file = test.LogPath + "/" + LOG_PREFIX + "/" + "TIMESTAMP"
                 ua.TimeStampFile = timestamp_file
                 command += " -shortmessage_overwrite false -trace_shortmsg -shortmessage_file " + str(timestamp_file)
             #Добавляем message trace
-            command += " -message_overwrite false -trace_msg -message_file " + test.LogPath + "/" + "MESSAGE_" + str(ua.Name) + "_TEST" + str(test.TestId)
+            command += " -message_overwrite false -trace_msg -message_file " + test.LogPath + "/" + LOG_PREFIX + "MESSAGE"
             #Добавляем screen trace
-            command += " -screen_overwrite false -trace_screen -screen_file " + test.LogPath + "/" + "SCREEN_" + str(ua.Name) + "_TEST" + str(test.TestId)
+            command += " -screen_overwrite false -trace_screen -screen_file " + test.LogPath + "/" + LOG_PREFIX + "SCREEN"
             #Добавляем error trace
-            command += " -error_overwrite false -trace_err -error_file " + test.LogPath + "/" + "ERROR_" + str(ua.Name) + "_TEST" + str(test.TestId)
+            command += " -error_overwrite false -trace_err -error_file " + test.LogPath + "/" + LOG_PREFIX + "ERROR"
             if not no_timeout_err:
                 command += " -timeout_error"
             command = replace_key_value(command, test_var)

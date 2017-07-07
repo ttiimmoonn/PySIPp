@@ -95,7 +95,6 @@ def get_test_info (test):
         print("     UaUserId:       ",ua.UserId)
         print("     UaUserObj:      ",ua.UserObject)
         print("     UaPort:         ",ua.Port)
-        print("     UaLogFd:        ",ua.LogFd)
         print("     UaCommand:")
         for command in ua.Commands:
             print("      ",command)

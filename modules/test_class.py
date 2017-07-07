@@ -48,7 +48,6 @@ class UserAgentClass:
         self.TimeStampFile = None
         self.UserId = None
         self.Port = None
-        self.LogFd = None
         self.UserObject = None
         self.BackGround = None
         self.UALock = threading.Lock()
@@ -103,7 +102,6 @@ class UserClass:
         self.UnRegCommand = None
         self.RegProcess = None
         self.UnRegProcess = None
-        self.RegLogFile = None
         self.SipGroup = None
         self.SipTransport = None
         self.UserIP = None

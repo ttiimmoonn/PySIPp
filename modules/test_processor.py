@@ -65,13 +65,6 @@ class TestProcessor():
         #Разрегистрируем юзеров
         if self.RegLock and len(self.AutoRegUsers) > 0:
             self._StopUserRegistration(self.AutoRegUsers)
-
-        logger.info("Close log files...")
-        if self.Tests:
-            for test in self.Tests:
-                for ua in test.CompliteUA:
-                    if ua.LogFd:
-                        ua.LogFd.close()
         #Даём время на сворачивание thread
         self._sleep(0.2)
         return True
@@ -92,14 +85,6 @@ class TestProcessor():
             return False
         #Врубаем регистрацию для всех юзеров
         logger.info("Starting of registration...")
-        #Декларируем массив для thread регистрации
-        for user in reg_users.items():
-            log_file = fs.open_log_file("REG_" + str(user[1].Number),self.LogPath)
-            #Если не удалось создать лог файл, то выходим
-            if not log_file:
-                return False
-            else:
-                user[1].RegLogFile = log_file
 
         self.RegThread  = threading.Thread(target=proc.ChangeUsersRegistration, args=(reg_users,self.RegLock))
         self.RegThread.start()
@@ -114,7 +99,7 @@ class TestProcessor():
             #Собираем команды для регистрации абонентов
             logger.info("Building of registration command for UA...")
             for user in users.values():
-                command = builder.build_reg_command(user,self.TestVar)
+                command = builder.build_reg_command(user,self.LogPath,self.TestVar)
                 if command:
                     user.RegCommand = command
                 else:
@@ -123,7 +108,7 @@ class TestProcessor():
             #Собираем команды для сброса регистрации абонентов
             logger.info("Building command for dropping of users registration...")
             for user in users.values():
-                command = builder.build_reg_command(user,self.TestVar,"unreg")
+                command = builder.build_reg_command(user,self.LogPath,self.TestVar,"unreg")
                 if command:
                     user.UnRegCommand = command
                 else:
@@ -152,20 +137,6 @@ class TestProcessor():
                     return False
         return True
 
-    def _createLogFiles(self):
-        logger.info("Creating log files for UA...")
-        for ua in self.NowRunningTest.UserAgent + self.NowRunningTest.BackGroundUA:
-            filename = ua.Name + "_TEST" + str(self.NowRunningTest.TestId)
-            log_fd = fs.open_log_file(filename,self.LogPath)
-            if log_fd:
-                logger.info("File %s created.",filename)
-                ua.LogFd = log_fd
-            else:
-                return False
-        return True
-
-
-
     def _buildSippCmd(self):
         logger.info("Building SIPp commands for UA...")
         if not builder.build_sipp_command(self.NowRunningTest,self.TestVar, self.UacDropFlag, self.ShowSipFlowFlag):
@@ -175,7 +146,7 @@ class TestProcessor():
 
     def _buildSippCmdSF(self, serv_feature_ua, sf_code):
         #Собираем команду для активации сервис фичи
-        command = builder.build_service_feature_command(serv_feature_ua.UserObject, sf_code, self.TestVar)
+        command = builder.build_service_feature_command(self.NowRunningTest,serv_feature_ua.UserObject, sf_code, self.TestVar)
         if not command:
             return False
         else:
@@ -232,11 +203,6 @@ class TestProcessor():
             logger.error("Building SIPp commands failed.")
             return False
 
-        if not self._createLogFiles():
-            self.NowRunningTest.Status = "Failed"
-            logger.error("Creating log files for UA failed.")
-            return False
-
         for ua in self.NowRunningTest.UserAgent + self.NowRunningTest.BackGroundUA:
             logging.info("PortInfo for UA: %s", ua.Name)
             logging.info("---| UA Type:     %s", str(ua.Type))
@@ -285,11 +251,6 @@ class TestProcessor():
                 return False
 
             self.NowRunningTest.UserAgent.append(serv_feature_ua)
-
-        if not self._createLogFiles():
-            self.NowRunningTest.Status = "Failed"
-            logger.error("Creating log files for ua failed.")
-            return False
 
         if not self._execSippProcess():
             self.NowRunningTest.Status = "Failed"

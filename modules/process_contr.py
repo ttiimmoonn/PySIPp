@@ -16,7 +16,7 @@ def RegisterUser (user, mode="reg"):
         if not user.RegOneTime:
             user.SetRegistrationTimer()
         # Запускаем процесс
-        process = start_ua(user.RegCommand, user.RegLogFile)
+        process = start_ua(user.RegCommand)
         if not process:
             logger.error(" ---| User %s not registred. Detail: Can't start process {SIPp not found}",user.Number)
             user.Status = "Registration process not started."
@@ -56,11 +56,9 @@ def RegisterUser (user, mode="reg"):
                 user.RegProcess.wait()
         except AttributeError:
             return False
-        process = start_ua(user.UnRegCommand, user.RegLogFile)
+        process = start_ua(user.UnRegCommand)
         if not process:
             logger.error(" ---| User registration %s not dropped. Detail: Can't start process {SIPp not found}",user.Number)
-            #Закрываем лог файл
-            user.RegLogFile.close()
             user.SetStatusCode(3)
             return False
         else:
@@ -71,14 +69,10 @@ def RegisterUser (user, mode="reg"):
                 user.Status = "Error of drop registration"
                 logger.error(" ---| User registration %s not dropped. Detail: SIPp process return bad exit code.",user.Number)
                 user.SetStatusCode(user.RegProcess.poll())
-                #Закрываем лог файл
-                user.RegLogFile.close()
                 return False
             else:
                 user.Status = "Dropped"
                 logger.info(" ---| User registration %s is dropped.",user.Number)
-                #Закрываем лог файл
-                user.RegLogFile.close()
                 user.SetStatusCode(user.RegProcess.poll())
                 return True
         except subprocess.TimeoutExpired:
@@ -86,8 +80,6 @@ def RegisterUser (user, mode="reg"):
             user.Status = "Error of drop (timeout)"
             logger.error(" ---| User registration %s not dropped. Detail: UA registration process break by timeout.",user.Number)
             user.SetStatusCode(4)
-            #Закрываем лог файл
-            user.RegLogFile.close()
             return False
     else:
         logger.error(" ---| Bad arg {set registration func}")
@@ -100,7 +92,7 @@ def preexec_process():
     os.setpgrp()
 
 
-def start_ua (command, fd):
+def start_ua (command):
 # Запуск подпроцесса регистрации
     try:
         args = shlex.split(str(command))
@@ -109,7 +101,7 @@ def start_ua (command, fd):
         return False
     try:
         # Пытаемся создать новый SIPp процесс.
-        ua_process = subprocess.Popen(args, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=fd, preexec_fn = preexec_process)
+        ua_process = subprocess.Popen(args, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, preexec_fn = preexec_process)
     except FileNotFoundError:
         # Если неправильно указан путь, то возвращаем false.
         return False
@@ -128,7 +120,7 @@ def start_ua_thread(ua, event_for_stop):
                 ua.SetStatusCode(1)
                 break 
             # Запускаем UA
-            process = start_ua (command, ua.LogFd)
+            process = start_ua (command)
             if not process:
                 ua.SetStatusCode(2)
                 #Сигналим в соседний thread
@@ -332,9 +324,5 @@ def ChangeUsersRegistration(test_users, lock, mode="reg"):
                 #Ждём пока все thread завершатся
                 for reg_thread in reg_threads:
                     reg_thread.join()
-
-                for user in test_users:
-                    if test_users[user].RegLogFile != None:
-                        test_users[user].RegLogFile.close()
         finally:
             lock.release()
