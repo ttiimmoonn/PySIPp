@@ -246,14 +246,12 @@ else:
 if not test_users:
     sys.exit(1)
 
-#Парсим тесты
+#Парсинг данных о тестах
 logger.info("Parsing tests from json string...")
 tests = parse.parse_test_info(test_desc["Tests"])
 #Если есть ошибки при парсинге, то выходим
 if not tests:
     sys.exit(1)
-
-sys.exit(1)
 
 #Если запросили show_test_info, показавыем информацию по тесту и выходим
 if show_test_info:
@@ -264,7 +262,6 @@ if show_test_info:
     sys.exit(0)
 
 #Если был передан test_numbers, то накладываем маску на массив тестов
-
 if test_numbers:
     try:
         tests=list(tests[i] for i in test_numbers)

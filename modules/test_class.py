@@ -11,8 +11,8 @@ class TestClass:
         self.BackGroundThreads = []
         self.WaitBackGroundUA = []
         self.ThreadEvent = threading.Event()
-        self.Name = None
-        self.Description = None
+        self.Name = "Unnamed test"
+        self.Description = "No description"
         self.TestProcedure = None
         self.Status = None
         self.LogPath = None
@@ -40,16 +40,16 @@ class UserAgentClass:
         self.RawJsonCommands=[]
         self.Process = []
         self.Status = None
-        self.Cyclic = None
+        self.Cyclic = False
         self.StatusCode = None
         self.Name = None
         self.Type = None
-        self.WriteStat = None
+        self.WriteStat = False
         self.TimeStampFile = None
         self.UserId = None
         self.Port = None
         self.UserObject = None
-        self.BackGround = None
+        self.BackGround = False
         self.UALock = threading.Lock()
         self.ShortTrParser = None
     
