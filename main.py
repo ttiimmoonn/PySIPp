@@ -146,8 +146,8 @@ def output_validate_errors(errors):
                     logger.error("Missing property in CheckRetransmission or CheckDifference: %s" % (e.message))
                 elif not "CheckDifference":
                     logger.error(e.message)
-                else:
-                    logger.error(e.instance)    
+                #else:
+                    #logger.error(e.message)    
         #Если задаваемое свойство не соответствует шаблону       
         elif "does not match any of the regexes" in str(e.message):
             logger.error("In item %s of section [%s]: value %s" % (re.findall(r"\d",str(e.path)), e.path.popleft(), e.message)) 
@@ -194,7 +194,8 @@ test_users = {}
 tests = []
 #Декларируем словарь пользовательских переменных
 test_var = {}
-
+#Создаем инстанс парсера
+parse = parser.Parser()
 
 try:
     logging.basicConfig(filename=log_file,format = u'%(asctime)-8s %(levelname)-8s [%(module)s -> %(funcName)s:%(lineno)d] %(message)-8s', filemode='w', level = logging.DEBUG)
@@ -215,7 +216,7 @@ except (ValueError, KeyError, TypeError):
     sys.exit(1)
 
 try:
-    custom_settings = parser.parse_sys_conf(custom_settings["SystemVars"][0])
+    custom_settings = parse.parse_sys_conf(custom_settings["SystemVars"][0])
     if not custom_settings:
         sys.exit(1)
 except KeyError:
@@ -245,10 +246,19 @@ except json.decoder.JSONDecodeError:
 else:
     schema_file.close
 
-#Парсим юзеров
+#Проверка тестового сценария на соответствие схеме
+#logger.info("Validating JSON script...")
+#validation_errors = sorted(Draft4Validator(schemaData).iter_errors(test_desc), key=lambda e: e.path)
+#if validation_errors:
+#    output_validate_errors(validation_errors)
+#    sys.exit(1)
+#else:
+#    logger.info("Validation completed successfully")
+
+#Парсинг данных о пользователях
 logger.info("Parsing users from json string...")
-if "Users" in test_desc:    
-    test_users = parser.parse_user_info(test_desc["Users"])
+if "Users" in test_desc:  
+    test_users = parse.parse_user_info(test_desc["Users"])
 else:
     logger.warn("No user in test")
 #Если есть ошибки при парсинге, то выходим
@@ -258,7 +268,7 @@ if test_users == False:
 #Парсим тесты
 logger.info("Parsing tests from json string...")
 try:
-   tests = parser.parse_test_info(test_desc["Tests"])
+   tests = parse.parse_test_info(test_desc["Tests"])
 except(KeyError):
    logger.error("No Test in test config")
 #Если есть ошибки при парсинге, то выходим
@@ -283,7 +293,7 @@ if test_numbers:
         sys.exit(1)
 
 #Парсим тестовые переменные в словарь
-test_var = parser.parse_test_var(test_desc)
+test_var = parse.parse_test_var(test_desc)
 #Добавляем системные переменные в словарь
 test_var.update(custom_settings)
 #Создаём директорию для логов

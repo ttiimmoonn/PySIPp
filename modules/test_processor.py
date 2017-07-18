@@ -185,7 +185,8 @@ class TestProcessor():
 
     def _execStartUA(self, ua_desc):
         logger.info("Parsing UA from test.")
-        if not parser.parse_user_agent(self.NowRunningTest,ua_desc):
+        parse = parser.Parser()
+        if not parse.parse_user_agent(self.NowRunningTest,ua_desc):
             self.NowRunningTest.Status = "Failed"
             logger.error("Parsing UA failed.")
             return False
