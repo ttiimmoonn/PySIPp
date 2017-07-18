@@ -270,5 +270,5 @@
           }
       } 
    },
-   "required" : ["TestName", "Users", "Tests"]
+   "required" : ["TestName", "Tests"]
 }
