@@ -17,7 +17,7 @@ def build_reg_command (user,log_path,test_var,mode="reg"):
     command+="-i " + "%%IP%%" + " "
     command+=" -set DOMAIN " + str(user.SipDomain)
     if user.UserIP != None:
-        command+=" -set USER_IP " + str(user.UserIP)
+        command+=" -set USER_IP " + user.UserIP
     if user.FakePort != None:
         command+=" -set PORT " + str(user.FakePort)
     else:
@@ -27,16 +27,16 @@ def build_reg_command (user,log_path,test_var,mode="reg"):
     elif mode == "unreg":
         command+=" -set EXPIRES " + "0"
     command+=" -set USER_Q " + str(user.QParam)
-    command+=" -set NUMBER " + str(user.Number)
-    command+=" -s " + str(user.Login) + " -ap " + str(user.Password)
+    command+=" -set NUMBER " + user.Number
+    command+=" -s " + user.Login + " -ap " + user.Password
     command+=" -m 1"
     command+=" -nostdin"
     command+=" -timeout_error"
     if user.BindPort != None:
-        command+=" -p " + user.BindPort
+        command+=" -p " + str(user.BindPort)
     if user.SipTransport == "TCP":
         command+=" -t tn -max_socket 25"
-    LOG_PREFIX = "REG_" + "NUMBER_" + str(user.Number) + "_"
+    LOG_PREFIX = "REG_" + "NUMBER_" + user.Number + "_"
     #Добавляем message trace
     command += " -message_overwrite false -trace_msg -message_file " + log_path + "/" + LOG_PREFIX + "MESSAGE"
     #Добавляем error trace
@@ -47,7 +47,7 @@ def build_reg_command (user,log_path,test_var,mode="reg"):
     else:
         return False
 
-def build_service_feature_command (test,user, code, test_var):
+def build_service_feature_command (test, user, code, test_var):
     #Сборка команды для регистрации
     command=""
     command+="%%SIPP_PATH%%" + " "
@@ -65,7 +65,7 @@ def build_service_feature_command (test,user, code, test_var):
     if user.SipTransport == "TCP":
         command+=" -t tn -max_socket 25"
     command = replace_key_value(command,test_var)
-    LOG_PREFIX = "TEST_" + str(test.TestId) + "_NUMBER_" + str(user.Number) + "_SF_" + code + "_"
+    LOG_PREFIX = "TEST_" + str(test.TestId) + "_NUMBER_" + user.Number + "_SF_" + code + "_"
     #Добавляем message trace
     command += " -message_overwrite false -trace_msg -message_file " + test.LogPath + "/" + LOG_PREFIX + "MESSAGE"
     #Добавляем error trace
@@ -77,21 +77,9 @@ def build_sipp_command(test,test_var,uac_drop_flag=False, show_sip_flow=False):
     for ua in test.UserAgent + test.BackGroundUA:
          #Пытаемся достать параметры команды
          for command in ua.RawJsonCommands:
-            try:
-                sipp_sf = command["SourceFile"]
-            except KeyError:
-                logger.error("Wrong Command description. Detail: UA has no attribute: %s { Test: %s, UA: %s }",sys.exc_info()[1],test.Name,ua.Name)
-                return False
-            try:
-                sipp_options = command["Options"]
-            except KeyError:
-                logger.error("Wrong Command description. Detail: UA has no attribute: %s { Test: %s, UA: %s }",sys.exc_info()[1],test.Name,ua.Name)
-                return False
-            try:
-                sipp_type = command["SippType"]
-            except KeyError:
-                logger.error("Wrong Command description. Detail: UA has no attribute: %s { Test: %s, UA: %s }",sys.exc_info()[1],test.Name,ua.Name)
-                return False
+            sipp_sf = command["SourceFile"]
+            sipp_options = command["Options"]
+            sipp_type = command["SippType"]          
             #Если был передан флаг о сбросе UAC команд, то просто не собираем их.
             if uac_drop_flag:
                 if sipp_type == "uac":
@@ -103,8 +91,7 @@ def build_sipp_command(test,test_var,uac_drop_flag=False, show_sip_flow=False):
             try:
                 timeout = command["Timeout"]
             except KeyError:
-                timeout = "60s"
-
+                timeout = "60s" 
             #В некоторых случаях полезно, чтобы UA завершился по timeout и при этом вернул 0 ex code
             #Для таких случаев на уровне команды передаем параметр NoTimeOutError
             try:
@@ -119,32 +106,32 @@ def build_sipp_command(test,test_var,uac_drop_flag=False, show_sip_flow=False):
             command += " -i " + "%%IP%%" + " "
             command += sipp_options
             if ua.Type == "User":
-                command += " -p " + ua.UserObject.Port
+                command += " -p " + str(ua.UserObject.Port)
                 command += " -s " + ua.UserObject.Login
                 if ua.UserObject.SipTransport == "TCP":
                     command+=" -t tn -max_socket 25"
                 if ua.UserObject.RtpPort:
-                    command += " -mp " + ua.UserObject.RtpPort
+                    command += " -mp " + str(ua.UserObject.RtpPort)
             else:
-                command += " -p " + ua.Port
+                command += " -p " + str(ua.Port)
             command+=" -nostdin"
 
             if sipp_auth and ua.Type=="User":
                 command += " -ap " + ua.UserObject.Password
 
             if sipp_type == "uac":
-                command += " -timeout " + str(timeout)
-                command += " -recv_timeout " + str(timeout)
+                command += " -timeout " + timeout
+                command += " -recv_timeout " + timeout
                 if ua.Type=="User":
                     command += " -set CGPNDOM " + ua.UserObject.SipDomain
             else:
-                command += " -timeout " + str(timeout)
+                command += " -timeout " + timeout
 
             #Выставляем ленивый режим детектирования перепосылок.
             command += " -rtcheck loose"
 
             if ua.Type == "User":
-                LOG_PREFIX = "TEST_" + str(test.TestId) + "_NUMBER_" + str(ua.UserObject.Number) + "_"
+                LOG_PREFIX = "TEST_" + str(test.TestId) + "_NUMBER_" + ua.UserObject.Number + "_"
             elif ua.Type == "Trunk":
                 LOG_PREFIX = "TEST_" + str(test.TestId) + "_TRUNK_PORT_" + str(ua.Port) + "_"
             else:

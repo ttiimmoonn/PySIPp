@@ -224,7 +224,7 @@ class TestProcessor():
         already_used_uid = []
         for serv_feature in sf_desc:
             sf_code =  builder.replace_key_value(serv_feature['code'], self.TestVar)
-            sf_uid  =  int(serv_feature['userId'])
+            sf_uid  =  serv_feature['userId']
 
             if not sf_code:
                 self.NowRunningTest.Status = "Failed"
