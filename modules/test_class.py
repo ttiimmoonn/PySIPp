@@ -103,14 +103,14 @@ class UserClass:
         self.RegProcess = None
         self.UnRegProcess = None
         self.SipGroup = None
-        self.SipTransport = None
+        self.SipTransport = "UDP"
         self.UserIP = None
         #Для тестирования регистраций с левого ip:port
         self.FakePort = None
         self.UserLock = threading.Lock()
         #Для тестов регистрации, необходимо поддержать manual режим
         self.Script = None
-        self.Mode = None
+        self.Mode = "Auto"
         self.BindPort = None
 
     
