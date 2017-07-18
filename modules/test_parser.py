@@ -13,66 +13,62 @@ class Parser:
         for user in json_users:
             #Создаём нового пользователя
             new_user = testClass.UserClass()
-            #Проверяем наличие обязательных параметров
-            try:
-                new_user.Status = "New"
-                new_user.UserId = int(user["UserId"])
-                new_user.Number = user["Number"]
-                new_user.Login = user["Login"]
-                new_user.Password = user["Password"]
-                new_user.SipDomain = user["SipDomain"]
-                new_user.SipGroup = user["SipGroup"]
-                new_user.Port = user["Port"]
-            except KeyError:
-                logger.error("Wrong user description. Detail: User has no attribute: %s",sys.exc_info()[1])
-                return False
-            #Выставляем опциональные параметры
+            #Обработка обязательных параметров
+            new_user.Status = "New"
+            new_user.UserId = user["UserId"]
+            new_user.Number = user["Number"]
+            new_user.Login = user["Login"]
+            new_user.Password = user["Password"]
+            new_user.SipDomain = user["SipDomain"]
+            new_user.SipGroup = user["SipGroup"]
+            new_user.Port = user["Port"]
+            #Обработка опциональных параметров
             try:
                 new_user.RegOneTime = user["OneTime"]
             except KeyError:
-                new_user.RegOneTime = False
+                pass
             try:
                 new_user.UserIP = user["UserIP"]
             except KeyError:
-                new_user.UserIP = None
+                pass
             try:
                 new_user.FakePort = user["FakePort"]
             except KeyError:
-                new_user.FakePort = None
+                pass
             try:
                 new_user.RtpPort = user["RtpPort"]
             except KeyError:
-                new_user.RtpPort = None
+                pass
             try:
                 new_user.Expires = user["Expires"]
             except KeyError:
-                new_user.Expires = 3600
+                pass
             try:
                 new_user.QParam = user["QParam"]
             except KeyError:
-                new_user.QParam = 1
+                pass
             try:
                 new_user.SipTransport = user["SipTransport"]
             except KeyError:
-                new_user.SipTransport = "UDP"
+                pass
             try:
                 new_user.Mode = user["Mode"]
             except KeyError:
-                new_user.Mode = "Auto"
+                pass
             try:
                 new_user.BindPort = user["BindPort"]
             except KeyError:
-                new_user.BindPort = None
+                pass
             #Если есть два юзера с одинаковыми id, выходим
             if new_user.UserId in users:
-                logger.error("UserId = %d is already in use",int(new_user.UserId))
+                logger.error("UserId = %d is already in use", new_user.UserId)
                 return False
             else:
                 users[new_user.UserId] = new_user
         return users
 
     def parse_test_info(self, json_tests):
-        #Создаём массив для тестов
+        #Создаём список для тестов
         tests = []
         for count,test in enumerate(json_tests):
             new_test = testClass.TestClass()

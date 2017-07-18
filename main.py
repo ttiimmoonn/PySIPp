@@ -228,13 +228,13 @@ else:
     schema_file.close
 
 #Проверка тестового сценария на соответствие схеме
-#logger.info("Validating JSON script...")
-#validation_errors = sorted(Draft4Validator(schemaData).iter_errors(test_desc), key=lambda e: e.path)
-#if validation_errors:
-#    output_validate_errors(validation_errors)
-#    sys.exit(1)
-#else:
-#    logger.info("Validation completed successfully")
+logger.info("Validating JSON script...")
+validation_errors = sorted(Draft4Validator(schemaData).iter_errors(test_desc), key=lambda e: e.path)
+if validation_errors:
+    output_validate_errors(validation_errors)
+    sys.exit(1)
+else:
+    logger.info("Validation completed successfully")
 
 #Парсинг данных о пользователях
 logger.info("Parsing users from json string...")
@@ -243,18 +243,17 @@ if "Users" in test_desc:
 else:
     logger.warn("No user in test")
 #Если есть ошибки при парсинге, то выходим
-if test_users == False:
+if not test_users:
     sys.exit(1)
 
 #Парсим тесты
 logger.info("Parsing tests from json string...")
-try:
-   tests = parse.parse_test_info(test_desc["Tests"])
-except(KeyError):
-   logger.error("No Test in test config")
+tests = parse.parse_test_info(test_desc["Tests"])
 #Если есть ошибки при парсинге, то выходим
 if not tests:
     sys.exit(1)
+
+sys.exit(1)
 
 #Если запросили show_test_info, показавыем информацию по тесту и выходим
 if show_test_info:
