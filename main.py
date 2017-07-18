@@ -1,4 +1,4 @@
-#!/usr/local/bin/python3.5
+#!/usr/local/bin/python3.6
 import modules.test_parser as parser
 import modules.cmd_builder as builder
 import modules.test_processor as processor
@@ -12,14 +12,14 @@ import logging
 import re
 import signal
 import json
+import jsonschema
+from jsonschema import Draft4Validator
 import sys
 import time
 import threading
 import argparse
 import math
 from collections import OrderedDict
-
-
 
 def signal_handler(current_signal, frame):
     signal.signal(signal.SIGINT, signal.SIG_IGN)
@@ -39,7 +39,6 @@ def signal_handler(current_signal, frame):
     stop_test(cp_test_processor,cp_test_desc,cp_coconInt)
     sys.exit(1)
 
-
 def stop_test(test_processor,test_desc,coconInt):
     logger.debug("Stop CoCoN Thread...")
     if test_processor:
@@ -58,9 +57,6 @@ def stop_test(test_processor,test_desc,coconInt):
                 #Отрубаем thread
                 #На всякий случай убеждаемся, что ccn thread существует и живой
                 coconInt.eventForStop.set()
-
-
-
 
 #Добавляем трап на SIGINT
 signal.signal(signal.SIGINT, signal_handler)
@@ -100,7 +96,6 @@ def get_test_info (test):
             print("      ",command)
         print("")
 
-
 def match_test_numbers(test_numbers):
     match_result = re.search("^[0-9]{1,2}$|^([0-9]{1,2},)*[0-9]{1,2}$",test_numbers)
     if match_result:
@@ -116,8 +111,6 @@ def match_file_path(log_file):
     else:
         raise argparse.ArgumentTypeError("Log file path is incorrect")
 
-
-    
 #Парсим аргументы командной строки
 arg_parser = createParser()
 namespace = arg_parser.parse_args()
