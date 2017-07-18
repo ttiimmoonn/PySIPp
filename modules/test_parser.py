@@ -13,7 +13,7 @@ class Parser:
         for user in json_users:
             #Создаём нового пользователя
             new_user = testClass.UserClass()
-            #Обработка обязательных параметров
+            #Обработка обязательных свойств
             new_user.Status = "New"
             new_user.UserId = user["UserId"]
             new_user.Number = user["Number"]
@@ -22,7 +22,7 @@ class Parser:
             new_user.SipDomain = user["SipDomain"]
             new_user.SipGroup = user["SipGroup"]
             new_user.Port = user["Port"]
-            #Обработка опциональных параметров
+            #Обработка опциональных свойств
             try:
                 new_user.RegOneTime = user["OneTime"]
             except KeyError:
@@ -74,209 +74,58 @@ class Parser:
             new_test = testClass.TestClass()
             new_test.Status = "New"
             new_test.TestId = count
-            #Устанавливаем опциональные свойства
+            #Обработка опциональных свойств
             try:
                 new_test.Name = test["Name"]
             except KeyError:
-                new_test.Name = "Unnamed test"
+                pass
             try:
                 new_test.Description = test["Description"]
             except KeyError:
-                new_test.Description = "No description"
-            try:
-                new_test.TestProcedure = test["TestProcedure"]
-            except:
-                logger.error("Wrong Test description. Detail: UA has no attribute: %s { Test: %s }", sys.exc_info()[1], new_test.Name)
-                return False
-            #Делаем проверку тестовой процедуры:
-            for item in test["TestProcedure"]:
-                if "Sleep" in item:
-                    try:
-                        int(item["Sleep"])
-                    except:
-                        logger.error("Sleep command must have a int value.")
-                        return False
-                    continue
-                if "ServiceFeature" in item:
-                    for sf in item["ServiceFeature"]:
-                        try:
-                            int(sf["userId"])
-                        except:
-                            logger.error("UserId in ServiceFeature command must have a int value. { Bad UserID: %s}",sf["userId"])
-                            return False
-                    continue
-                if "CheckRetransmission" in item:
-                    for section in item["CheckRetransmission"]:
-                        try:
-                            if not section["Timer"] in ["A","B","E","F","G","H"]:
-                                logger.error("Unknown timer name: \"%s\" in CheckRetransmission section. Allowed timers: %s",section["Timer"],", ".join(["A","B","E","F","G","H"]))
-                                return False
-
-                            if re.search("^[0-9]{1,2}$|^([0-9]{1,2},)+[0-9]{1,2}$",section["UA"]) == None:
-                                logger.error("Wrong format for UA option in CheckRetransmission section. Use: id1,id2,id3 or id")
-                                return False
-
-                            msg_info = section["Msg"][0]
-                            if not msg_info["MsgType"].lower() in ["request", "response"]:
-                                logger.error("Unknown MsgType: \"%s\" in CheckRetransmission section. Allowed: %s",msg_info["MsgType"], ", ".join( ["request", "response"]))
-                                return False
-
-                            if not "Method" in msg_info:
-                                logger.error("Wrong CheckRetransmission description. Detail: CheckRetransmission has no attribute: \"Method\"")
-                                return False
-
-                            if msg_info["MsgType"].lower() == "request":
-                                if msg_info["Code"] != "None":
-                                    logger.error("For request msg Code must be None. CheckRetransmission section")
-                                    return False
-                            else:
-                                try:
-                                    int(msg_info["Code"])
-                                except ValueError:
-                                    logger.error("Code must be int for response msg. CheckRetransmission section")
-                                    return False
-                        except KeyError:
-                            logger.error("Wrong CheckRetransmission description. Detail: CheckRetransmission has no attribute: %s",sys.exc_info()[1])
-                            return False
-                    continue
-                if "CheckDifference" in item:
-                    for section in item["CheckDifference"]:
-                        try:
-                            if not section["Mode"] in ["between_ua","inner_ua"]:
-                                logger.error("Unknown Mode: \"%s\" in CheckDifference section. Allowed Modes: %s",section["Mode"],", ".join(["between_ua","inner_ua"]))
-                                return False
-
-                            if re.search("^[0-9]{1,2}$|^([0-9]{1,2},)+[0-9]{1,2}$",section["UA"]) == None:
-                                logger.error("Wrong format for UA option in CheckDifference section. Use: id1,id2,id3 or id")
-                                return False
-
-                            msg_info = section["Msg"][0]
-                            if not msg_info["MsgType"].lower() in ["request", "response"]:
-                                logger.error("Unknown MsgType: \"%s\" in CheckDifference section. Allowed: %s",msg_info["MsgType"], ", ".join( ["request", "response"]))
-                                return False
-
-                            if not "Method" in msg_info:
-                                logger.error("Wrong CheckDifference description. Detail: CheckDifference has no attribute: \"Method\"")
-                                return False
-
-                            if not section["Difference"].isdigit()  and re.search("^\%\%[a-zA-Z_\-0-9]+\%\%$",section["Difference"]) == None:
-                                logger.error("Diffenrence must be int or var: %%VAR%%.  CheckDifference section.")
-                                return False
-
-                            if msg_info["MsgType"].lower() == "request":
-                                if msg_info["Code"] != "None":
-                                    logger.error("For request msg Code must be None. CheckDifference section")
-                                    return False
-                            else:
-                                try:
-                                    int(msg_info["Code"])
-                                except ValueError:
-                                    logger.error("Code must be int for response msg. CheckDifference section")
-                                    return False
-                        except KeyError:
-                            logger.error("Wrong CheckDifference description. Detail: CheckDifference has no attribute: %s",sys.exc_info()[1])
-                            return False
-                    continue
-                if "ManualReg" in item:
-                    try:
-                        for user_id, reg_scripts in item["ManualReg"].items():
-                            try:
-                                int(user_id)
-                            except ValueError:
-                                logger.error("Wrong ManualReg description. Detail: UserId must be int. Current value: %s",str(user_id))
-                                return False
-                            try:
-                                str(reg_scripts["script"])
-                            except KeyError:
-                                logger.error("Wrong ManualReg description. Detail: ManualReg has no attribute: %s",sys.exc_info()[1])
-                                return False
-                            try:
-                                if not reg_scripts["need_drop"] in ["True", "False"]:
-                                    logger.error("Wrong ManualReg description. Detail: wrong value of need_drop attr. Allowed values: %s, Current value: %s", ", ".join(["True","False"]),reg_scripts["need_drop"])
-                                    return False
-                            except KeyError:
-                                pass
-                    except:
-                        logger.error("Some Exception in ManualReg cmd")
-                        return False
-                    continue
-                if "DropManualReg" in item:
-                    for user_id in item["DropManualReg"]:
-                        try:
-                            int(user_id)
-                        except ValueError:
-                            logger.error("User id in DropManualReg command must be integer")
-                            return False
-                    continue
+                pass
+            #Обработка тестовой процедуры (обязательное свойство)
+            new_test.TestProcedure = test["TestProcedure"]
             tests.append(new_test)
         return tests
 
     def parse_user_agent(self, test, ua_desc):
         #Пытаемся найти UserAgent в описании теста
-        try:
-            for ua in ua_desc:
-                #Создаём нового UserAgent
-                new_ua = testClass.UserAgentClass()
-                #Устанавливаем статус UserAgent
-                new_ua.Status = "New"
-                #Пытаемся забрать обязательные параметры
-                try:
-                    new_ua.Name = ua["Name"]
-                    new_ua.Type = ua["Type"]
-                except KeyError:
-                    logger.error("Wrong UA description. Detail: UA has no attribute: %s { Test: %s }",sys.exc_info()[1],test.Name)
-                    return False
-                #В зависимости от типа UA, пытаемся забрать:
-                #Для User: UserId
-                #Для Trunk: Port
-                if new_ua.Type == "User":
-                    try:
-                        new_ua.UserId = int(ua["UserId"])
-                    except KeyError:
-                        logger.error("Wrong UA description. Detail: UA has no attribute: %s { Test: %s }",sys.exc_info()[1],test.Name)
-                        return False
-                elif new_ua.Type == "Trunk":
-                    try:
-                        new_ua.Port = ua["Port"]
-                    except KeyError:
-                        logger.error("Wrong UA description. Detail: UA has no attribute: %s { Test: %s }",sys.exc_info()[1],test.Name)
-                        return False
-                else:
-                    #Если кто-то передал некорректный тип юзера, выходим
-                    logger.error("Wrong UA description. Detail: Unknown type of User Agent. Use \"User\" or \"Trunk\" { Test: %s }",test.Name)
-                    return False
-                #Парсим параметр WriteStat
-                try:
-                    new_ua.WriteStat = ua["WriteStat"]
-                except:
-                    new_ua.WriteStat = False
-                #Парсим параметр cyclic
-                try:
-                    new_ua.Cyclic = ua["Cyclic"]
-                except:
-                    new_ua.Cyclic = False
-                #Начинаем парсинг команд для UA
-                try:
-                    for command in ua["Commands"]:
-                        #Поскольку на данном этапе юзеры не залинкованы к процессам
-                        #Просто передаём объекту JSON описания команд
-                        new_ua.RawJsonCommands.append(command)
-                except KeyError:
-                        logger.error("Wrong UA description. Detail: UA has no attribute: %s { Test: %s }",sys.exc_info()[1],test.Name)
-                        return False
-                try:
-                    new_ua.BackGround = ua["BackGround"]
-                except:
-                    new_ua.BackGround = False
-                #Делим агентов
-                if new_ua.BackGround:
-                    test.BackGroundUA.append(new_ua)
-                else:
-                    test.UserAgent.append(new_ua)
-        except KeyError:
-            #Если в тесте нет UA, то выходим
-            logger.error("Wrong UA description. Detail: UA has no attribute: %s { Test: %s }",sys.exc_info()[1],test.Name)
-            return False
+        for ua in ua_desc:
+            #Создаём нового UserAgent
+            new_ua = testClass.UserAgentClass()
+            #Устанавливаем статус UserAgent
+            new_ua.Status = "New"
+            #Обработка обязательных свойств
+            new_ua.Name = ua["Name"]
+            new_ua.Type = ua["Type"]               
+            #В зависимости от типа UA забираем свойство UserId(User) или Port(Trunk)
+            if new_ua.Type == "User":
+               new_ua.UserId = ua["UserId"]
+            else:
+                new_ua.Port = ua["Port"]
+            #Обработка опциональных свойств
+            try:
+                new_ua.WriteStat = ua["WriteStat"]
+            except:
+                pass
+            try:
+                new_ua.Cyclic = ua["Cyclic"]
+            except:
+                pass
+            try:
+                new_ua.BackGround = ua["BackGround"]
+            except:
+                pass
+            #Обработка команд для UA (обязательное свойство)
+            for command in ua["Commands"]:
+                #Поскольку на данном этапе юзеры не залинкованы к процессам
+                #Просто передаём объекту JSON описания команд
+                new_ua.RawJsonCommands.append(command)               
+            #Делим агентов
+            if new_ua.BackGround:
+                test.BackGroundUA.append(new_ua)
+            else:
+                test.UserAgent.append(new_ua)
         return True
 
     def parse_test_var(self, test_desc):

@@ -104,7 +104,7 @@
                    	                                  "items" : {"$ref" : "#/definitions/commands"} 
                                                   }
                                               },
-                                              "required" : ["Type","Name", "Commands"],
+                                              "required" : ["Type", "Name", "Commands"],
                                               "oneOf" : [
                                               {
                                                   "properties" : {
@@ -261,6 +261,19 @@
                                     }
                               	},
                               	"required" : ["ManualReg"]
+                              },
+                              {
+                                "type" : "object",
+                                "properties" : {
+                                    "DropManualReg" : {
+                                        "type" : "array",
+                                        "items" : {
+                                            "type" : "string",
+                                            "pattern" : "^\\d+$"
+                                        }
+                                    }
+                                },
+                                "required" : ["DropManualReg"] 
                               }
                           ]	
                       }
