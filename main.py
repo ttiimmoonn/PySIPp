@@ -10,6 +10,7 @@ import modules.show_call_flow as sip_call_flow
 import modules.diff_calc as diff_calc
 import logging
 import re
+import os
 import signal
 import json
 import jsonschema
@@ -212,7 +213,7 @@ except (ValueError, KeyError, TypeError):
 
 logger.info("Reading JSON schema...")
 try:
-    schema_file = open("./schema/tests.schema","r",encoding="utf-8")
+    schema_file = open(os.path.dirname(__file__)+"/schema/tests.schema","r",encoding="utf-8")
 except FileNotFoundError:
     logger.error("JSON schema file not found")
     sys.exit(1)
