@@ -1,9 +1,13 @@
+<<<<<<< HEAD
 #!/usr/bin/env python3
 import sys
 if sys.version_info < (3,5):
     print("Error. Use python 3.5 or greater")
     sys.exit(1)
 
+=======
+#!/usr/local/bin/python3.6
+>>>>>>> Adding schema file
 import modules.test_parser as parser
 import modules.cmd_builder as builder
 import modules.test_processor as processor
@@ -17,13 +21,22 @@ import logging
 import re
 import signal
 import json
+<<<<<<< HEAD
+=======
+import jsonschema
+from jsonschema import Draft4Validator
+import sys
+>>>>>>> Adding schema file
 import time
 import threading
 import argparse
 import math
 from collections import OrderedDict
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> Adding schema file
 def signal_handler(current_signal, frame):
     signal.signal(signal.SIGINT, signal.SIG_IGN)
     logger.info("Receive SIGINT signal. Start test aborting")
@@ -41,7 +54,6 @@ def signal_handler(current_signal, frame):
         cp_coconInt = coconInt
     stop_test(cp_test_processor,cp_test_desc,cp_coconInt)
     sys.exit(1)
-
 
 def stop_test(test_processor,test_desc,coconInt):
     logger.debug("Stop CoCoN Thread...")
@@ -62,7 +74,10 @@ def stop_test(test_processor,test_desc,coconInt):
                 #На всякий случай убеждаемся, что ccn thread существует и живой
                 coconInt.eventForStop.set()
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> Adding schema file
 #Добавляем трап на SIGINT
 signal.signal(signal.SIGINT, signal_handler)
 
@@ -101,7 +116,6 @@ def get_test_info (test):
             print("      ",command)
         print("")
 
-
 def match_test_numbers(test_numbers):
     match_result = re.search("^[0-9]{1,2}$|^([0-9]{1,2},)*[0-9]{1,2}$",test_numbers)
     if match_result:
@@ -117,8 +131,6 @@ def match_file_path(log_file):
     else:
         raise argparse.ArgumentTypeError("Log file path is incorrect")
 
-
-    
 #Парсим аргументы командной строки
 arg_parser = createParser()
 namespace = arg_parser.parse_args()
