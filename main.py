@@ -111,6 +111,42 @@ def match_file_path(log_file):
     else:
         raise argparse.ArgumentTypeError("Log file path is incorrect")
 
+#Функция для вывода ошибок JSON файла       
+def output_validate_errors(errors):
+    for e in errors:
+        #Если обязательное свойство отсутствует
+        if "is a required property" in str(e.message):
+            try:        
+                logger.error("In item [%s] of section [%s]: value %s" % (e.path.pop(), e.path.popleft(), e.message))
+            except (IndexError, TypeError):
+                if not "CheckRetransmission" and "CheckDifference" in str(e.message):
+                    logger.error("Missing property: %s" % e.message)
+                elif "Code" in str(e.message):
+                    logger.error("Missing property in CheckRetransmission or CheckDifference: %s" % (e.message))
+                elif not "CheckDifference":
+                    logger.error(e.message)
+                else:
+                    logger.error(e.instance)    
+        #Если задаваемое свойство не соответствует шаблону       
+        elif "does not match any of the regexes" in str(e.message):
+            logger.error("In item %s of section [%s]: value %s" % (re.findall(r"\d",str(e.path)), e.path.popleft(), e.message)) 
+        #Если ошибка присутствует во вложенных секциях 
+        elif "is not valid under any of the given schemas" in str(e.message):
+            output_validate_errors(sorted(e.context, key=lambda e: e.path))
+        #Действия во всех остальных случаях
+        else:
+            try:
+                logger.error("In item %s of section [%s]: %s value %s" % (re.findall(r"\d",str(e.path)), e.path.popleft(), e.path.pop(), e.message))
+            except (IndexError, TypeError):
+                if "Sleep" in str(e.schema_path):
+                    logger.error("In section Sleep: value %s" % (e.message))
+                if "ServiceFeature" in str(e.schema_path):
+                    logger.error("In section ServiceFeature: value %s" % (e.message))
+                if "Code" in str(e.schema_path):
+                    logger.error("In section CheckRetransmission or CheckDifference value Code: %s" % (e.message))
+                else:
+                   logger.error(e.message)
+
 #Парсим аргументы командной строки
 arg_parser = createParser()
 namespace = arg_parser.parse_args()
@@ -166,16 +202,28 @@ except KeyError:
     logger.error("Custom config without \"SystemVars\"")
     sys.exit(1)
 
-
-
 logger.info("Reading JSON script...")
 try:
     #Загружаем json описание теста
     test_desc = json.loads(jsonData,object_pairs_hook=OrderedDict)
 except (ValueError, KeyError, TypeError):
-    logger.error("Wrong JSON format. Detail: %s",sys.exc_info()[1])
+    logger.error("Wrong JSON format. Detail:", sys.exc_info()[1])
     sys.exit(1)
-    
+
+logger.info("Reading JSON schema...")
+try:
+    schema_file = open("./schema/tests.schema","r",encoding="utf-8")
+except FileNotFoundError:
+    logger.error("JSON schema file not found")
+    sys.exit(1)
+try:
+    schemaData = json.loads(schema_file.read())
+except json.decoder.JSONDecodeError: 
+    logger.error("Reading JSON schema error")
+    schema_file.close
+    sys.exit(1)
+else:
+    schema_file.close
 
 #Парсим юзеров
 logger.info("Parsing users from json string...")
