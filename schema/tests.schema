@@ -47,7 +47,7 @@
        	       "SippType" : {"type" : "string", "enum" : ["uas","uac"]},
                "NeedAuth" : {"type" : "boolean"},
                "NoTimeOutError" : {"type" : "boolean"},
-       	       "Timeout" : {"type" : "integer", "minimum" : 0, "exclusiveMinimum" : false}	  
+       	       "Timeout" : {"type" : "string", "pattern" : "^\\d+[s]$"}	  
        	   },
        	   "required" : ["SourceFile", "SippType", "Options"]
        }
