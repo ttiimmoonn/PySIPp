@@ -51,7 +51,7 @@ class TestProcessor():
     def StopTestProcessor(self):
         self.Status = "Stopping test_processor"
 
-        #Для корректного завершения теста нужно выслать все ccn_cmd, которые он непослал.
+        #Для корректного завершения теста нужно выслать все ccn_cmd, которые он не послал.
         self._SendAllCcnCmd()
         logger.debug("Drop all SIPp processes...")
         
@@ -258,7 +258,7 @@ class TestProcessor():
             return False
 
     def _execCoconCmd(self,cmd_list):
-        logger.info("Send commands to CoCon...")
+        logger.info("Send SSH commands...")
         if not ssh.cocon_configure(cmd_list,self.CoconInt,self.TestVar):
             logger.error("Executing ccn cmd failed.")
             self.NowRunningTest.Status = "Failed"
@@ -347,7 +347,7 @@ class TestProcessor():
         if self.NowRunningTest != None:
             logger.info("Trying send to CCN all commands from test: %s",self.NowRunningTest.Name)
             for item in self.GenForItem:
-                if item[0] == "CoconCommand":
+                if item[0] == "SendSSHCommand":
                     ssh.cocon_configure(item[1],self.CoconInt,self.TestVar)
 
     def _RegUserManual(self, reg_scripts):
@@ -384,11 +384,6 @@ class TestProcessor():
         if not self._StopUserRegistration(drop_users):
             self.NowRunningTest.Status="Failed"
             return False
-
-
-
-
-
 
     def StartTestProcessor(self):
         if not self._StartUserRegistration(self.AutoRegUsers):
@@ -431,7 +426,7 @@ class TestProcessor():
                 self._execStartUA(item[1])
             elif item[0] == "ServiceFeature":
                 self._execServiceFeature(item[1])
-            elif item[0] == "CoconCommand":
+            elif item[0] == "SendSSHCommand":
                 self._execCoconCmd(item[1])
             elif item[0] == "Print":
                 self._execPrintCmd(item[1])

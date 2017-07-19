@@ -15,7 +15,7 @@ class coconInterface:
         self.Login = str(test_var["%%DEV_USER%%"])
         self.Password = str(test_var["%%DEV_PASS%%"])
         self.Ip = str(test_var["%%SERV_IP%%"])
-        self.Port = int(8023)
+        self.Port = 8023
         self.sshChannel = None
         self.sshClient = None
         self.ConnectionStatus = True
@@ -85,7 +85,7 @@ class coconInterface:
             logger.info("---> Command: %s",command)
             try:
                 self.sshChannel.sendall(command)
-                #ждём когда отпустит ccn
+                #Ждём когда отпустит ccn
                 logger.debug("Waiting for recv_exit_status.")
                 self.sshChannel.recv_exit_status()
             except:
@@ -106,7 +106,7 @@ class coconInterface:
             #Даём кокону очнуться
             time.sleep(0.1)
             if self.ShowCoConOutput:
-                logger.info("CoconOutput: ")
+                logger.info("Output: ")
                 logger.info(self.data.decode("utf-8", "strict"))
             #Возвращаем True
             #Закрываем ssh соединение
@@ -142,9 +142,9 @@ def ccn_command_handler(coconInt):
         #Если прищёл event на завершение треда
         #И при этом очередь пуста, то выходим
         if coconInt.eventForStop.isSet() and coconInt.coconQueue.empty():
-            logger.info("Stop event is set. I'm going down...{cocon thread}")
+            logger.info("Stop event is set. I'm going down...{test thread}")
             break
-        #Если очередь пустая, то делаем паузу. (чтобы не тратить ресурсы)
+        #Если очередь пустая, то делаем паузу (чтобы не тратить ресурсы)
         if coconInt.coconQueue.empty() and command == "":
             time.sleep(0.1)
             continue
@@ -156,7 +156,7 @@ def ccn_command_handler(coconInt):
                 coconInt.coconQueue.task_done()
             continue
         else:
-            logger.info("Get task from CCN Queue. Exec command. Attempt %d {cocon thread}", coconInt.attempt)
+            logger.info("Get task from CCN Queue. Exec command. Attempt %d {test thread}", coconInt.attempt)
             #Получаем новую команду из очереди.
             if coconInt.attempt == 0:
                 command = coconInt.coconQueue.get()
@@ -170,7 +170,7 @@ def ccn_command_handler(coconInt):
             else:
                 coconInt.attempt += 1
                 if coconInt.attempt > MAX_ATTEMPT:
-                    logger.error("Can't connect to CoCon interface. {cocon thread}. Try to check connection settings.")
+                    logger.error("Can't connect to remote interface. {test thread}. Try to check connection settings")
                     coconInt.ConnectionStatus = False
                     coconInt.coconQueue.task_done()
                 logger.info("CCN overload. Sleep before next attempt.")
@@ -178,17 +178,17 @@ def ccn_command_handler(coconInt):
                 continue
 
     
-def cocon_configure(CoconCommands,coconInt,test_var = None):
-    CoconCommands = CoconCommands[0]
-    if not CoconCommands:
+def cocon_configure(Commands,coconInt,test_var = None):
+    Commands = Commands[0]
+    if not Commands:
         return True
     cmd_string = ""
-    for CoconCommand in CoconCommands.values():
+    for Command in Commands.values():
         #Пропускаем команду через словарь
         if test_var:
-            CoconCommand = builder.replace_key_value(CoconCommand, test_var)
-        if CoconCommand:
-            cmd_string += CoconCommand + "\n"
+            Command = builder.replace_key_value(Command, test_var)
+        if Command:
+            cmd_string += Command + "\n"
         else:
             return False
     cmd_string += "exit\n"
@@ -203,8 +203,8 @@ def cocon_configure(CoconCommands,coconInt,test_var = None):
         return False
 
 #For pakru tests
-def cocon_push_string_command(coconCommands,coconInt):
-    cmd_string = coconCommands
+def cocon_push_string_command(Commands,coconInt):
+    cmd_string = Commands
     cmd_string += "exit\n"
     #Если команда собралась без ошибок отправляем её в thread
     coconInt.coconQueue.put(cmd_string)
