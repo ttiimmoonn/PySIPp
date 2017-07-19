@@ -57,7 +57,7 @@ def signal_handler(current_signal, frame):
     sys.exit(1)
 
 def stop_test(test_processor,test_desc,coconInt):
-    logger.debug("Stop CoCoN Thread...")
+    logger.debug("Stop test thread...")
     if test_processor:
         test_processor.StopTestProcessor()
     if coconInt:
@@ -67,10 +67,10 @@ def stop_test(test_processor,test_desc,coconInt):
                 coconInt.flush_queue()
                 #Засовываем команды на деконфигурацию в очередь
                 if test_desc:
-                    if "PostCoconConf" in test_desc:
-                        logger.info("Deconfigure of ECSS-10 system...")
-                        #Переменные для настройки соединения с CoCoN
-                        ssh.cocon_configure(test_desc["PostCoconConf"],coconInt,test_var)
+                    if "PostConf" in test_desc:
+                        logger.info("Start system reconfiguration...")
+                        #Переменные для настройки соединения
+                        ssh.cocon_configure(test_desc["PostConf"],coconInt,test_var)
                 #Отрубаем thread
                 #На всякий случай убеждаемся, что ccn thread существует и живой
                 coconInt.eventForStop.set()
@@ -200,7 +200,7 @@ parse = parser.Parser()
 try:
     logging.basicConfig(filename=log_file,format = u'%(asctime)-8s %(levelname)-8s [%(module)s -> %(funcName)s:%(lineno)d] %(message)-8s', filemode='w', level = logging.DEBUG)
 except FileNotFoundError:
-    match_result =re.search("^([\w.-_]+\/)[\w.-_]+$",log_file)
+    match_result = re.search("^([\w.-_]+\/)[\w.-_]+$",log_file)
     fs.create_log_dir(match_result.group(1))
     logging.basicConfig(filename=log_file,format = u'%(asctime)-8s %(levelname)-8s [%(module)s -> %(funcName)s:%(lineno)d] %(message)-8s', filemode='w', level = logging.DEBUG)
 except:
@@ -302,8 +302,8 @@ if not fs.create_log_dir(log_path):
 for test in tests:
     test.LogPath = log_path
     
-#Поднимаем thread для отправки CoCoN command
-logger.info("Start CoCoN thread...")
+#Поднимаем thread для отправки SSH command
+logger.info("Start configuration thread...")
 coconInt = ssh.coconInterface(test_var, show_cocon_output, global_ccn_lock)
 #Создаём event для остановки thread
 coconInt.eventForStop = threading.Event()
@@ -316,15 +316,14 @@ if not coconInt.myThread.is_alive():
     logger.error("Can't start CCN configure thread")
     sys.exit(1)
 
-#Если есть настройки для CoCon выполняем их
-if "PreCoconConf" in test_desc:
-    logger.info("Configuration of ECSS-10 system...")
-    #Переменные для настройки соединения с CoCoN
-    if not ssh.cocon_configure(test_desc["PreCoconConf"],coconInt,test_var):
+#Если требуется предварительное конфигурирование
+if "PreConf" in test_desc:
+    logger.info("Start system configuration...")
+    #Переменные для настройки соединения
+    if not ssh.cocon_configure(test_desc["PreConf"],coconInt,test_var):
         coconInt.eventForStop.set()
         coconInt.myThread.join()
         sys.exit(1)
-    #Даём кокону очнуться
     time.sleep(1)
 
 test_pr_config = {}

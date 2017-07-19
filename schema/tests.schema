@@ -55,7 +55,7 @@
 
   "type" : "object",
   "properties" : {
-      "TestName" : {"type" : "string"},
+      "TestName" : {"type" : "string", "minLength" : 1},
       "AutoTest" : {"type" : "boolean"},
       "Users" : { 
           "type" : "array",
@@ -78,8 +78,8 @@
           "items" : {
               "type" : "object",
               "properties" : {
-                  "Name" : {"type" : "string"},
-                  "Description" : {"type" : "string"},
+                  "Name" : {"type" : "string", "minLength" : 1},
+                  "Description" : {"type" : "string", "minLength" : 1},
                   "TestProcedure" : {
                       "type" : "array",
                       "items" : {
