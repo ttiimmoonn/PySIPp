@@ -282,7 +282,8 @@ class TestProcessor():
         for diff_item in diff_desc:
             msg_info = {}
             req_diff = diff_item["Difference"]
-            req_diff = builder.replace_key_value(req_diff, self.TestVar)
+            if type(req_diff) == str:
+                req_diff = builder.replace_key_value(req_diff, self.TestVar)
             diff_mode = diff_item["Mode"]
             msg_info["msg_type"] = diff_item["Msg"][0]["MsgType"].lower()
             if diff_item["Msg"][0]["Code"] == "None":

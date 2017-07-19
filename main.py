@@ -1,4 +1,4 @@
-#!/usr/local/bin/python3.6
+#!/usr/local/bin/python3.5
 import modules.test_parser as parser
 import modules.cmd_builder as builder
 import modules.test_processor as processor
@@ -126,8 +126,8 @@ def output_validate_errors(errors):
                     logger.error("Missing property in CheckRetransmission or CheckDifference: %s" % (e.message))
                 elif not "CheckDifference":
                     logger.error(e.message)
-                #else:
-                    #logger.error(e.message)    
+                else:
+                    logger.error(e.message)    
         #Если задаваемое свойство не соответствует шаблону       
         elif "does not match any of the regexes" in str(e.message):
             logger.error("In item %s of section [%s]: value %s" % (re.findall(r"\d",str(e.path)), e.path.popleft(), e.message)) 
