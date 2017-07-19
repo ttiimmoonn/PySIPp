@@ -98,8 +98,9 @@ class TestProcessor():
         if len(users) > 0:
             #Собираем команды для регистрации абонентов
             logger.info("Building of registration command for UA...")
+            cmd_build = builder.Command_building()
             for user in users.values():
-                command = builder.build_reg_command(user,self.LogPath,self.TestVar)
+                command = cmd_build.build_reg_command(user,self.LogPath,self.TestVar)
                 if command:
                     user.RegCommand = command
                 else:
@@ -108,7 +109,7 @@ class TestProcessor():
             #Собираем команды для сброса регистрации абонентов
             logger.info("Building command for dropping of users registration...")
             for user in users.values():
-                command = builder.build_reg_command(user,self.LogPath,self.TestVar,"unreg")
+                command = cmd_build.build_reg_command(user,self.LogPath,self.TestVar,"unreg")
                 if command:
                     user.UnRegCommand = command
                 else:
@@ -139,14 +140,16 @@ class TestProcessor():
 
     def _buildSippCmd(self):
         logger.info("Building SIPp commands for UA...")
-        if not builder.build_sipp_command(self.NowRunningTest,self.TestVar, self.UacDropFlag, self.ShowSipFlowFlag):
+        cmd_build = builder.Command_building()
+        if not cmd_build.build_sipp_command(self.NowRunningTest,self.TestVar, self.UacDropFlag, self.ShowSipFlowFlag):
             return False
         else:
             return True
 
     def _buildSippCmdSF(self, serv_feature_ua, sf_code):
         #Собираем команду для активации сервис фичи
-        command = builder.build_service_feature_command(self.NowRunningTest,serv_feature_ua.UserObject, sf_code, self.TestVar)
+        cmd_build = builder.Command_building()
+        command = cmd_build.build_service_feature_command(self.NowRunningTest,serv_feature_ua.UserObject, sf_code, self.TestVar)
         if not command:
             return False
         else:
@@ -222,8 +225,9 @@ class TestProcessor():
     def _execServiceFeature(self, sf_desc):
         #Проверка на уникальность uid в serviceFeature cmd
         already_used_uid = []
+        cmd_build = builder.Command_building()
         for serv_feature in sf_desc:
-            sf_code =  builder.replace_key_value(serv_feature['code'], self.TestVar)
+            sf_code =  cmd_build.replace_key_value(serv_feature['code'], self.TestVar)
             sf_uid  =  serv_feature['userId']
 
             if not sf_code:
@@ -274,6 +278,7 @@ class TestProcessor():
 
     def _execCheckDifference(self,diff_desc):
         test_diff = diff_calc.diff_timestamp(self.NowRunningTest)
+        cmd_build = builder.Command_building()
 
         if test_diff.Status == "Failed":
             self.NowRunningTest.Status = "Failed"
@@ -283,7 +288,7 @@ class TestProcessor():
             msg_info = {}
             req_diff = diff_item["Difference"]
             if type(req_diff) == str:
-                req_diff = builder.replace_key_value(req_diff, self.TestVar)
+                req_diff = cmd_build.replace_key_value(req_diff, self.TestVar)
             diff_mode = diff_item["Mode"]
             msg_info["msg_type"] = diff_item["Msg"][0]["MsgType"].lower()
             if diff_item["Msg"][0]["Code"] == "None":
