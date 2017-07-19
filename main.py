@@ -143,12 +143,14 @@ tests = []
 test_var = {}
 #Создаем инстанс парсера
 parse = parser.Parser()
+#Создаем инстанс fs_worker
+fs_work = fs.fs_working()
 
 try:
     logging.basicConfig(filename=log_file,format = u'%(asctime)-8s %(levelname)-8s [%(module)s -> %(funcName)s:%(lineno)d] %(message)-8s', filemode='w', level = logging.DEBUG)
 except FileNotFoundError:
     match_result = re.search("^([\w.-_]+\/)[\w.-_]+$",log_file)
-    fs.create_log_dir(match_result.group(1))
+    fs_work.create_log_dir(match_result.group(1))
     logging.basicConfig(filename=log_file,format = u'%(asctime)-8s %(levelname)-8s [%(module)s -> %(funcName)s:%(lineno)d] %(message)-8s', filemode='w', level = logging.DEBUG)
 except:
     sys.exit(1)
@@ -242,7 +244,7 @@ test_var.update(custom_settings)
 #Создаём директорию для логов
 log_path = str(test_var["%%LOG_PATH%%"]) + "/" + test_desc["TestName"]
 logger.info("Creating log dir.")
-if not fs.create_log_dir(log_path):
+if not fs_work.create_log_dir(log_path):
     #Если не удалось создать директорию, выходим
     sys.exit(1)
 #Добавляем директорию с логами к тестам

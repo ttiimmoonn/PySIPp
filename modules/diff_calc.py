@@ -1,11 +1,9 @@
 import modules.trace_parser as tr_parser
-import modules.fs_worker as fs_worker
+import modules.fs_worker as fs
 from collections import OrderedDict
 import logging
 import math
 logger = logging.getLogger("tester")
-
-
 
 class diff_timestamp():
 	def __init__(self,test):
@@ -57,8 +55,9 @@ class diff_timestamp():
 		return True
 
 	def parse_short_trace_msg(self,ua):
+		fs_work = fs.fs_working()
 		if ua.TimeStampFile:
-			stat_file = fs_worker.get_fd(ua.TimeStampFile)
+			stat_file = fs_work.get_fd(ua.TimeStampFile)
 			if stat_file:
 				logger.info("Parse short_msg_file for UA %s",str(ua.UserObject.Number))
 				ua.ShortTrParser = tr_parser.short_trace_parser(stat_file)
