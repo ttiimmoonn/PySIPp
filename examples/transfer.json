@@ -3,26 +3,26 @@
 
 "Users": [
     {
-    "UserId" : "1",
+    "UserId" : 1,
     "Number" : "157",
     "Login" : "157",
     "Password" : "123",
     "SipDomain" : "pv.ssw2",
-    "Expires" : "90",
-    "Port" : "10106",
+    "Expires" : 90,
+    "Port" : 10106,
     "SipGroup" : "sip.ab",
-    "QParam" : "0.5"
+    "QParam" : 0.5
     },
     {
-    "UserId" : "2",
+    "UserId" : 2,
     "Number" : "158",
     "Login" : "158",
     "Password" : "123",
     "SipDomain" : "pv.ssw2",
-    "Expires" : "90",
-    "Port" : "10107",
+    "Expires" : 90,
+    "Port" : 10107,
     "SipGroup" : "sip.ab",
-    "QParam" : "1"
+    "QParam" : 1
     }
 ],
 
@@ -32,13 +32,13 @@
     }
 ],
 
-"PreCoconConf" : [
+"PreConf" : [
     {
 
     }
 ],
 
-"PostCoconConf" : [
+"PostConf" : [
     {
     }
 ],
@@ -50,25 +50,25 @@
         "Description" : "Проверка несопровождаемого трансфера",
         "TestProcedure" : [
         {
-            "Sleep" : "1"
+            "Sleep" : 1
         },
        
         {
-            "ServiceFeature" : [{"code":"*21#","userId":"1"}]
+            "ServiceFeature" : [{"code":"*21#","userId":1}]
         },
 
         {
-            "ServiceFeature" : [{"code":"*22#","userId":"1"}]
+            "ServiceFeature" : [{"code":"*22#","userId":1}]
         },
 
         {
-            "Sleep" : "2"
+            "Sleep" : 2
         },
         {
             "StartUA" : [
             {
                 "Type" : "Trunk",
-                "Port" : "5028",
+                "Port" : 5028,
                 "Name" : "UAS1_UN_TRANS",
                 "Commands" : [
                 {
@@ -104,25 +104,25 @@
         "Description" : "Проверка несопровождаемого трансфера",
         "TestProcedure" : [
         {
-            "Sleep" : "1"
+            "Sleep" : 1
         },
        
         {
-            "ServiceFeature" : [{"code":"*21#","userId":"1"}]
+            "ServiceFeature" : [{"code":"*21#","userId":1}]
         },
 
         {
-            "ServiceFeature" : [{"code":"*22#","userId":"1"}]
+            "ServiceFeature" : [{"code":"*22#","userId":1}]
         },
 
         {
-            "Sleep" : "2"
+            "Sleep" : 2
         },
         {
             "StartUA" : [
             {
                 "Type" : "Trunk",
-                "Port" : "5028",
+                "Port" : 5028,
                 "Name" : "UAS1_UN_TRANS",
                 "Commands" : [
                 {
