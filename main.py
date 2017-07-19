@@ -1,13 +1,8 @@
-<<<<<<< HEAD
 #!/usr/bin/env python3
 import sys
 if sys.version_info < (3,5):
     print("Error. Use python 3.5 or greater")
     sys.exit(1)
-
-=======
-#!/usr/local/bin/python3.6
->>>>>>> Adding schema file
 import modules.test_parser as parser
 import modules.cmd_builder as builder
 import modules.test_processor as processor
@@ -22,22 +17,14 @@ import re
 import os
 import signal
 import json
-<<<<<<< HEAD
-=======
 import jsonschema
 from jsonschema import Draft4Validator
-import sys
->>>>>>> Adding schema file
 import time
 import threading
 import argparse
 import math
 from collections import OrderedDict
 
-<<<<<<< HEAD
-
-=======
->>>>>>> Adding schema file
 def signal_handler(current_signal, frame):
     signal.signal(signal.SIGINT, signal.SIG_IGN)
     logger.info("Receive SIGINT signal. Start test aborting")
@@ -75,10 +62,6 @@ def stop_test(test_processor,test_desc,coconInt):
                 #На всякий случай убеждаемся, что ccn thread существует и живой
                 coconInt.eventForStop.set()
 
-<<<<<<< HEAD
-
-=======
->>>>>>> Adding schema file
 #Добавляем трап на SIGINT
 signal.signal(signal.SIGINT, signal_handler)
 
@@ -146,8 +129,8 @@ def output_validate_errors(errors):
                     logger.error("Missing property in CheckRetransmission or CheckDifference: %s" % (e.message))
                 elif not "CheckDifference":
                     logger.error(e.message)
-                #else:
-                    #logger.error(e.message)    
+                else:
+                    logger.error(e.message)    
         #Если задаваемое свойство не соответствует шаблону       
         elif "does not match any of the regexes" in str(e.message):
             logger.error("In item %s of section [%s]: value %s" % (re.findall(r"\d",str(e.path)), e.path.popleft(), e.message)) 
