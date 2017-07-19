@@ -180,13 +180,14 @@ def ccn_command_handler(coconInt):
     
 def cocon_configure(Commands,coconInt,test_var = None):
     Commands = Commands[0]
+    cmd_build = builder.Command_building()
     if not Commands:
         return True
     cmd_string = ""
     for Command in Commands.values():
         #Пропускаем команду через словарь
         if test_var:
-            Command = builder.replace_key_value(Command, test_var)
+            Command = cmd_build.replace_key_value(Command, test_var)
         if Command:
             cmd_string += Command + "\n"
         else:
