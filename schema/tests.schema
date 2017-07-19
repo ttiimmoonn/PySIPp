@@ -226,6 +226,13 @@
                               	"required" : ["Sleep"]
                               },
                               {
+                                "type" : "object",
+                                "properties" : {
+                                    "Print" : {"type" : "string", "minLength" : 1}
+                                },
+                                "required" : ["Print"]
+                              },
+                              {
                               	"type" : "object",
                               	"properties" : {
                               	    "ServiceFeature" : {
@@ -274,6 +281,22 @@
                                     }
                                 },
                                 "required" : ["DropManualReg"] 
+                              },
+                              {
+                                "type" : "object",
+                                "properties" : {
+                                    "SendSSHCommand" : {
+                                        "type" : "array",
+                                        "items" : {
+                                            "type" : "object",
+                                            "patternProperties" : {
+                                                "^command[\\d]+$" : {"type" : "string", "minLength" : 1}
+                                            },
+                                            "additionalProperties": false 
+                                        }
+                                    }
+                                },
+                                "required" : ["SendSSHCommand"]
                               }
                           ]	
                       }
