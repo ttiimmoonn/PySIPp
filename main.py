@@ -115,42 +115,6 @@ def match_file_path(log_file):
     else:
         raise argparse.ArgumentTypeError("Log file path is incorrect")
 
-#Функция для вывода ошибок JSON файла       
-def output_validate_errors(errors):
-    for e in errors:
-        #Если обязательное свойство отсутствует
-        if "is a required property" in str(e.message):
-            try:        
-                logger.error("In item [%s] of section [%s]: value %s" % (e.path.pop(), e.path.popleft(), e.message))
-            except (IndexError, TypeError):
-                if not "CheckRetransmission" and "CheckDifference" in str(e.message):
-                    logger.error("Missing property: %s" % e.message)
-                elif "Code" in str(e.message):
-                    logger.error("Missing property in CheckRetransmission or CheckDifference: %s" % (e.message))
-                elif not "CheckDifference":
-                    logger.error(e.message)
-                else:
-                    logger.error(e.message)    
-        #Если задаваемое свойство не соответствует шаблону       
-        elif "does not match any of the regexes" in str(e.message):
-            logger.error("In item %s of section [%s]: value %s" % (re.findall(r"\d",str(e.path)), e.path.popleft(), e.message)) 
-        #Если ошибка присутствует во вложенных секциях 
-        elif "is not valid under any of the given schemas" in str(e.message):
-            output_validate_errors(sorted(e.context, key=lambda e: e.path))
-        #Действия во всех остальных случаях
-        else:
-            try:
-                logger.error("In item %s of section [%s]: %s value %s" % (re.findall(r"\d",str(e.path)), e.path.popleft(), e.path.pop(), e.message))
-            except (IndexError, TypeError):
-                if "Sleep" in str(e.schema_path):
-                    logger.error("In section Sleep: value %s" % (e.message))
-                if "ServiceFeature" in str(e.schema_path):
-                    logger.error("In section ServiceFeature: value %s" % (e.message))
-                if "Code" in str(e.schema_path):
-                    logger.error("In section CheckRetransmission or CheckDifference value Code: %s" % (e.message))
-                else:
-                   logger.error(e.message)
-
 #Парсим аргументы командной строки
 arg_parser = createParser()
 namespace = arg_parser.parse_args()
@@ -233,7 +197,7 @@ else:
 logger.info("Validating JSON script...")
 validation_errors = sorted(Draft4Validator(schemaData).iter_errors(test_desc), key=lambda e: e.path)
 if validation_errors:
-    output_validate_errors(validation_errors)
+    parse.output_validate_errors(validation_errors)
     sys.exit(1)
 else:
     logger.info("Validation completed successfully")

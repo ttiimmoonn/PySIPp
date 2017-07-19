@@ -5,7 +5,45 @@ import re
 logger = logging.getLogger("tester")
 
 class Parser:
-    
+
+    def output_validate_errors(self, errors):
+        for e in errors:
+            #Если обязательное свойство отсутствует
+            if "is a required property" in str(e.message):
+                try:        
+                    logger.error("In item [%s] of section [%s]: value %s" % (e.path.pop(), e.path.popleft(), e.message))
+                except (IndexError, TypeError):
+                    if not "CheckRetransmission" and "CheckDifference" in str(e.message):
+                        logger.error("Missing property: %s" % e.message)
+                    elif "Code" in str(e.message):
+                        logger.error("Missing property in CheckRetransmission or CheckDifference: %s" % (e.message))
+                    elif not "CheckDifference":
+                        logger.error("%s" % e.message)
+                    if not "CheckRetransmission" and "CheckDifference" and "Sleep" and "Print" and "Stop" \
+                    and "ServiceFeature" and "ManualReg" and "DropManualReg" and "SendSSHCommand" in str(e.message):
+                        logger.error("%s" % e.message)
+            #Если задаваемое свойство не соответствует шаблону       
+            elif "does not match any of the regexes" in str(e.message):
+                logger.error("In item %s of section [%s]: value %s" % (re.findall(r"\d",str(e.path)), e.path.popleft(), e.message)) 
+            #Если ошибка присутствует во вложенных секциях 
+            elif "is not valid under any of the given schemas" in str(e.message):
+                output_validate_errors(sorted(e.context, key=lambda e: e.path))
+            #Действия во всех остальных случаях
+            else:
+                try:
+                    logger.error("In item %s of section [%s]: %s value %s" % (re.findall(r"\d",str(e.path)), e.path.popleft(), e.path.pop(), e.message))
+                except (IndexError, TypeError):
+                    if "Sleep" in str(e.schema_path):
+                        logger.error("In section Sleep: value %s %s" % (e.message))
+                    if "ServiceFeature" in str(e.schema_path):
+                        logger.error("In section ServiceFeature: value %s" % (e.message))
+                    if "Code" in str(e.schema_path):
+                        logger.error("In section CheckRetransmission or CheckDifference value Code: %s" % (e.message))
+                    if "AutoTest" in str(e.schema_path):
+                        logger.error("AutoTest: value %s" % e.message)
+                    if "TestName" in str(e.schema_path):
+                        logger.error("TestName: value %s" % e.message)
+
     def parse_user_info(self, json_users):
         #Создаём словарь для хранения юзеров
         users = {}
