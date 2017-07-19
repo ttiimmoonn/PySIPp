@@ -233,6 +233,13 @@
                                 "required" : ["Print"]
                               },
                               {
+                                "type" : "object",
+                                "properties" : {
+                                    "Stop" : {"type" : "string"}
+                                },
+                                "required" : ["Stop"]
+                              },
+                              {
                               	"type" : "object",
                               	"properties" : {
                               	    "ServiceFeature" : {
