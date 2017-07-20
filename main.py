@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+
+
+
 import modules.test_parser as parser
 import modules.cmd_builder as builder
 import modules.test_processor as processor
@@ -20,6 +23,9 @@ import math
 from collections import OrderedDict
 
 
+if sys.version_info < (3,5):
+    print("Error. Use python 3.5 or greater")
+    sys.exit(1)
 
 def signal_handler(current_signal, frame):
     signal.signal(signal.SIGINT, signal.SIG_IGN)
@@ -58,8 +64,6 @@ def stop_test(test_processor,test_desc,coconInt):
                 #Отрубаем thread
                 #На всякий случай убеждаемся, что ccn thread существует и живой
                 coconInt.eventForStop.set()
-
-
 
 
 #Добавляем трап на SIGINT
