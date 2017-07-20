@@ -1,5 +1,5 @@
 # PySIPp
-Python test utility
+Python SIPp test utility
 
 ### Dependencies:
 
