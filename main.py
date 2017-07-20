@@ -1,4 +1,4 @@
-#!/usr/local/bin/python3.5
+#!/usr/bin/env python3
 import modules.test_parser as parser
 import modules.cmd_builder as builder
 import modules.test_processor as processor
