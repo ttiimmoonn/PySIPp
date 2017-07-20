@@ -1,6 +1,15 @@
 # PySIPp
-Python test utility
+Python SIPp test utility
 
-# Dependencies:
-paramiko   (pip3 install paramiko)<br/>
-jsonschema (pip3 install jsonschema)
+### Dependencies:
+
+
+#### Python interpreter:
+
+<ul><li>Python 3.5. or greater</li></ul>
+
+#### Python libraries:
+<ul>
+<li>paramiko</li>
+<li>jsonschema</li>
+</ul>
