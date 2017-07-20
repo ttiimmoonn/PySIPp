@@ -154,7 +154,6 @@ except FileNotFoundError:
     fs.create_log_dir(match_result.group(1))
     logging.basicConfig(filename=log_file,format = u'%(asctime)-8s %(levelname)-8s [%(module)s -> %(funcName)s:%(lineno)d] %(message)-8s', filemode='w', level = logging.DEBUG)
 except:
-    logger.error("Can't create log dir")
     sys.exit(1)
 
 logger = logging.getLogger("tester")
