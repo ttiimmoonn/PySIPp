@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
-
-
+import sys
+if sys.version_info < (3,5):
+    print("Error. Use python 3.5 or greater")
+    sys.exit(1)
 
 import modules.test_parser as parser
 import modules.cmd_builder as builder
@@ -15,17 +17,12 @@ import logging
 import re
 import signal
 import json
-import sys
 import time
 import threading
 import argparse
 import math
 from collections import OrderedDict
 
-
-if sys.version_info < (3,5):
-    print("Error. Use python 3.5 or greater")
-    sys.exit(1)
 
 def signal_handler(current_signal, frame):
     signal.signal(signal.SIGINT, signal.SIG_IGN)
