@@ -27,7 +27,7 @@ class Parser:
                 logger.error("In item %s of section [%s]: value %s" % (re.findall(r"\d",str(e.path)), e.path.popleft(), e.message)) 
             #Если ошибка присутствует во вложенных секциях 
             elif "is not valid under any of the given schemas" in str(e.message):
-                output_validate_errors(sorted(e.context, key=lambda e: e.path))
+                self.output_validate_errors(sorted(e.context, key=lambda e: e.path))
             #Действия во всех остальных случаях
             else:
                 try:
