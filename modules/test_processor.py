@@ -36,6 +36,7 @@ class TestProcessor():
 
         #Paths
         self.LogPath = kwargs["LogPath"]
+        self.PySipPath = kwargs["PySipPath"]
         #Реалтайм параметры
         self.Status = "New"
         self.NowRunningTest = None
@@ -100,7 +101,7 @@ class TestProcessor():
             logger.info("Building of registration command for UA...")
             cmd_build = builder.Command_building()
             for user in users.values():
-                command = cmd_build.build_reg_command(user,self.LogPath,self.TestVar)
+                command = cmd_build.build_reg_command(user,self.LogPath,self.TestVar,self.PySipPath)
                 if command:
                     user.RegCommand = command
                 else:
@@ -109,7 +110,7 @@ class TestProcessor():
             #Собираем команды для сброса регистрации абонентов
             logger.info("Building command for dropping of users registration...")
             for user in users.values():
-                command = cmd_build.build_reg_command(user,self.LogPath,self.TestVar,"unreg")
+                command = cmd_build.build_reg_command(user,self.LogPath,self.TestVar,self.PySipPath,"unreg")
                 if command:
                     user.UnRegCommand = command
                 else:
@@ -149,7 +150,7 @@ class TestProcessor():
     def _buildSippCmdSF(self, serv_feature_ua, sf_code):
         #Собираем команду для активации сервис фичи
         cmd_build = builder.Command_building()
-        command = cmd_build.build_service_feature_command(self.NowRunningTest,serv_feature_ua.UserObject, sf_code, self.TestVar)
+        command = cmd_build.build_service_feature_command(self.NowRunningTest,serv_feature_ua.UserObject, sf_code, self.TestVar, self.PySipPath)
         if not command:
             return False
         else:
