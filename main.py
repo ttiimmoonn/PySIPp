@@ -1,4 +1,8 @@
-#!/usr/local/bin/python3.6
+#!/usr/bin/env python3
+import sys
+if sys.version_info < (3,5):
+    print("Error. Use python 3.5 or greater")
+    sys.exit(1)
 import modules.test_parser as parser
 import modules.cmd_builder as builder
 import modules.test_processor as processor
@@ -15,7 +19,6 @@ import signal
 import json
 import jsonschema
 from jsonschema import Draft4Validator
-import sys
 import time
 import threading
 import argparse
