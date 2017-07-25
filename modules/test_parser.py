@@ -7,42 +7,78 @@ logger = logging.getLogger("tester")
 class Parser:
 
     def output_validate_errors(self, errors):
+        sections = ["StartUA","CheckRetransmission","CheckDifference","Sleep","Print","Stop","ServiceFeature","ManualReg","DropManualReg","SendSSHCommand"]
+        section_name_errors = []
         for e in errors:
-            #Если обязательное свойство отсутствует
-            if "is a required property" in str(e.message):
-                try:        
-                    logger.error("In item [%s] of section [%s]: value %s" % (e.path.pop(), e.path.popleft(), e.message))
-                except (IndexError, TypeError):
-                    if not "CheckRetransmission" and "CheckDifference" in str(e.message):
-                        logger.error("Missing property: %s" % e.message)
-                    elif "Code" in str(e.message):
-                        logger.error("Missing property in CheckRetransmission or CheckDifference: %s" % (e.message))
-                    elif not "CheckDifference":
-                        logger.error("%s" % e.message)
-                    if not "CheckRetransmission" and "CheckDifference" and "Sleep" and "Print" and "Stop" \
-                    and "ServiceFeature" and "ManualReg" and "DropManualReg" and "SendSSHCommand" in str(e.message):
-                        logger.error("%s" % e.message)
-            #Если задаваемое свойство не соответствует шаблону       
-            elif "does not match any of the regexes" in str(e.message):
-                logger.error("In item %s of section [%s]: value %s" % (re.findall(r"\d",str(e.path)), e.path.popleft(), e.message)) 
-            #Если ошибка присутствует во вложенных секциях 
-            elif "is not valid under any of the given schemas" in str(e.message):
-                self.output_validate_errors(sorted(e.context, key=lambda e: e.path))
-            #Действия во всех остальных случаях
+        #Сортировка ошибок по глубине
+            if len(list(e.path)) == 0:
+                logger.error("Global section %s" % e.message)
+            if len(list(e.path)) == 1:
+                logger.error("In global section [%s] value %s" % (e.path.pop(), e.message))
+            if len(list(e.path)) == 2:
+                logger.error("In section [%s] item [%s]: %s" % (e.path.popleft(), e.path.pop(), e.message))
+            if len(list(e.path)) == 3:
+                logger.error("In section [%s] item %s: %s value %s" % (e.path.popleft(), re.findall(r"\d",str(e.path)), e.path.pop(), e.message))
             else:
-                try:
-                    logger.error("In item %s of section [%s]: %s value %s" % (re.findall(r"\d",str(e.path)), e.path.popleft(), e.path.pop(), e.message))
-                except (IndexError, TypeError):
-                    if "Sleep" in str(e.schema_path):
-                        logger.error("In section Sleep: value %s %s" % (e.message))
-                    if "ServiceFeature" in str(e.schema_path):
-                        logger.error("In section ServiceFeature: value %s" % (e.message))
-                    if "Code" in str(e.schema_path):
-                        logger.error("In section CheckRetransmission or CheckDifference value Code: %s" % (e.message))
-                    if "AutoTest" in str(e.schema_path):
-                        logger.error("AutoTest: value %s" % e.message)
-                    if "TestName" in str(e.schema_path):
-                        logger.error("TestName: value %s" % e.message)
+                error_path = list(e.path)
+                for e in sorted(e.context, key=lambda e: e.path):
+                    if len(list(e.path)) == 0:
+                        instance = str(e.instance)
+                        spl = instance.split(" ")
+                        for section_name in sections:
+                            if "OrderedDict([('" + section_name + "'," == spl[0]:
+                                break
+                        else:
+                            path = "Wrong section name <PATH:[" + str(error_path[0]) + "][" + str(error_path[1]) + "]==>[" + str(error_path[2]) + "][" + str(error_path[3]) + "]>"
+                            section_name_errors.append(path)
+                    if len(list(e.path)) == 1:
+                        logger.error("In [%s] value %s <PATH:[%s][%s]==>[%s][%s]>" % (e.path.pop(), e.message, error_path[0], error_path[1], error_path[2],error_path[3]))
+                    if len(list(e.path)) == 2:
+                        if not "is not valid under any of the given schemas" in str(e.message):
+                            logger.error("In [%s] value %s <PATH:[%s][%s]==>[%s][%s]>" % (e.path.popleft(), e.message, error_path[0], error_path[1], error_path[2], error_path[3]))
+                    if len(list(e.path)) == 3:
+                        if "is not valid under any of the given schemas" in str(e.message):
+                            error_subpath = list(e.path)
+                            for e in sorted(e.context, key=lambda e: e.path):
+                                logger.error("In [%s] property [%s] value %s <PATH:[%s][%s]==>[%s][%s]>" % (error_subpath[0], error_subpath[2], e.message, error_path[0], error_path[1], error_path[2], error_path[3]))                 
+                        else:
+                            logger.error("In [%s] property [%s] value %s <PATH:[%s][%s]==>[%s][%s]>" % (e.path.popleft(), e.path.pop(), e.message, error_path[0], error_path[1], error_path[2], error_path[3]))
+                    if len(list(e.path)) == 4:
+                        if "is not valid under any of the given schemas" in str(e.message):
+                            for e in sorted(e.context, key=lambda e: e.path):
+                                if len(list(e.path)) == 0:
+                                    logger.error("%s <PATH:[%s][%s]==>[%s][%s]>" % (e.message, error_path[0], error_path[1], error_path[2], error_path[3]))
+                            if len(list(e.path)) == 1:
+                                logger.error("In [%s] value %s <PATH:[%s][%s]==>[%s][%s]>" % (e.path.pop(), e.message, error_path[0], error_path[1], error_path[2], error_path[3]))
+                        else:
+                            pr = re.findall(r"[A-Za-z]+",str(e.path))
+                            pr = pr.pop()
+                            logger.error("In [%s] property [%s] value %s <PATH:[%s][%s]==>[%s][%s]>" % (e.path.popleft(), pr, e.message, error_path[0], error_path[1], error_path[2], error_path[3]))
+                    if len(list(e.path)) == 5:
+                        pr = re.findall(r"[A-Za-z]+",str(e.path))
+                        pr = pr.pop()
+                        logger.error("In [%s] property [%s] value %s <PATH:[%s][%s]==>[%s][%s]>" % (e.path.popleft(), pr, e.message, error_path[0], error_path[1], error_path[2], error_path[3]))
+                    if "is not valid under any of the given schemas" in str(e.message):
+                        error_subpath = list(e.path)
+                        for e in sorted(e.context, key=lambda e: e.path):
+                            if len(list(e.path)) == 0:
+                                if "'Port' is a required property" in str(e.message):
+                                    logger.error("In [%s] %s if Type = Trunk <PATH:[%s][%s]==>[%s][%s]>" % (error_subpath[0], e.message, error_path[0], error_path[1], error_path[2], error_path[3]))
+                                elif "'UserId' is a required property" in str(e.message):
+                                    logger.error("In [%s] %s if Type = User <PATH:[%s][%s]==>[%s][%s]>" % (error_subpath[0], e.message, error_path[0], error_path[1], error_path[2], error_path[3]))
+                                else:
+                                    logger.error("In [%s] %s <PATH:[%s][%s]==>[%s][%s]>" % (error_subpath[0], e.message, error_path[0], error_path[1], error_path[2], error_path[3]))
+                            if len(list(e.path)) == 1:
+                                logger.error("In [%s] %s <PATH:[%s][%s]==>[%s][%s]>" % (error_subpath[0], e.message, error_path[0], error_path[1], error_path[2], error_path[3]))                   
+        if section_name_errors:
+            N = len(section_name_errors)
+            for i in range(0,N-1):
+                if i == 0:
+                    logger.error(section_name_errors[i])
+                if section_name_errors[i+1]: 
+                    if section_name_errors[i] != section_name_errors[i+1]:
+                        logger.error(section_name_errors[i+1])
+
 
     def parse_user_info(self, json_users):
         #Создаём словарь для хранения юзеров
