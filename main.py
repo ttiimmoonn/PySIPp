@@ -19,7 +19,6 @@ import signal
 import json
 import jsonschema
 from jsonschema import Draft4Validator
-import sys
 import time
 import threading
 import argparse
