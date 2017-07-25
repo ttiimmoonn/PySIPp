@@ -1,8 +1,12 @@
+<<<<<<< HEAD
 #!/usr/bin/env python3
 import sys
 if sys.version_info < (3,5):
     print("Error. Use python 3.5 or greater")
     sys.exit(1)
+=======
+#!/usr/local/bin/python3.5
+>>>>>>> add py_sipp_path to cmd builder
 import modules.test_parser as parser
 import modules.cmd_builder as builder
 import modules.test_processor as processor
@@ -146,6 +150,8 @@ parse = parser.Parser()
 #Создаем инстанс fs_worker
 fs_work = fs.fs_working()
 
+py_sipp_path = os.path.dirname(__file__)
+
 try:
     logging.basicConfig(filename=log_file,format = u'%(asctime)-8s %(levelname)-8s [%(module)s -> %(funcName)s:%(lineno)d] %(message)-8s', filemode='w', level = logging.DEBUG)
 except FileNotFoundError:
@@ -182,7 +188,7 @@ except (ValueError, KeyError, TypeError):
 
 logger.info("Reading JSON schema...")
 try:
-    schema_file = open(os.path.dirname(__file__)+"/schema/tests.schema","r",encoding="utf-8")
+    schema_file = open(py_sipp_path + "/schema/tests.schema","r",encoding="utf-8")
 except FileNotFoundError:
     logger.error("JSON schema file not found")
     sys.exit(1)
@@ -285,6 +291,7 @@ test_pr_config["TestVar"] = test_var
 test_pr_config["ShowSipFlowFlag"] = show_sip_flow
 test_pr_config["UacDropFlag"] = uac_drop_flag
 test_pr_config["LogPath"] = log_path
+test_pr_config["PySipPath"] = py_sipp_path
 
 test_processor = processor.TestProcessor(**test_pr_config)
 test_processor.StartTestProcessor()
