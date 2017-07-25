@@ -220,7 +220,7 @@ class Parser:
             pass
         return test_var
 
-    def parse_sys_conf(self, sys_json):
+    def parse_sys_conf(self, sys_json, py_sipp_path):
         if not "%%SIPP_PATH%%" in sys_json:
             logger.error("No %%SIPP_PATH variable in system config")
             return False
@@ -234,8 +234,7 @@ class Parser:
             logger.error("No %%LOG_PATH variable in system config")
             return False
         if not "%%REG_XML%%" in sys_json:
-            logger.error("No %%REG_XML variable in system config")
-            return False
+            sys_json["%%REG_XML%%"] = py_sipp_path + "/xml/reg_user.xml"
         if not "%%IP%%" in sys_json:
             logger.error("No %%IP variable in system config")
             return False
@@ -258,6 +257,5 @@ class Parser:
             logger.error("No %%DEV_DOM variable in system config")
             return False
         if not "%%SF_XML%%" in sys_json:
-            logger.error("No %%SF_XML variable in system config")
-            return False
+            sys_json["%%SF_XML%%"] = py_sipp_path + "/xml/send_sf.xml"
         return sys_json

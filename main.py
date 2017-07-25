@@ -1,9 +1,4 @@
-#!/usr/bin/env python3
-import sys
-if sys.version_info < (3,5):
-    print("Error. Use python 3.5 or greater")
-    sys.exit(1)
-
+#!/usr/local/bin/python3.6
 import modules.test_parser as parser
 import modules.cmd_builder as builder
 import modules.test_processor as processor
@@ -20,6 +15,7 @@ import signal
 import json
 import jsonschema
 from jsonschema import Draft4Validator
+import sys
 import time
 import threading
 import argparse
@@ -169,7 +165,7 @@ except (ValueError, KeyError, TypeError):
     sys.exit(1)
 
 try:
-    custom_settings = parse.parse_sys_conf(custom_settings["SystemVars"][0])
+    custom_settings = parse.parse_sys_conf(custom_settings["SystemVars"][0], py_sipp_path)
     if not custom_settings:
         sys.exit(1)
 except KeyError:
@@ -289,7 +285,6 @@ test_pr_config["TestVar"] = test_var
 test_pr_config["ShowSipFlowFlag"] = show_sip_flow
 test_pr_config["UacDropFlag"] = uac_drop_flag
 test_pr_config["LogPath"] = log_path
-test_pr_config["PySipPath"] = py_sipp_path
 
 test_processor = processor.TestProcessor(**test_pr_config)
 test_processor.StartTestProcessor()
