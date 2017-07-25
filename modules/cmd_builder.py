@@ -6,12 +6,12 @@ logger = logging.getLogger("tester")
 
 class Command_building:
 
-    def build_reg_command(self, user, log_path, test_var, py_sipp_path, mode="reg"):
+    def build_reg_command(self, user, log_path, test_var, mode="reg"):
         #Сборка команды для регистрации
         command=""
         command+="%%SIPP_PATH%%" + " "
         if user.Script == None:
-            command+="-sf " + py_sipp_path + "/%%REG_XML%%" + " "
+            command+="-sf " + "%%REG_XML%%" + " "
         else:
             command+="-sf "  + "%%SRC_PATH%%" + "/" + user.Script + " "
         command+="%%EXTER_IP%%" + ":" + "%%EXTER_PORT%%" + " "
@@ -48,11 +48,11 @@ class Command_building:
         else:
             return False
 
-    def build_service_feature_command(self, test, user, code, test_var, py_sipp_path):
+    def build_service_feature_command(self, test, user, code, test_var):
         #Сборка команды для регистрации
         command=""
         command+="%%SIPP_PATH%%" + " "
-        command+="-sf " + py_sipp_path + "/%%SF_XML%%" + " "
+        command+="-sf " + "%%SF_XML%%" + " "
         command+="%%EXTER_IP%%" + ":" + "%%EXTER_PORT%%" + " "
         command+="-i " + "%%IP%%" + " "
         command+=" -p " + str(user.Port)
