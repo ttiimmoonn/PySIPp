@@ -177,7 +177,7 @@ try:
     #Загружаем json описание теста
     test_desc = json.loads(jsonData,object_pairs_hook=OrderedDict)
 except (ValueError, KeyError, TypeError):
-    logger.error("Wrong JSON format. Detail:", sys.exc_info()[1])
+    logger.error("Wrong JSON format. Detail: %s", sys.exc_info()[1])
     sys.exit(1)
 
 logger.info("Reading JSON schema...")
