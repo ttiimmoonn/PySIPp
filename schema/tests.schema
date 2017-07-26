@@ -43,7 +43,7 @@
        	   "type" : "object",
        	   "properties" : {
        	       "SourceFile" : {"type" : "string", "minLength" : 1},
-       	       "Options" : {"type" : "string", "minLength" : 1},
+       	       "Options" : {"type" : "string"},
        	       "SippType" : {"type" : "string", "enum" : ["uas","uac"]},
                "NeedAuth" : {"type" : "boolean"},
                "NoTimeOutError" : {"type" : "boolean"},
@@ -57,6 +57,7 @@
   "properties" : {
       "TestName" : {"type" : "string", "minLength" : 1},
       "AutoTest" : {"type" : "boolean"},
+      "Isolate" : {"type" : "boolean"},
       "Users" : { 
           "type" : "array",
           "items" : {"$ref" : "#/definitions/users"}
