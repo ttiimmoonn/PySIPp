@@ -198,7 +198,7 @@ class message ():
 		elif self.is_response(kwargs["start_line"]):
 			msg_search = re.search(self.res_r, kwargs["start_line"])
 			self.msg_type = "response"
-			self.resp_code = int(msg_search.group(1))
+			self.resp_code = msg_search.group(1)
 			self.resp_desc = msg_search.group(2)
 		else:
 			logger.error("Unknown type of message. Can't parse start_line: %s",str(kwargs["start_line"]))
