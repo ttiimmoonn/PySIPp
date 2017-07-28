@@ -1,0 +1,9 @@
+{
+  "$schema" : "http://json-schema.org/draft-04/schema#",
+  "title" : "Stop schema",
+  "type" : "object",
+  "properties" : {
+                  "Stop" : {"type" : "string"}
+   },
+   "required" : ["Stop"]
+}

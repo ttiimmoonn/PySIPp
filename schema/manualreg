@@ -1,0 +1,22 @@
+{
+  "$schema" : "http://json-schema.org/draft-04/schema#",
+  "title" : "ManualReg schema",
+  "type" : "object",
+  "properties" : {
+                  "ManualReg" : {
+                         "type" : "object",
+                         "patternProperties" : {
+                                    "^\\d+$" : {
+                                          "type" : "object",
+                                          "properties" : {
+                                                  "script" : {"type" : "string", "minLength" : 1},
+                                                  "need_drop" : {"type" : "boolean"}
+                                           },
+                                           "required" : ["script"]
+                                    }
+                          },
+                          "additionalProperties": false
+                   }
+   },
+   "required" : ["ManualReg"]
+}

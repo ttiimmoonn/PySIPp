@@ -1,0 +1,19 @@
+{
+  "$schema" : "http://json-schema.org/draft-04/schema#",
+  "title" : "ServiceFeature schema",
+  "type" : "object",
+  "properties" : {
+                  "ServiceFeature" : {
+                  "type" : "array",
+                  "items" : {
+                             "type" : "object",
+                             "properties" : {
+                                             "code" : {"type" : "string", "minLength" : 1},
+                                             "userId" : {"type" : "integer", "minimum" : 0, "exclusiveMinimum" : false}
+                                            },
+                                            "required" : ["code", "userId"] 
+                             } 
+                   }
+   },
+   "required" : ["ServiceFeature"]
+}

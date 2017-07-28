@@ -1,0 +1,19 @@
+{
+  "$schema" : "http://json-schema.org/draft-04/schema#",
+  "title" : "CheckDifference schema",
+  "type" : "object",
+  "properties" : {
+            "CheckDifference" : {
+                        "type" : "array",
+                        "items" : {
+                               "type" : "object",
+                               "properties" : {
+                                         "Mode" : {"type" : "string", "enum" : ["between_ua","inner_ua"]},
+                                         "UA" : {"type" : "string", "pattern" : "^[0-9]{1,2}$|^([0-9]{1,2},)+[0-9]{1,2}$"}
+                                },
+                                "required" : ["Mode", "UA"]
+                        }
+             }
+   },
+   "required" : ["CheckDifference"]
+}
