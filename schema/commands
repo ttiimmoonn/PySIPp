@@ -1,0 +1,17 @@
+{
+  "$schema" : "http://json-schema.org/draft-04/schema#",
+  "title" : "Commands schema",
+  "type" : "array",
+  "items" : {
+      "type" : "object",
+      "properties" : {
+               "SourceFile" : {"type" : "string", "minLength" : 1},
+       	       "Options" : {"type" : "string", "minLength" : 1},
+       	       "SippType" : {"type" : "string", "enum" : ["uas","uac"]},
+               "NeedAuth" : {"type" : "boolean"},
+               "NoTimeOutError" : {"type" : "boolean"},
+       	       "Timeout" : {"type" : "string", "pattern" : "^\\d+[shm]$"}	  
+      },
+      "required" : ["SourceFile", "SippType"]
+  }
+}

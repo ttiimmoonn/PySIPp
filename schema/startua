@@ -1,0 +1,24 @@
+{
+  "$schema" : "http://json-schema.org/draft-04/schema#",
+  "title" : "StartUA schema",
+  "type" : "object",
+  "properties" : {
+            "StartUA" : {
+                  "type" : "array",
+                  "items" : {
+                       "type" : "object",
+                       "properties" : {
+                              "Type" : {"type" : "string", "enum" : ["User", "Trunk"]},
+                              "UserId" : {"type" : "integer" , "minimum" : 0, "exclusiveMinimum" : false},
+                              "Port" : {"type" : "integer", "minimum" : 1024, "maximum" : 65536, "exclusiveMinimum" : false, "exclusiveMaximum" : false},
+                              "WriteStat" : {"type" : "boolean"},
+                              "Name" : {"type" : "string", "minLength" : 1},
+                              "Cyclic" : {"type" : "boolean"},
+                              "BackGround" : {"type" : "boolean"}
+                        },
+                        "required" : ["Type", "Name", "Commands"]
+                    }
+            }
+    },
+    "required" : ["StartUA"]
+}
