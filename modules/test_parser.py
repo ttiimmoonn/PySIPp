@@ -1,84 +1,174 @@
 import modules.test_class as testClass
+from jsonschema import Draft4Validator
+from os import listdir
+import json
 import sys
 import logging
 import re
 logger = logging.getLogger("tester")
 
-class Parser:
+class Validator:
 
-    def output_validate_errors(self, errors):
-        sections = ["StartUA","CheckRetransmission","CheckDifference","Sleep","Print","Stop","ServiceFeature","ManualReg","DropManualReg","SendSSHCommand"]
-        section_name_errors = []
-        for e in errors:
-        #Сортировка ошибок по глубине
-            if len(list(e.path)) == 0:
-                logger.error("Global section %s" % e.message)
-            if len(list(e.path)) == 1:
-                logger.error("In global section [%s] value %s" % (e.path.pop(), e.message))
-            if len(list(e.path)) == 2:
-                logger.error("In section [%s] item [%s]: %s" % (e.path.popleft(), e.path.pop(), e.message))
-            if len(list(e.path)) == 3:
-                logger.error("In section [%s] item %s: %s value %s" % (e.path.popleft(), re.findall(r"\d",str(e.path)), e.path.pop(), e.message))
-            else:
-                error_path = list(e.path)
-                for e in sorted(e.context, key=lambda e: e.path):
-                    if len(list(e.path)) == 0:
-                        instance = str(e.instance)
-                        spl = instance.split(" ")
-                        for section_name in sections:
-                            if "OrderedDict([('" + section_name + "'," == spl[0]:
-                                break
-                        else:
-                            path = "Wrong section name <PATH:[" + str(error_path[0]) + "][" + str(error_path[1]) + "]==>[" + str(error_path[2]) + "][" + str(error_path[3]) + "]>"
-                            section_name_errors.append(path)
-                    if len(list(e.path)) == 1:
-                        logger.error("In [%s] value %s <PATH:[%s][%s]==>[%s][%s]>" % (e.path.pop(), e.message, error_path[0], error_path[1], error_path[2],error_path[3]))
-                    if len(list(e.path)) == 2:
-                        if not "is not valid under any of the given schemas" in str(e.message):
-                            logger.error("In [%s] value %s <PATH:[%s][%s]==>[%s][%s]>" % (e.path.popleft(), e.message, error_path[0], error_path[1], error_path[2], error_path[3]))
-                    if len(list(e.path)) == 3:
-                        if "is not valid under any of the given schemas" in str(e.message):
-                            error_subpath = list(e.path)
-                            for e in sorted(e.context, key=lambda e: e.path):
-                                logger.error("In [%s] property [%s] value %s <PATH:[%s][%s]==>[%s][%s]>" % (error_subpath[0], error_subpath[2], e.message, error_path[0], error_path[1], error_path[2], error_path[3]))                 
-                        else:
-                            logger.error("In [%s] property [%s] value %s <PATH:[%s][%s]==>[%s][%s]>" % (e.path.popleft(), e.path.pop(), e.message, error_path[0], error_path[1], error_path[2], error_path[3]))
-                    if len(list(e.path)) == 4:
-                        if "is not valid under any of the given schemas" in str(e.message):
-                            for e in sorted(e.context, key=lambda e: e.path):
-                                if len(list(e.path)) == 0:
-                                    logger.error("%s <PATH:[%s][%s]==>[%s][%s]>" % (e.message, error_path[0], error_path[1], error_path[2], error_path[3]))
-                            if len(list(e.path)) == 1:
-                                logger.error("In [%s] value %s <PATH:[%s][%s]==>[%s][%s]>" % (e.path.pop(), e.message, error_path[0], error_path[1], error_path[2], error_path[3]))
-                        else:
-                            pr = re.findall(r"[A-Za-z]+",str(e.path))
-                            pr = pr.pop()
-                            logger.error("In [%s] property [%s] value %s <PATH:[%s][%s]==>[%s][%s]>" % (e.path.popleft(), pr, e.message, error_path[0], error_path[1], error_path[2], error_path[3]))
-                    if len(list(e.path)) == 5:
-                        pr = re.findall(r"[A-Za-z]+",str(e.path))
-                        pr = pr.pop()
-                        logger.error("In [%s] property [%s] value %s <PATH:[%s][%s]==>[%s][%s]>" % (e.path.popleft(), pr, e.message, error_path[0], error_path[1], error_path[2], error_path[3]))
-                    if "is not valid under any of the given schemas" in str(e.message):
-                        error_subpath = list(e.path)
-                        for e in sorted(e.context, key=lambda e: e.path):
-                            if len(list(e.path)) == 0:
-                                if "'Port' is a required property" in str(e.message):
-                                    logger.error("In [%s] %s if Type = Trunk <PATH:[%s][%s]==>[%s][%s]>" % (error_subpath[0], e.message, error_path[0], error_path[1], error_path[2], error_path[3]))
-                                elif "'UserId' is a required property" in str(e.message):
-                                    logger.error("In [%s] %s if Type = User <PATH:[%s][%s]==>[%s][%s]>" % (error_subpath[0], e.message, error_path[0], error_path[1], error_path[2], error_path[3]))
+    def __init__(self):
+    	#Словарь для хранения содержимого схем
+        self.schemas_data = {}
+        #Директория, в которой хранятся схемы
+        self.schemas_directory = "/schema/"
+
+    #Метод записи информации схем в словарь
+    def schemas_dict_forming(self, py_sipp_path):
+    	path_to_schemas_directory = py_sipp_path + self.schemas_directory
+    	for schema_file in listdir(path_to_schemas_directory):
+    		file_path = path_to_schemas_directory + schema_file
+    		file = open(file_path, "r", encoding="utf-8")
+    		try:
+    			schema = json.loads(file.read())
+    		except json.decoder.JSONDecodeError:
+    			file.close
+    			logger.error("Wrong schema format in %s file. Detail: %s" % (schema_file, sys.exc_info()[1]))
+    			sys.exit(1)
+    		else:
+    			self.schemas_data[schema_file] = schema
+    			file.close
+
+    def validate_sections(self, section, section_schema):
+        errors = sorted(Draft4Validator(section_schema).iter_errors(section), key=lambda e: e.path)
+        if errors:
+            for e in errors:
+                print("%s %s" % (e.path, e.message))
+            sys.exit(1)
+
+    def validate_difference(self, diff):
+        try:
+            diff["Difference"]
+        except KeyError:
+            pass
+        else:
+            if type(diff["Difference"]) == str: 
+                if re.search("^\%\%[a-zA-Z-0-9_]+\%\%$",diff["Difference"]) == None:
+                    logger.error("Validation error in CheckDifference: \033[1;31mDifference must be number or var (var pattern = ^%%[a-zA-Z-0-9_]+%%$)\033[1;m")
+                    sys.exit(1)
+            elif type(diff["Difference"]) != float and type(diff["Difference"]) != int:
+                logger.error("Validation error in CheckDifference: \033[1;31mDifference must be number or var (var pattern = ^%%[a-zA-Z-0-9_]+%%$)\033[1;m")
+                sys.exit(1)
+            elif diff["Difference"] < 0:
+                logger.error("Validation error in CheckDifference: \033[1;31mDifference must be greater or equal than zero\033[1;m")
+                sys.exit(1)
+
+    def validate_msg_code(self, msg):
+        try:
+            msg["Code"]
+        except KeyError:
+            logger.error("Validation error in section Msg: \033[1;31mCode is required property\033[1;m")
+            sys.exit(1) 
+        if msg["MsgType"] == "request" and msg["Code"] != None:
+            logger.error("Validation error in section Msg: \033[1;31mCode must be null then MsgType=request\033[1;m")
+            sys.exit(1)
+        if msg["MsgType"] == "response":
+            if type(msg["Code"]) != int:
+                logger.error("Validation error in section Msg: \033[1;31mCode must be integer then MsgType=response\033[1;m")
+                sys.exit(1)
+            elif msg["Code"] < 100 or msg["Code"] > 699:
+                logger.error("Validation error in section Msg: \033[1;31mCode should match the range of 100 and 699\033[1;m")
+                sys.exit(1)
+    
+    def validate_startua_type(self, items):
+        if items["Type"] == "User":
+            try:
+                items["UserId"]
+            except KeyError:
+                logger.error("Validation error in StartUA: \033[1;31mUserId is required property then Type=User\033[1;m")
+                sys.exit(1)
+        if items["Type"] == "Trunk":
+            try:
+                items["Port"]
+            except KeyError:
+                logger.error("Validation error in StartUA: \033[1;31mPort is required property then Type=Trunk\033[1;m")
+                sys.exit(1)
+
+    def validation_tests(self, json_file):
+        #Проверка наличия глобальных секций
+        if not "TestName" in json_file:
+            logger.error("Validation error in global section: \033[1;31mTestName is required property\033[1;m")
+            sys.exit(1)
+        elif type(json_file["TestName"]) != str or len(json_file["TestName"]) == 0:
+            logger.error("Validation error in global section: \033[1;31mTestName must be non-zero string\033[1;m")
+            sys.exit(1)  
+        if "AutoTest" in json_file and type(json_file["AutoTest"]) != bool:
+            logger.error("Validation error in global section: \033[1;31mAutoTest must be bool\033[1;m")
+            sys.exit(1) 
+        if "Isolate" in json_file and type(json_file["Isolate"]) != bool:
+            logger.error("Validation error in global section: \033[1;31mIsolate must be bool\033[1;m")
+            sys.exit(1)
+        if "Users" in json_file:
+            self.validate_sections(json_file["Users"], self.schemas_data["users"])
+        if "UserVar" in json_file:
+            self.validate_sections(json_file["UserVar"], self.schemas_data["uservar"])
+        if "PreConf" in json_file:
+            self.validate_sections(json_file["PreConf"], self.schemas_data["conf"])
+        if "PostConf" in json_file:
+            self.validate_sections(json_file["PostConf"], self.schemas_data["conf"])
+        if not "Tests" in json_file:
+            logger.error("Validation error in global section: \033[1;31mTests is required property\033[1;m")
+            sys.exit(1)
+        else:
+            for test in json_file["Tests"]:
+                if "Name" in test:
+                    if type(test["Name"]) != str or len(test["Name"]) == 0:
+                        logger.error("Validation error in section Tests: \033[1;31mName must be non-zero string\033[1;m")
+                        sys.exit(1)
+                if "Description" in test:
+                    if type(test["Description"]) != str or len(test["Description"]) == 0:
+                        logger.error("Validation error in section Tests: \033[1;31mDescription must be non-zero string\033[1;m")
+                        sys.exit(1)
+                if not "TestProcedure" in test:
+                    logger.error("Validation error in section Tests: \033[1;31mTestProcedure is required property\033[1;m")
+                    sys.exit(1)
+                else:
+                    for procedure in test["TestProcedure"]:
+                        if "Sleep" in procedure:
+                            self.validate_sections(procedure, self.schemas_data["sleep"])
+                        if "Print" in procedure:
+                            self.validate_sections(procedure, self.schemas_data["print"])
+                        if "Stop" in procedure:
+                            self.validate_sections(procedure, self.schemas_data["stop"])
+                        if "ServiceFeature" in procedure:
+                            self.validate_sections(procedure, self.schemas_data["servicefeature"])
+                        if "ManualReg" in procedure:
+                            self.validate_sections(procedure, self.schemas_data["manualreg"])
+                        if "DropManualReg" in procedure:
+                            self.validate_sections(procedure, self.schemas_data["dropmanualreg"])
+                        if "SendSSHCommand" in procedure:
+                            self.validate_sections(procedure["SendSSHCommand"], self.schemas_data["conf"])
+                        if "CheckRetransmission" in procedure:
+                            self.validate_sections(procedure, self.schemas_data["checkretransmission"])
+                            if not "Msg" in procedure["CheckRetransmission"][0]:
+                                logger.error("Validation error in section CheckRetransmission: \033[1;31mMsg is required property\033[1;m")
+                                sys.exit(1)
+                            else:
+                                self.validate_sections(procedure["CheckRetransmission"][0]["Msg"], self.schemas_data["msg"])
+                                self.validate_msg_code(procedure["CheckRetransmission"][0]["Msg"][0])
+                        if "CheckDifference" in procedure:
+                            self.validate_sections(procedure, self.schemas_data["checkdifference"])
+                            self.validate_difference(procedure["CheckDifference"][0])
+                            if not "Msg" in procedure["CheckDifference"][0]:
+                                logger.error("Validation error in section CheckDifference: \033[1;31mMsg is required property\033[1;m")
+                                sys.exit(1)
+                            else:
+                                self.validate_sections(procedure["CheckDifference"][0]["Msg"], self.schemas_data["msg"])
+                                self.validate_msg_code(procedure["CheckDifference"][0]["Msg"][0])
+                        if "StartUA" in procedure:
+                            self.validate_sections(procedure, self.schemas_data["startua"])
+                            for items in procedure["StartUA"]:
+                                self.validate_startua_type(items)
+                                if not"Commands" in items:
+                                    logger.error("Validation error in section StartUA: \033[1;31mCommands is required property\033[1;m")
+                                    sys.exit(1)
                                 else:
-                                    logger.error("In [%s] %s <PATH:[%s][%s]==>[%s][%s]>" % (error_subpath[0], e.message, error_path[0], error_path[1], error_path[2], error_path[3]))
-                            if len(list(e.path)) == 1:
-                                logger.error("In [%s] %s <PATH:[%s][%s]==>[%s][%s]>" % (error_subpath[0], e.message, error_path[0], error_path[1], error_path[2], error_path[3]))                   
-        if section_name_errors:
-            N = len(section_name_errors)
-            for i in range(0,N-1):
-                if i == 0:
-                    logger.error(section_name_errors[i])
-                if section_name_errors[i+1]: 
-                    if section_name_errors[i] != section_name_errors[i+1]:
-                        logger.error(section_name_errors[i+1])
+                                    self.validate_sections(items["Commands"], self.schemas_data["commands"])
+        return True
 
+class Parser:
 
     def parse_user_info(self, json_users):
         #Создаём словарь для хранения юзеров

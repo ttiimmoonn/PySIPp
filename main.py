@@ -141,9 +141,11 @@ test_users = {}
 tests = []
 #Декларируем словарь пользовательских переменных
 test_var = {}
-#Создаем инстанс парсера
+#Создаем объект парсера
 parse = parser.Parser()
-#Создаем инстанс fs_worker
+#Создаем объект валидатора
+validator = parser.Validator()
+#Создаем объект fs_worker
 fs_work = fs.fs_working()
 
 py_sipp_path = os.path.dirname(__file__)
@@ -184,28 +186,14 @@ except (ValueError, KeyError, TypeError):
     sys.exit(1)
 
 logger.info("Reading JSON schema...")
-try:
-    schema_file = open(py_sipp_path + "/schema/tests.schema","r",encoding="utf-8")
-except FileNotFoundError:
-    logger.error("JSON schema file not found")
-    sys.exit(1)
-try:
-    schemaData = json.loads(schema_file.read())
-except json.decoder.JSONDecodeError: 
-    logger.error("Reading JSON schema error")
-    schema_file.close
-    sys.exit(1)
-else:
-    schema_file.close
+#Выгружаем содержимое схем в словарь
+validator.schemas_dict_forming(py_sipp_path)
 
-#Проверка тестового сценария на соответствие схеме
+#Валидация тестового сценария
 logger.info("Validating JSON script...")
-validation_errors = sorted(Draft4Validator(schemaData).iter_errors(test_desc), key=lambda e: e.path)
-if validation_errors:
-    parse.output_validate_errors(validation_errors)
-    sys.exit(1)
-else:
-    logger.info("Validation completed successfully")
+valid = validator.validation_tests(test_desc)
+if valid:
+    logger.info("validation completed successfully")
 
 #Парсинг данных о пользователях
 logger.info("Parsing users from json string...")
