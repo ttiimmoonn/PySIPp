@@ -2,8 +2,8 @@
 <!DOCTYPE scenario SYSTEM "sipp.dtd">
 <scenario name = "user_registr">
 
-<Global variables="DOMAIN,PORT,EXPIRES,NUMBER,USER_Q,USER_IP" />
-<User variables="user_dom,user_port,user_exp,user_number,user_q,user_ip" />
+<Global variables="DOMAIN,PORT,EXPIRES,NUMBER,USER_Q,USER_IP,USER_TRANSPORT" />
+<User variables="user_dom,user_port,user_exp,user_number,user_q,user_ip,user_transport" />
 
     <nop hide="true">
     <action>
@@ -21,6 +21,12 @@
         </action>
     </nop>
 
+    <nop hide="true" condexec="USER_TRANSPORT">
+        <action>
+            <assignstr assign_to="user_transport" value=";transport=[$USER_TRANSPORT]" />
+        </action>
+    </nop>
+
     <nop hide="true" condexec="USER_IP">
         <action>
             <assignstr assign_to="user_ip" value="[$USER_IP]" />
@@ -35,7 +41,7 @@
     To: <sip:[$user_number]@[$user_dom]>
     Call-ID: [call_id]
     CSeq: [cseq] REGISTER
-    Contact: <sip:[$user_number]@[$user_ip]:[$user_port];transport=[transport]>;q=[$user_q]
+    Contact: <sip:[$user_number]@[$user_ip]:[$user_port][$user_transport]>;q=[$user_q]
     Content-Length: 0
     Expires: [$user_exp]
     Max-Forwards: 70
@@ -60,7 +66,7 @@
     [last_to:]
     [last_call-id:]
     CSeq: [cseq] REGISTER
-    Contact: <sip:[$user_number]@[$user_ip]:[$user_port];transport=[transport]>;q=[$user_q]
+    Contact: <sip:[$user_number]@[$user_ip]:[$user_port][$user_transport]>;q=[$user_q]
     [authentication]
     Content-Length: 0
     Expires: [$user_exp]
