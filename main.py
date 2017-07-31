@@ -194,14 +194,12 @@ logger.info("Validating JSON script...")
 valid = validator.validation_tests(test_desc)
 if valid:
     logger.info("validation completed successfully")
+sys.exit(1)
 
 #Парсинг данных о пользователях
 logger.info("Parsing users from json string...")
 test_users = parse.parse_user_info(test_desc["Users"])
 #Если есть ошибки при парсинге, то выходим
-if not test_users:
-    print("Error")
-    sys.exit(1)
 
 #Парсинг данных о тестах
 logger.info("Parsing tests from json string...")

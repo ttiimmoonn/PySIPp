@@ -16,6 +16,8 @@ class Validator:
         self.schemas_directory = "/schema/"
         #Кортеж глобальных секций
         self.global_sections = ("Users","UserVar","PreConf","PostConf")
+        #Кортеж тестовых процедур
+        self.simple_procedure_sections = ("Sleep","Print","Stop","ServiceFeature","ManualReg","DropManualReg","SendSSHCommand") 
 
     #Метод записи информации схем в словарь
     def schemas_dict_forming(self, py_sipp_path):
@@ -127,47 +129,37 @@ class Validator:
                     logger.error("Validation error in section Tests: \033[1;31mTestProcedure is required property\033[1;m")
                     sys.exit(1)
                 else:
+                	#Валидация тестовых процедур
                     for procedure in test["TestProcedure"]:
-                        if "Sleep" in procedure:
-                            self.validate_sections(procedure, self.schemas_data["sleep"])
-                        if "Print" in procedure:
-                            self.validate_sections(procedure, self.schemas_data["print"])
-                        if "Stop" in procedure:
-                            self.validate_sections(procedure, self.schemas_data["stop"])
-                        if "ServiceFeature" in procedure:
-                            self.validate_sections(procedure, self.schemas_data["servicefeature"])
-                        if "ManualReg" in procedure:
-                            self.validate_sections(procedure, self.schemas_data["manualreg"])
-                        if "DropManualReg" in procedure:
-                            self.validate_sections(procedure, self.schemas_data["dropmanualreg"])
-                        if "SendSSHCommand" in procedure:
-                            self.validate_sections(procedure["SendSSHCommand"], self.schemas_data["conf"])
                         if "CheckRetransmission" in procedure:
-                            self.validate_sections(procedure, self.schemas_data["checkretransmission"])
+                            self.validate_sections(procedure["CheckRetransmission"], self.schemas_data["CheckRetransmission"])
                             if not "Msg" in procedure["CheckRetransmission"][0]:
                                 logger.error("Validation error in section CheckRetransmission: \033[1;31mMsg is required property\033[1;m")
                                 sys.exit(1)
                             else:
-                                self.validate_sections(procedure["CheckRetransmission"][0]["Msg"], self.schemas_data["msg"])
+                                self.validate_sections(procedure["CheckRetransmission"][0]["Msg"], self.schemas_data["Msg"])
                                 self.validate_msg_code(procedure["CheckRetransmission"][0]["Msg"][0])
                         if "CheckDifference" in procedure:
-                            self.validate_sections(procedure, self.schemas_data["checkdifference"])
+                            self.validate_sections(procedure["CheckDifference"], self.schemas_data["CheckDifference"])
                             self.validate_difference(procedure["CheckDifference"][0])
                             if not "Msg" in procedure["CheckDifference"][0]:
                                 logger.error("Validation error in section CheckDifference: \033[1;31mMsg is required property\033[1;m")
                                 sys.exit(1)
                             else:
-                                self.validate_sections(procedure["CheckDifference"][0]["Msg"], self.schemas_data["msg"])
+                                self.validate_sections(procedure["CheckDifference"][0]["Msg"], self.schemas_data["Msg"])
                                 self.validate_msg_code(procedure["CheckDifference"][0]["Msg"][0])
                         if "StartUA" in procedure:
-                            self.validate_sections(procedure, self.schemas_data["startua"])
+                            self.validate_sections(procedure, self.schemas_data["StartUA"])
                             for items in procedure["StartUA"]:
                                 self.validate_startua_type(items)
-                                if not"Commands" in items:
-                                    logger.error("Validation error in section StartUA: \033[1;31mCommands is required property\033[1;m")
+                                if not "Commands" in items:
+                                    logger.error("Validation error in section StartUA: Commands is required property")
                                     sys.exit(1)
                                 else:
-                                    self.validate_sections(items["Commands"], self.schemas_data["commands"])
+                                    self.validate_sections(items["Commands"], self.schemas_data["Commands"])
+                        for section in self.simple_procedure_sections:
+                            if section in procedure:
+                                self.validate_sections(procedure, self.schemas_data[section])
         return True
 
 class Parser:
