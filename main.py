@@ -193,8 +193,7 @@ validator.schemas_dict_forming(py_sipp_path)
 logger.info("Validating JSON script...")
 valid = validator.validation_tests(test_desc)
 if valid:
-    logger.info("validation completed successfully")
-sys.exit(1)
+    logger.info("Validation completed successfully")
 
 #Парсинг данных о пользователях
 logger.info("Parsing users from json string...")
