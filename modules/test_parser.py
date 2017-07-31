@@ -14,6 +14,8 @@ class Validator:
         self.schemas_data = {}
         #Директория, в которой хранятся схемы
         self.schemas_directory = "/schema/"
+        #Кортеж глобальных секций
+        self.global_sections = ("Users","UserVar","PreConf","PostConf")
 
     #Метод записи информации схем в словарь
     def schemas_dict_forming(self, py_sipp_path):
@@ -87,7 +89,7 @@ class Validator:
                 sys.exit(1)
 
     def validation_tests(self, json_file):
-        #Проверка наличия глобальных секций
+        #Валидация глобальных свойств
         if not "TestName" in json_file:
             logger.error("Validation error in global section: \033[1;31mTestName is required property\033[1;m")
             sys.exit(1)
@@ -100,18 +102,18 @@ class Validator:
         if "Isolate" in json_file and type(json_file["Isolate"]) != bool:
             logger.error("Validation error in global section: \033[1;31mIsolate must be bool\033[1;m")
             sys.exit(1)
-        if "Users" in json_file:
-            self.validate_sections(json_file["Users"], self.schemas_data["users"])
-        if "UserVar" in json_file:
-            self.validate_sections(json_file["UserVar"], self.schemas_data["uservar"])
-        if "PreConf" in json_file:
-            self.validate_sections(json_file["PreConf"], self.schemas_data["conf"])
-        if "PostConf" in json_file:
-            self.validate_sections(json_file["PostConf"], self.schemas_data["conf"])
+        #Валидация глобальных секций
+        for section in self.global_sections:
+        	if section == "Users" and not "Users" in json_file:
+        		logger.error("Validation error in global section: \033[1;31mUsers is required property\033[1;m")
+        		sys.exit(1)
+        	if section in json_file:
+        		self.validate_sections(json_file[section], self.schemas_data[section])
         if not "Tests" in json_file:
             logger.error("Validation error in global section: \033[1;31mTests is required property\033[1;m")
             sys.exit(1)
         else:
+        	#Валидация тестов
             for test in json_file["Tests"]:
                 if "Name" in test:
                     if type(test["Name"]) != str or len(test["Name"]) == 0:
