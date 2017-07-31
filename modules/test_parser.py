@@ -4,6 +4,7 @@ from os import listdir
 import json
 import sys
 import logging
+import pprint
 import re
 logger = logging.getLogger("tester")
 
@@ -35,12 +36,36 @@ class Validator:
     			self.schemas_data[schema_file] = schema
     			file.close
 
-    def validate_sections(self, section, section_schema):
+    def pretty_print(self, section, error_path, isreq=False, error_key=None):
+        log_prefix = "  "
+        error_tag = "__ERROR_TAG__"
+        for path in error_path:
+            section = section[path]
+        if not isreq:
+            section[error_key] = str(section[error_key]) + error_tag
+        error_lines = pprint.pformat(section).split('\n')
+        for line in error_lines:
+            line=line.replace(r'        ','  ')
+            line=line.replace('OrderedDict','')
+            if line.find(error_tag) != -1:
+                line=line.replace(error_tag,"")
+                line=str("\033[1;31m" + line +  "\033[1;m")
+            line = log_prefix + line
+            logger.info(line)
+
+    def validate_sections(self, section, section_schema, section_name):
         errors = sorted(Draft4Validator(section_schema).iter_errors(section), key=lambda e: e.path)
         if errors:
+            logger.error("Validation error in section %s:" % section_name)
             for e in errors:
-                print("%s %s" % (e.path, e.message))
-            sys.exit(1)
+                error_path = e.path
+                if "is a required property" in e.message:
+                    self.pretty_print(section, error_path, isreq=True)
+                else:
+                    error_key = error_path.pop()
+                    self.pretty_print(section, error_path, error_key=error_key)
+                logger.info("Error description: \033[1;31m%s\033[1;m" % e.message)
+                sys.exit(1)
 
     def validate_difference(self, diff):
         try:
@@ -110,7 +135,7 @@ class Validator:
         		logger.error("Validation error in global section: \033[1;31mUsers is required property\033[1;m")
         		sys.exit(1)
         	if section in json_file:
-        		self.validate_sections(json_file[section], self.schemas_data[section])
+        		self.validate_sections(json_file[section], self.schemas_data[section], section)
         if not "Tests" in json_file:
             logger.error("Validation error in global section: \033[1;31mTests is required property\033[1;m")
             sys.exit(1)
@@ -132,34 +157,34 @@ class Validator:
                 	#Валидация тестовых процедур
                     for procedure in test["TestProcedure"]:
                         if "CheckRetransmission" in procedure:
-                            self.validate_sections(procedure["CheckRetransmission"], self.schemas_data["CheckRetransmission"])
+                            self.validate_sections(procedure["CheckRetransmission"], self.schemas_data["CheckRetransmission"],"CheckRetransmission")
                             if not "Msg" in procedure["CheckRetransmission"][0]:
                                 logger.error("Validation error in section CheckRetransmission: \033[1;31mMsg is required property\033[1;m")
                                 sys.exit(1)
                             else:
-                                self.validate_sections(procedure["CheckRetransmission"][0]["Msg"], self.schemas_data["Msg"])
+                                self.validate_sections(procedure["CheckRetransmission"][0]["Msg"], self.schemas_data["Msg"], "CheckRetransmission")
                                 self.validate_msg_code(procedure["CheckRetransmission"][0]["Msg"][0])
                         if "CheckDifference" in procedure:
-                            self.validate_sections(procedure["CheckDifference"], self.schemas_data["CheckDifference"])
+                            self.validate_sections(procedure["CheckDifference"], self.schemas_data["CheckDifference"], "CheckDifference")
                             self.validate_difference(procedure["CheckDifference"][0])
                             if not "Msg" in procedure["CheckDifference"][0]:
                                 logger.error("Validation error in section CheckDifference: \033[1;31mMsg is required property\033[1;m")
                                 sys.exit(1)
                             else:
-                                self.validate_sections(procedure["CheckDifference"][0]["Msg"], self.schemas_data["Msg"])
+                                self.validate_sections(procedure["CheckDifference"][0]["Msg"], self.schemas_data["Msg"], "CheckDifference")
                                 self.validate_msg_code(procedure["CheckDifference"][0]["Msg"][0])
                         if "StartUA" in procedure:
-                            self.validate_sections(procedure, self.schemas_data["StartUA"])
+                            self.validate_sections(procedure, self.schemas_data["StartUA"], "StartUA")
                             for items in procedure["StartUA"]:
                                 self.validate_startua_type(items)
                                 if not "Commands" in items:
                                     logger.error("Validation error in section StartUA: Commands is required property")
                                     sys.exit(1)
                                 else:
-                                    self.validate_sections(items["Commands"], self.schemas_data["Commands"])
+                                    self.validate_sections(items["Commands"], self.schemas_data["Commands"], "StartUA")
                         for section in self.simple_procedure_sections:
                             if section in procedure:
-                                self.validate_sections(procedure, self.schemas_data[section])
+                                self.validate_sections(procedure, self.schemas_data[section], section)
         return True
 
 class Parser:
