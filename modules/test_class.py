@@ -103,7 +103,7 @@ class UserClass:
         self.RegProcess = None
         self.UnRegProcess = None
         self.SipGroup = None
-        self.SipTransport = "UDP"
+        self.SipTransport = None
         self.UserIP = None
         #Для тестирования регистраций с левого ip:port
         self.FakePort = None

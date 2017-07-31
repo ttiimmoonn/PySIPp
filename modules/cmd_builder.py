@@ -37,6 +37,8 @@ class Command_building:
             command+=" -p " + str(user.BindPort)
         if user.SipTransport == "TCP":
             command+=" -t tn -max_socket 25"
+        if user.SipTransport != None:
+            command+=" -set USER_TRANSPORT " +  user.SipTransport.lower()
         LOG_PREFIX = "REG_" + "NUMBER_" + user.Number + "_"
         #Добавляем message trace
         command += " -message_overwrite false -trace_msg -message_file " + log_path + "/" + LOG_PREFIX + "MESSAGE"
