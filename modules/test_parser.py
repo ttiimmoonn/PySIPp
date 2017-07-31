@@ -59,11 +59,20 @@ class Validator:
             logger.error("Validation error in section %s:" % section_name)
             for e in errors:
                 error_path = e.path
+                print("error_path = ", error_path)
                 if "is a required property" in e.message:
                     self.pretty_print(section, error_path, isreq=True)
                 else:
-                    error_key = error_path.pop()
-                    self.pretty_print(section, error_path, error_key=error_key)
+                    if section_name == "PreConf" or section_name == "PostConf" or section_name == "SendSSHCommand":
+                        if len(error_path) == 2 or len(error_path) == 3:
+                            error_path_ = error_path
+                            dummy = error_path_.pop()
+                            self.pretty_print(section, error_path_, isreq=True)
+                        else:
+                            self.pretty_print(section, error_path, isreq=True)
+                    else:
+                        error_key = error_path.pop()
+                        self.pretty_print(section, error_path, error_key=error_key)
                 logger.info("Error description: \033[1;31m%s\033[1;m" % e.message)
                 sys.exit(1)
 
@@ -88,7 +97,7 @@ class Validator:
         try:
             msg["Code"]
         except KeyError:
-            logger.error("Validation error in section Msg: \033[1;31mCode is required property\033[1;m")
+            logger.error("Validation error in section Msg: \033[1;31mCode is a required property\033[1;m")
             sys.exit(1) 
         if msg["MsgType"] == "request" and msg["Code"] != None:
             logger.error("Validation error in section Msg: \033[1;31mCode must be null then MsgType=request\033[1;m")
@@ -106,19 +115,19 @@ class Validator:
             try:
                 items["UserId"]
             except KeyError:
-                logger.error("Validation error in StartUA: \033[1;31mUserId is required property then Type=User\033[1;m")
+                logger.error("Validation error in StartUA: \033[1;31mUserId is a required property then Type=User\033[1;m")
                 sys.exit(1)
         if items["Type"] == "Trunk":
             try:
                 items["Port"]
             except KeyError:
-                logger.error("Validation error in StartUA: \033[1;31mPort is required property then Type=Trunk\033[1;m")
+                logger.error("Validation error in StartUA: \033[1;31mPort is a required property then Type=Trunk\033[1;m")
                 sys.exit(1)
 
     def validation_tests(self, json_file):
         #Валидация глобальных свойств
         if not "TestName" in json_file:
-            logger.error("Validation error in global section: \033[1;31mTestName is required property\033[1;m")
+            logger.error("Validation error in global section: \033[1;31mTestName is a required property\033[1;m")
             sys.exit(1)
         elif type(json_file["TestName"]) != str or len(json_file["TestName"]) == 0:
             logger.error("Validation error in global section: \033[1;31mTestName must be non-zero string\033[1;m")
@@ -132,12 +141,12 @@ class Validator:
         #Валидация глобальных секций
         for section in self.global_sections:
         	if section == "Users" and not "Users" in json_file:
-        		logger.error("Validation error in global section: \033[1;31mUsers is required property\033[1;m")
+        		logger.error("Validation error in global section: \033[1;31mUsers is a required property\033[1;m")
         		sys.exit(1)
         	if section in json_file:
         		self.validate_sections(json_file[section], self.schemas_data[section], section)
         if not "Tests" in json_file:
-            logger.error("Validation error in global section: \033[1;31mTests is required property\033[1;m")
+            logger.error("Validation error in global section: \033[1;31mTests is required a property\033[1;m")
             sys.exit(1)
         else:
         	#Валидация тестов
@@ -151,7 +160,7 @@ class Validator:
                         logger.error("Validation error in section Tests: \033[1;31mDescription must be non-zero string\033[1;m")
                         sys.exit(1)
                 if not "TestProcedure" in test:
-                    logger.error("Validation error in section Tests: \033[1;31mTestProcedure is required property\033[1;m")
+                    logger.error("Validation error in section Tests: \033[1;31mTestProcedure is a required property\033[1;m")
                     sys.exit(1)
                 else:
                 	#Валидация тестовых процедур
@@ -159,7 +168,7 @@ class Validator:
                         if "CheckRetransmission" in procedure:
                             self.validate_sections(procedure["CheckRetransmission"], self.schemas_data["CheckRetransmission"],"CheckRetransmission")
                             if not "Msg" in procedure["CheckRetransmission"][0]:
-                                logger.error("Validation error in section CheckRetransmission: \033[1;31mMsg is required property\033[1;m")
+                                logger.error("Validation error in section CheckRetransmission: \033[1;31mMsg is a required property\033[1;m")
                                 sys.exit(1)
                             else:
                                 self.validate_sections(procedure["CheckRetransmission"][0]["Msg"], self.schemas_data["Msg"], "CheckRetransmission")
@@ -168,7 +177,7 @@ class Validator:
                             self.validate_sections(procedure["CheckDifference"], self.schemas_data["CheckDifference"], "CheckDifference")
                             self.validate_difference(procedure["CheckDifference"][0])
                             if not "Msg" in procedure["CheckDifference"][0]:
-                                logger.error("Validation error in section CheckDifference: \033[1;31mMsg is required property\033[1;m")
+                                logger.error("Validation error in section CheckDifference: \033[1;31mMsg is a required property\033[1;m")
                                 sys.exit(1)
                             else:
                                 self.validate_sections(procedure["CheckDifference"][0]["Msg"], self.schemas_data["Msg"], "CheckDifference")
@@ -178,7 +187,7 @@ class Validator:
                             for items in procedure["StartUA"]:
                                 self.validate_startua_type(items)
                                 if not "Commands" in items:
-                                    logger.error("Validation error in section StartUA: Commands is required property")
+                                    logger.error("Validation error in section StartUA: Commands is a required property")
                                     sys.exit(1)
                                 else:
                                     self.validate_sections(items["Commands"], self.schemas_data["Commands"], "StartUA")
