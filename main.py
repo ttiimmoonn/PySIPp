@@ -196,12 +196,10 @@ if valid:
 
 #Парсинг данных о пользователях
 logger.info("Parsing users from json string...")
-if "Users" in test_desc:  
-    test_users = parse.parse_user_info(test_desc["Users"])
-else:
-    logger.warn("No user in test")
+test_users = parse.parse_user_info(test_desc["Users"])
 #Если есть ошибки при парсинге, то выходим
 if not test_users:
+    print("Error")
     sys.exit(1)
 
 #Парсинг данных о тестах
