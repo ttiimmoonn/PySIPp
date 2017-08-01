@@ -76,7 +76,7 @@ class Validator:
                 logger.info("Error description: \033[1;31m%s\033[1;m" % e.message)
                 sys.exit(1)
 
-    def validate_difference(self, diff, section=None):
+    def validate_difference(self, diff, section):
         try:
             diff["Difference"]
         except KeyError:
@@ -84,34 +84,45 @@ class Validator:
         else:
             if type(diff["Difference"]) == str: 
                 if re.search("^\%\%[a-zA-Z-0-9_]+\%\%$",diff["Difference"]) == None:
+                	logger.error("Validation error in section CheckDifference:")
                 	self.pretty_print(section, [], error_key="Difference")
-                	logger.error("Validation error in CheckDifference: \033[1;31mDifference must be number or var (var pattern = ^%%[a-zA-Z-0-9_]+%%$)\033[1;m")
+                	logger.error("Error description: \033[1;31mDifference must be number or var (var pattern = ^%%[a-zA-Z-0-9_]+%%$)\033[1;m")
                 	sys.exit(1)
             elif type(diff["Difference"]) != float and type(diff["Difference"]) != int:
+            	loger.error("Validation error in section CheckDifference:")
             	self.pretty_print(section, [], error_key="Difference")
-            	logger.error("Validation error in CheckDifference: \033[1;31mDifference must be number or var (var pattern = ^%%[a-zA-Z-0-9_]+%%$)\033[1;m")
+            	logger.info("Error description: \033[1;31mDifference must be number or var (var pattern = ^%%[a-zA-Z-0-9_]+%%$)\033[1;m")
             	sys.exit(1)
             elif diff["Difference"] < 0:
+            	logger.error("Validation error in section CheckDifference:")
             	self.pretty_print(section, [], error_key="Difference")
-            	logger.error("Validation error in CheckDifference: \033[1;31mDifference must be greater or equal than zero\033[1;m")
+            	logger.info("Error description: \033[1;31mDifference must be greater or equal than zero\033[1;m")
             	sys.exit(1)
 
-    def validate_msg_code(self, msg):
+    def validate_msg_code(self, msg, section=None):
         try:
             msg["Code"]
         except KeyError:
-            logger.error("Validation error in section Msg: \033[1;31mCode is a required property\033[1;m")
-            sys.exit(1) 
+        	logger.error("Validation error in section Msg:")
+        	self.pretty_print(section, [], isreq=True)
+        	logger.info("Error description: \033[1;31mCode is a required property\033[1;m")
+        	sys.exit(1) 
         if msg["MsgType"] == "request" and msg["Code"] != None:
-            logger.error("Validation error in section Msg: \033[1;31mCode must be null then MsgType=request\033[1;m")
-            sys.exit(1)
+        	logger.error("Validation error in section Msg:")
+        	self.pretty_print(section, ["Msg",0], error_key="Code")
+        	logger.info("Error description: \033[1;31mCode must be null then MsgType=request\033[1;m")
+        	sys.exit(1)
         if msg["MsgType"] == "response":
             if type(msg["Code"]) != int:
-                logger.error("Validation error in section Msg: \033[1;31mCode must be integer then MsgType=response\033[1;m")
-                sys.exit(1)
+            	logger.error("Validation error in section Msg")
+            	self.pretty_print(section, ["Msg",0], error_key="Code")
+            	logger.info("Error description: \033[1;31mCode must be integer then MsgType=response\033[1;m")
+            	sys.exit(1)
             elif msg["Code"] < 100 or msg["Code"] > 699:
-                logger.error("Validation error in section Msg: \033[1;31mCode should match the range of 100 and 699\033[1;m")
-                sys.exit(1)
+            	logger.error("Validation error in section Msg:")
+            	self.pretty_print(section, ["Msg",0], error_key="Code")
+            	logger.info("Error description: \033[1;31mCode should match the range of 100 and 699\033[1;m")
+            	sys.exit(1)
     
     def validate_startua_type(self, items):
         if items["Type"] == "User":
@@ -184,7 +195,7 @@ class Validator:
                                 sys.exit(1)
                             else:
                                 self.validate_sections(procedure["CheckDifference"][0]["Msg"], self.schemas_data["Msg"], "CheckDifference")
-                                self.validate_msg_code(procedure["CheckDifference"][0]["Msg"][0])
+                                self.validate_msg_code(procedure["CheckDifference"][0]["Msg"][0], procedure["CheckDifference"][0])
                         if "StartUA" in procedure:
                             self.validate_sections(procedure, self.schemas_data["StartUA"], "StartUA")
                             for items in procedure["StartUA"]:
