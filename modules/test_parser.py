@@ -59,7 +59,6 @@ class Validator:
             logger.error("Validation error in section %s:" % section_name)
             for e in errors:
                 error_path = e.path
-                print("error_path = ", error_path)
                 if "is a required property" in e.message:
                     self.pretty_print(section, error_path, isreq=True)
                 else:
@@ -99,7 +98,7 @@ class Validator:
             	logger.info("Error description: \033[1;31mDifference must be greater or equal than zero\033[1;m")
             	sys.exit(1)
 
-    def validate_msg_code(self, msg, section=None):
+    def validate_msg_code(self, msg, section):
         try:
             msg["Code"]
         except KeyError:
@@ -129,14 +128,18 @@ class Validator:
             try:
                 items["UserId"]
             except KeyError:
-                logger.error("Validation error in StartUA: \033[1;31mUserId is a required property then Type=User\033[1;m")
-                sys.exit(1)
+            	logger.error("Validation error in section StartUA:")
+            	self.pretty_print(items,[],isreq=True)
+            	logger.info("Error description: \033[1;31mUserId is a required property then Type=User\033[1;m")
+            	sys.exit(1)
         if items["Type"] == "Trunk":
             try:
                 items["Port"]
             except KeyError:
-                logger.error("Validation error in StartUA: \033[1;31mPort is a required property then Type=Trunk\033[1;m")
-                sys.exit(1)
+            	logger.error("Validation error in StartUA:")
+            	self.pretty_print(items,[],isreq=True)
+            	logger.info("Error description: \033[1;31mPort is a required property then Type=Trunk\033[1;m")
+            	sys.exit(1)
 
     def validation_tests(self, json_file):
         #Валидация глобальных свойств
@@ -186,7 +189,7 @@ class Validator:
                                 sys.exit(1)
                             else:
                                 self.validate_sections(procedure["CheckRetransmission"][0]["Msg"], self.schemas_data["Msg"], "CheckRetransmission")
-                                self.validate_msg_code(procedure["CheckRetransmission"][0]["Msg"][0])
+                                self.validate_msg_code(procedure["CheckRetransmission"][0]["Msg"][0], procedure["CheckRetransmission"][0])
                         if "CheckDifference" in procedure:
                             self.validate_sections(procedure["CheckDifference"], self.schemas_data["CheckDifference"], "CheckDifference")
                             self.validate_difference(procedure["CheckDifference"][0], procedure["CheckDifference"][0])
