@@ -76,7 +76,7 @@ class Validator:
                 logger.info("Error description: \033[1;31m%s\033[1;m" % e.message)
                 sys.exit(1)
 
-    def validate_difference(self, diff):
+    def validate_difference(self, diff, section=None):
         try:
             diff["Difference"]
         except KeyError:
@@ -84,14 +84,17 @@ class Validator:
         else:
             if type(diff["Difference"]) == str: 
                 if re.search("^\%\%[a-zA-Z-0-9_]+\%\%$",diff["Difference"]) == None:
-                    logger.error("Validation error in CheckDifference: \033[1;31mDifference must be number or var (var pattern = ^%%[a-zA-Z-0-9_]+%%$)\033[1;m")
-                    sys.exit(1)
+                	self.pretty_print(section, [], error_key="Difference")
+                	logger.error("Validation error in CheckDifference: \033[1;31mDifference must be number or var (var pattern = ^%%[a-zA-Z-0-9_]+%%$)\033[1;m")
+                	sys.exit(1)
             elif type(diff["Difference"]) != float and type(diff["Difference"]) != int:
-                logger.error("Validation error in CheckDifference: \033[1;31mDifference must be number or var (var pattern = ^%%[a-zA-Z-0-9_]+%%$)\033[1;m")
-                sys.exit(1)
+            	self.pretty_print(section, [], error_key="Difference")
+            	logger.error("Validation error in CheckDifference: \033[1;31mDifference must be number or var (var pattern = ^%%[a-zA-Z-0-9_]+%%$)\033[1;m")
+            	sys.exit(1)
             elif diff["Difference"] < 0:
-                logger.error("Validation error in CheckDifference: \033[1;31mDifference must be greater or equal than zero\033[1;m")
-                sys.exit(1)
+            	self.pretty_print(section, [], error_key="Difference")
+            	logger.error("Validation error in CheckDifference: \033[1;31mDifference must be greater or equal than zero\033[1;m")
+            	sys.exit(1)
 
     def validate_msg_code(self, msg):
         try:
@@ -175,7 +178,7 @@ class Validator:
                                 self.validate_msg_code(procedure["CheckRetransmission"][0]["Msg"][0])
                         if "CheckDifference" in procedure:
                             self.validate_sections(procedure["CheckDifference"], self.schemas_data["CheckDifference"], "CheckDifference")
-                            self.validate_difference(procedure["CheckDifference"][0])
+                            self.validate_difference(procedure["CheckDifference"][0], procedure["CheckDifference"][0])
                             if not "Msg" in procedure["CheckDifference"][0]:
                                 logger.error("Validation error in section CheckDifference: \033[1;31mMsg is a required property\033[1;m")
                                 sys.exit(1)
