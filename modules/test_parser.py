@@ -11,30 +11,30 @@ logger = logging.getLogger("tester")
 class Validator:
 
     def __init__(self):
-    	#Словарь для хранения содержимого схем
+        #Словарь для хранения содержимого схем
         self.schemas_data = {}
         #Директория, в которой хранятся схемы
         self.schemas_directory = "/schema/"
         #Кортеж глобальных секций
-        self.global_sections = ("Users","UserVar","PreConf","PostConf")
+        self.global_sections = ("Users","UserVar","PreConf","PostConf", "Trunks")
         #Кортеж тестовых процедур
         self.simple_procedure_sections = ("Sleep","Print","Stop","ServiceFeature","ManualReg","DropManualReg","SendSSHCommand") 
 
     #Метод записи информации схем в словарь
     def schemas_dict_forming(self, py_sipp_path):
-    	path_to_schemas_directory = py_sipp_path + self.schemas_directory
-    	for schema_file in listdir(path_to_schemas_directory):
-    		file_path = path_to_schemas_directory + schema_file
-    		file = open(file_path, "r", encoding="utf-8")
-    		try:
-    			schema = json.loads(file.read())
-    		except json.decoder.JSONDecodeError:
-    			file.close
-    			logger.error("Wrong schema format in %s file. Detail: %s" % (schema_file, sys.exc_info()[1]))
-    			sys.exit(1)
-    		else:
-    			self.schemas_data[schema_file] = schema
-    			file.close
+        path_to_schemas_directory = py_sipp_path + self.schemas_directory
+        for schema_file in listdir(path_to_schemas_directory):
+            file_path = path_to_schemas_directory + schema_file
+            file = open(file_path, "r", encoding="utf-8")
+            try:
+                schema = json.loads(file.read())
+            except json.decoder.JSONDecodeError:
+                file.close
+                logger.error("Wrong schema format in %s file. Detail: %s" % (schema_file, sys.exc_info()[1]))
+                sys.exit(1)
+            else:
+                self.schemas_data[schema_file] = schema
+                file.close
 
     def pretty_print(self, section, error_path, isreq=False, error_key=None):
         log_prefix = "  "
@@ -83,63 +83,63 @@ class Validator:
         else:
             if type(diff["Difference"]) == str: 
                 if re.search("^\%\%[a-zA-Z-0-9_]+\%\%$",diff["Difference"]) == None:
-                	logger.error("Validation error in section CheckDifference:")
-                	self.pretty_print(section, [], error_key="Difference")
-                	logger.error("Error description: \033[1;31mDifference must be number or var (var pattern = ^%%[a-zA-Z-0-9_]+%%$)\033[1;m")
-                	sys.exit(1)
+                    logger.error("Validation error in section CheckDifference:")
+                    self.pretty_print(section, [], error_key="Difference")
+                    logger.error("Error description: \033[1;31mDifference must be number or var (var pattern = ^%%[a-zA-Z-0-9_]+%%$)\033[1;m")
+                    sys.exit(1)
             elif type(diff["Difference"]) != float and type(diff["Difference"]) != int:
-            	loger.error("Validation error in section CheckDifference:")
-            	self.pretty_print(section, [], error_key="Difference")
-            	logger.info("Error description: \033[1;31mDifference must be number or var (var pattern = ^%%[a-zA-Z-0-9_]+%%$)\033[1;m")
-            	sys.exit(1)
+                loger.error("Validation error in section CheckDifference:")
+                self.pretty_print(section, [], error_key="Difference")
+                logger.info("Error description: \033[1;31mDifference must be number or var (var pattern = ^%%[a-zA-Z-0-9_]+%%$)\033[1;m")
+                sys.exit(1)
             elif diff["Difference"] < 0:
-            	logger.error("Validation error in section CheckDifference:")
-            	self.pretty_print(section, [], error_key="Difference")
-            	logger.info("Error description: \033[1;31mDifference must be greater or equal than zero\033[1;m")
-            	sys.exit(1)
+                logger.error("Validation error in section CheckDifference:")
+                self.pretty_print(section, [], error_key="Difference")
+                logger.info("Error description: \033[1;31mDifference must be greater or equal than zero\033[1;m")
+                sys.exit(1)
 
     def validate_msg_code(self, msg, section):
         try:
             msg["Code"]
         except KeyError:
-        	logger.error("Validation error in section Msg:")
-        	self.pretty_print(section, [], isreq=True)
-        	logger.info("Error description: \033[1;31mCode is a required property\033[1;m")
-        	sys.exit(1) 
+            logger.error("Validation error in section Msg:")
+            self.pretty_print(section, [], isreq=True)
+            logger.info("Error description: \033[1;31mCode is a required property\033[1;m")
+            sys.exit(1) 
         if msg["MsgType"] == "request" and msg["Code"] != None:
-        	logger.error("Validation error in section Msg:")
-        	self.pretty_print(section, ["Msg",0], error_key="Code")
-        	logger.info("Error description: \033[1;31mCode must be null then MsgType=request\033[1;m")
-        	sys.exit(1)
+            logger.error("Validation error in section Msg:")
+            self.pretty_print(section, ["Msg",0], error_key="Code")
+            logger.info("Error description: \033[1;31mCode must be null then MsgType=request\033[1;m")
+            sys.exit(1)
         if msg["MsgType"] == "response":
             if type(msg["Code"]) != int:
-            	logger.error("Validation error in section Msg")
-            	self.pretty_print(section, ["Msg",0], error_key="Code")
-            	logger.info("Error description: \033[1;31mCode must be integer then MsgType=response\033[1;m")
-            	sys.exit(1)
+                logger.error("Validation error in section Msg")
+                self.pretty_print(section, ["Msg",0], error_key="Code")
+                logger.info("Error description: \033[1;31mCode must be integer then MsgType=response\033[1;m")
+                sys.exit(1)
             elif msg["Code"] < 100 or msg["Code"] > 699:
-            	logger.error("Validation error in section Msg:")
-            	self.pretty_print(section, ["Msg",0], error_key="Code")
-            	logger.info("Error description: \033[1;31mCode should match the range of 100 and 699\033[1;m")
-            	sys.exit(1)
+                logger.error("Validation error in section Msg:")
+                self.pretty_print(section, ["Msg",0], error_key="Code")
+                logger.info("Error description: \033[1;31mCode should match the range of 100 and 699\033[1;m")
+                sys.exit(1)
     
     def validate_startua_type(self, items):
         if items["Type"] == "User":
             try:
                 items["UserId"]
             except KeyError:
-            	logger.error("Validation error in section StartUA:")
-            	self.pretty_print(items,[],isreq=True)
-            	logger.info("Error description: \033[1;31mUserId is a required property then Type=User\033[1;m")
-            	sys.exit(1)
+                logger.error("Validation error in section StartUA:")
+                self.pretty_print(items,[],isreq=True)
+                logger.info("Error description: \033[1;31mUserId is a required property then Type=User\033[1;m")
+                sys.exit(1)
         if items["Type"] == "Trunk":
             try:
                 items["Port"]
             except KeyError:
-            	logger.error("Validation error in StartUA:")
-            	self.pretty_print(items,[],isreq=True)
-            	logger.info("Error description: \033[1;31mPort is a required property then Type=Trunk\033[1;m")
-            	sys.exit(1)
+                logger.error("Validation error in StartUA:")
+                self.pretty_print(items,[],isreq=True)
+                logger.info("Error description: \033[1;31mPort is a required property then Type=Trunk\033[1;m")
+                sys.exit(1)
 
     def validation_tests(self, json_file):
         #Валидация глобальных свойств
@@ -157,16 +157,13 @@ class Validator:
             sys.exit(1)
         #Валидация глобальных секций
         for section in self.global_sections:
-        	if section == "Users" and not "Users" in json_file:
-        		logger.error("Validation error in global section: \033[1;31mUsers is a required property\033[1;m")
-        		sys.exit(1)
-        	if section in json_file:
-        		self.validate_sections(json_file[section], self.schemas_data[section], section)
+            if section in json_file:
+                self.validate_sections(json_file[section], self.schemas_data[section], section)
         if not "Tests" in json_file:
             logger.error("Validation error in global section: \033[1;31mTests is required a property\033[1;m")
             sys.exit(1)
         else:
-        	#Валидация тестов
+            #Валидация тестов
             for test in json_file["Tests"]:
                 if "Name" in test:
                     if type(test["Name"]) != str or len(test["Name"]) == 0:
@@ -180,7 +177,7 @@ class Validator:
                     logger.error("Validation error in section Tests: \033[1;31mTestProcedure is a required property\033[1;m")
                     sys.exit(1)
                 else:
-                	#Валидация тестовых процедур
+                    #Валидация тестовых процедур
                     for procedure in test["TestProcedure"]:
                         if "CheckRetransmission" in procedure:
                             self.validate_sections(procedure["CheckRetransmission"], self.schemas_data["CheckRetransmission"],"CheckRetransmission")
@@ -214,6 +211,30 @@ class Validator:
         return True
 
 class Parser:
+    def parse_trunk_info(self,json_trunks):
+        #словарь для хранения транков
+        trunks={}
+        for trunk in json_trunks:
+            new_trunk = testClass.TrunkClass()
+            new_trunk.Status = "New"
+            new_trunk.TrunkId = trunk["TrunkId"]
+            new_trunk.SipDomain = trunk["SipDomain"]
+            new_trunk.SipGroup = trunk["SipGroup"]
+            new_trunk.Port = trunk["Port"]
+            try:
+                new_trunk.SipTransport = trunk["SipTransport"]
+            except KeyError:
+                new_trunk.SipTransport = "UDP"
+            #Если есть два транка с одинаковыми id, выходим
+            if new_trunk.TrunkId in trunks:
+                logger.error("TrunkId = %d is already in use", new_trunk.TrunkId)
+                return False
+            #Если два транка используют одинаковые порты, то выходим:
+            if len({trunkId: trunk for trunkId,trunk in trunks.items() if trunk.Port == new_trunk.Port}) > 0:
+                logger.error("Trunk Port = %d is already in use. TrunkId: %d", new_trunk.Port,new_trunk.TrunkId)
+                return False
+            trunks[new_trunk.TrunkId] = new_trunk
+        return trunks
 
     def parse_user_info(self, json_users):
         #Создаём словарь для хранения юзеров
@@ -272,8 +293,11 @@ class Parser:
             if new_user.UserId in users:
                 logger.error("UserId = %d is already in use", new_user.UserId)
                 return False
-            else:
-                users[new_user.UserId] = new_user
+            #Если два транка используют одинаковые порты, то выходим:
+            if len({UserId: user for UserId,user in users.items() if user.Port == new_user.Port}) > 0:
+                logger.error("User Port = %d is already in use. UserID: %d", new_user.Port, new_user.UserId)
+                return False
+            users[new_user.UserId] = new_user
         return users
 
     def parse_test_info(self, json_tests):

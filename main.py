@@ -137,6 +137,8 @@ log_file = namespace.log_file
 reg_lock = threading.Lock()
 #Декларируем массив для юзеров
 test_users = {}
+#Декларируем массив для транков
+test_trunks = {}
 #декларируем массив для тестов
 tests = []
 #Декларируем словарь пользовательских переменных
@@ -195,9 +197,15 @@ if valid:
     logger.info("Validation completed successfully")
 
 #Парсинг данных о пользователях
-logger.info("Parsing users from json string...")
+logger.info("Parsing users from json...")
 test_users = parse.parse_user_info(test_desc["Users"])
 if not test_users:
+    sys.exit(1)
+
+#Парсинг данных о транках
+logger.info("Parsing trunks from json...")
+test_trunks = parse.parse_trunk_info(test_desc["Trunks"])
+if not test_trunks:
     sys.exit(1)
 
 #Парсинг данных о тестах

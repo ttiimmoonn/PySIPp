@@ -143,4 +143,13 @@ class UserClass:
                 #Возвращаем статус код
                 self.StatusCode = statusCode
             finally:
-                self.UserLock.release() 
+                self.UserLock.release()
+
+class TrunkClass():
+    def __init__(self):
+        self.Status = None
+        self.TrunkId = None
+        self.Port = None
+        self.SipTransport = None
+        self.SipGroup = None
+        self.SipDomain = None
