@@ -225,6 +225,10 @@ class Parser:
                 new_trunk.SipTransport = trunk["SipTransport"]
             except KeyError:
                 new_trunk.SipTransport = "UDP"
+            try:
+                new_trunk.RtpPort = trunk["RtpPort"]
+            except KeyError:
+                pass
             #Если есть два транка с одинаковыми id, выходим
             if new_trunk.TrunkId in trunks:
                 logger.error("TrunkId = %d is already in use", new_trunk.TrunkId)
@@ -364,19 +368,24 @@ class Parser:
     def parse_test_var(self, test_desc):
         #Парсим пользовательские переменные
         test_var = {}
-        try:
-           #Забираем переменные, описанные юзером
-           if "UserVar" in test_desc:
-               test_var = test_desc["UserVar"][0]
-           for user in test_desc["Users"]:
-               userId = "%%" + str(user["UserId"])
-               #Добавляем описание основных параметров юзера
-               test_var[str(userId + "." + "SipDomain" + "%%")] = str(user["SipDomain"])
-               test_var[str(userId + "." + "SipGroup" + "%%")] = str(user["SipGroup"])
-               test_var[str(userId + "." + "Number" + "%%")] = str(user["Number"])
-               test_var[str(userId + "." + "Port" + "%%")] = str(user["Port"])
-        except KeyError:
-            pass
+        #Забираем переменные, описанные юзером
+        if "UserVar" in test_desc:
+            test_var = test_desc["UserVar"][0]
+        for user in test_desc["Users"]:
+            #Добавляем описание основных параметров юзера
+            var_prefix = "%%" + str(user["UserId"])
+            test_var[str(var_prefix + "." + "SipDomain" + "%%")] = str(user["SipDomain"])
+            test_var[str(var_prefix + "." + "SipGroup" + "%%")] = str(user["SipGroup"])
+            test_var[str(var_prefix + "." + "Number" + "%%")] = str(user["Number"])
+            test_var[str(var_prefix + "." + "Port" + "%%")] = str(user["Port"])
+        for trunk in test_desc["Trunks"]:
+            #Добавляем описание основных параметров транков
+            var_prefix = "%%Tr." + str(trunk["TrunkId"])
+            test_var[str(var_prefix + "." + "SipDomain" + "%%")] = str(trunk["SipDomain"])
+            test_var[str(var_prefix + "." + "SipGroup" + "%%")] = str(trunk["SipGroup"])
+            test_var[str(var_prefix + "." + "Port" + "%%")] = str(trunk["Port"])
+            test_var[str(var_prefix + "." + "TrunkId" + "%%")] = str(trunk["TrunkId"])
+
         return test_var
 
     def parse_sys_conf(self, sys_json, py_sipp_path):

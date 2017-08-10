@@ -237,6 +237,7 @@ if test_numbers:
 
 #Парсим тестовые переменные в словарь
 test_var = parse.parse_test_var(test_desc)
+print(test_var)
 #Добавляем системные переменные в словарь
 test_var.update(custom_settings)
 #Создаём директорию для логов

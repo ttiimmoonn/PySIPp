@@ -9,6 +9,7 @@
               "SipDomain" : {"type" : "string", "minLength" : 1},
               "SipGroup" : {"type" : "string", "minLength" : 1},
               "Port" : {"type" : "integer", "minimum" : 1024, "maximum" : 65536, "exclusiveMinimum" : false, "exclusiveMaximum" : false},
+              "RtpPort" : {"type" : "integer", "minimum" : 1024, "maximum" : 65536, "exclusiveMinimum" : false, "exclusiveMaximum" : false},
               "SipTransport" : {"type" : "string", "enum" : ["UDP", "TCP"]}
              },
              "required" : ["TrunkId", "SipDomain", "SipGroup", "Port"]
