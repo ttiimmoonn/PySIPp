@@ -10,7 +10,7 @@
                        "properties" : {
                               "Type" : {"type" : "string", "enum" : ["User", "Trunk"]},
                               "UserId" : {"type" : "integer" , "minimum" : 0, "exclusiveMinimum" : false},
-                              "Port" : {"type" : "integer", "minimum" : 1024, "maximum" : 65536, "exclusiveMinimum" : false, "exclusiveMaximum" : false},
+                              "TrunkId" : {"type" : "integer" , "minimum" : 0, "exclusiveMinimum" : false},
                               "WriteStat" : {"type" : "boolean"},
                               "Name" : {"type" : "string", "minLength" : 1},
                               "Cyclic" : {"type" : "boolean"},

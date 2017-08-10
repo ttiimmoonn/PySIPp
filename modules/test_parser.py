@@ -134,11 +134,11 @@ class Validator:
                 sys.exit(1)
         if items["Type"] == "Trunk":
             try:
-                items["Port"]
+                items["TrunkId"]
             except KeyError:
                 logger.error("Validation error in StartUA:")
                 self.pretty_print(items,[],isreq=True)
-                logger.info("Error description: \033[1;31mPort is a required property then Type=Trunk\033[1;m")
+                logger.info("Error description: \033[1;31mTrunkId is a required property then Type=Trunk\033[1;m")
                 sys.exit(1)
 
     def validation_tests(self, json_file):
