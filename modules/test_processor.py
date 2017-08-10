@@ -21,6 +21,7 @@ class TestProcessor():
         self.TestVar = kwargs["TestVar"]
         #Объекты юзеров и транков
         self.Users = kwargs["Users"]
+        self.Trunks = kwargs["Trunks"]
         self.AutoRegUsers = {user_id: user for user_id, user in kwargs["Users"].items() if user.Mode == "Auto"}
         self.ManualRegUsers = {user_id: user for user_id, user in kwargs["Users"].items() if user.Mode == "Manual"}
         self.Trunks = kwargs["Trunks"]

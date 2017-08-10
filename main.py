@@ -270,6 +270,7 @@ test_pr_config = {}
 test_pr_config["Tests"] = tests
 test_pr_config["ForceQuitFlag"] = force_quit
 test_pr_config["Users"] = test_users
+test_pr_config["Trunks"] = test_trunks
 test_pr_config["Trunks"] = []
 test_pr_config["CoconInt"] = coconInt
 test_pr_config["TestVar"] = test_var
