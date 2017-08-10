@@ -330,12 +330,12 @@ class Parser:
             new_ua.Status = "New"
             #Обработка обязательных свойств
             new_ua.Name = ua["Name"]
-            new_ua.Type = ua["Type"]               
-            #В зависимости от типа UA забираем свойство UserId(User) или Port(Trunk)
+            new_ua.Type = ua["Type"]
+            #В зависимости от типа UA забираем свойство UserId(User) или TrunkID(Trunk)
             if new_ua.Type == "User":
                new_ua.UserId = ua["UserId"]
             else:
-                new_ua.Port = ua["Port"]
+                new_ua.TrunkId = ua["TrunkId"]
             #Обработка опциональных свойств
             try:
                 new_ua.WriteStat = ua["WriteStat"]
@@ -353,7 +353,7 @@ class Parser:
             for command in ua["Commands"]:
                 #Поскольку на данном этапе юзеры не залинкованы к процессам
                 #Просто передаём объекту JSON описания команд
-                new_ua.RawJsonCommands.append(command)               
+                new_ua.RawJsonCommands.append(command)
             #Делим агентов
             if new_ua.BackGround:
                 test.BackGroundUA.append(new_ua)

@@ -92,9 +92,16 @@ def get_test_info (test):
         print("     UaStatus:       ",ua.Status)
         print("     UaStatusCode:   ",ua.StatusCode)
         print("     UaType:         ",ua.Type)
-        print("     UaUserId:       ",ua.UserId)
-        print("     UaUserObj:      ",ua.UserObject)
-        print("     UaPort:         ",ua.Port)
+        if ua.UserObject != None:
+            print("     UaUserId:       ",ua.UserObject.UserId)
+            print("     UaUserObj:      ",ua.UserObject)
+            print("     UaUserPort:     ",ua.UserObject.Port)
+            print("     UaUserRtpPort:  ",ua.UserObject.RtpPort)
+        if ua.TrunkObject != None:
+            print("     UaTrunkId:      ",ua.TrunkObject.TrunkId)
+            print("     UaTrunkObj:     ",ua.TrunkObject)
+            print("     UaTrunkPort:    ",ua.TrunkObject.Port)
+            print("     UaTrunkRtpPort: ",ua.TrunkObject.RtpPort)
         print("     UaCommand:")
         for command in ua.Commands:
             print("      ",command)
@@ -271,7 +278,6 @@ test_pr_config["Tests"] = tests
 test_pr_config["ForceQuitFlag"] = force_quit
 test_pr_config["Users"] = test_users
 test_pr_config["Trunks"] = test_trunks
-test_pr_config["Trunks"] = []
 test_pr_config["CoconInt"] = coconInt
 test_pr_config["TestVar"] = test_var
 test_pr_config["ShowSipFlowFlag"] = show_sip_flow

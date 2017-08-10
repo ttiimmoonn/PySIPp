@@ -114,8 +114,10 @@ class Command_building:
                         command+=" -t tn -max_socket 25"
                     if ua.UserObject.RtpPort:
                         command += " -mp " + str(ua.UserObject.RtpPort)
-                else:
-                    command += " -p " + str(ua.Port)
+                elif ua.Type == "Trunk":
+                    command += " -p " + str(ua.TrunkObject.Port)
+                    if ua.TrunkObject.SipTransport == "TCP":
+                        command+=" -t tn -max_socket 25"
                 command+=" -nostdin"
 
                 if sipp_auth and ua.Type=="User":

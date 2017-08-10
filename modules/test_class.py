@@ -47,8 +47,10 @@ class UserAgentClass:
         self.WriteStat = False
         self.TimeStampFile = None
         self.UserId = None
+        self.TrunkId = None
         self.Port = None
         self.UserObject = None
+        self.TrunkObject = None
         self.BackGround = False
         self.UALock = threading.Lock()
         self.ShortTrParser = None
@@ -153,3 +155,4 @@ class TrunkClass():
         self.SipTransport = None
         self.SipGroup = None
         self.SipDomain = None
+        self.RtpPort = None

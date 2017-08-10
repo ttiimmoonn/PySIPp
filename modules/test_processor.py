@@ -125,6 +125,7 @@ class TestProcessor():
     def _link_user_to_ua(self):
         #Массив для использованных id
         use_id = []
+        use_trunk_id = []
         for ua in self.NowRunningTest.UserAgent + self.NowRunningTest.BackGroundUA:
             if ua.Type == "User":
                 if not ua.UserId in use_id:
@@ -137,6 +138,19 @@ class TestProcessor():
                 else:
                     logger.error("Duplicate UserId: %d { UA : %s }",int(ua.UserId),ua.Name)
                     return False
+            elif ua.Type == "Trunk":
+                if not ua.TrunkId in use_trunk_id:
+                    use_trunk_id.append(ua.TrunkId)
+                    try:
+                        ua.TrunkObject = self.Trunks[ua.TrunkId]
+                    except KeyError:
+                        logger.error("Trunk with id = %d not found { UA : %s }",int(ua.TrunkId),ua.Name)
+                        return False
+                else:
+                    logger.error("Duplicate TrunkId: %d { UA : %s }",int(ua.TrunkId),ua.Name)
+                    return False
+
+
         return True
 
     def _buildSippCmd(self):
@@ -216,7 +230,8 @@ class TestProcessor():
                 logging.info("---| UA Port:     %s", str(ua.UserObject.Port))
                 logging.info("---| UA RtpPort:  %s", str(ua.UserObject.RtpPort))
             elif ua.Type == "Trunk":
-                logging.info("---| UA Port:     %s", str(ua.Port))
+                logging.info("---| UA Port:     %s", str(ua.TrunkObject.Port))
+                logging.info("---| UA RtpPort:  %s", str(ua.TrunkObject.RtpPort))
 
         if not self._execSippProcess():
             self.NowRunningTest.Status = "Failed"
