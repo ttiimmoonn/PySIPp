@@ -1,0 +1,16 @@
+{
+  "$schema" : "http://json-schema.org/draft-04/schema#",
+  "title" : "Trunks schema",
+  "type" : "array",
+  "items" : {
+             "type" : "object",
+             "properties" : {
+              "TrunkId" : {"type" : "integer", "minimum" : 0, "exclusiveMinimum" : false},
+              "SipDomain" : {"type" : "string", "minLength" : 1},
+              "SipGroup" : {"type" : "string", "minLength" : 1},
+              "Port" : {"type" : "integer", "minimum" : 1024, "maximum" : 65536, "exclusiveMinimum" : false, "exclusiveMaximum" : false},
+              "SipTransport" : {"type" : "string", "enum" : ["UDP", "TCP"]}
+             },
+             "required" : ["TrunkId", "SipDomain", "SipGroup", "Port"]
+  }
+}
