@@ -199,13 +199,13 @@ if valid:
 #Парсинг данных о пользователях
 logger.info("Parsing users from json...")
 test_users = parse.parse_user_info(test_desc["Users"])
-if not test_users:
+if test_users == False:
     sys.exit(1)
 
 #Парсинг данных о транках
 logger.info("Parsing trunks from json...")
 test_trunks = parse.parse_trunk_info(test_desc["Trunks"])
-if not test_trunks:
+if test_trunks == False:
     sys.exit(1)
 
 #Парсинг данных о тестах
