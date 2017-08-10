@@ -375,15 +375,8 @@ class Parser:
                test_var[str(userId + "." + "SipGroup" + "%%")] = str(user["SipGroup"])
                test_var[str(userId + "." + "Number" + "%%")] = str(user["Number"])
                test_var[str(userId + "." + "Port" + "%%")] = str(user["Port"])
-           for trunk in test_desc["Trunks"]:
-               TrunkId = "%%"+ "Tr." + str(trunk["TrunkId"])
-               #Добавляем описание основных параметров юзера
-               test_var[str(TrunkId + "." + "SipDomain" + "%%")] = str(user["SipDomain"])
-               test_var[str(TrunkId + "." + "SipGroup" + "%%")] = str(user["SipGroup"])
-               test_var[str(TrunkId + "." + "Port" + "%%")] = str(user["Port"])
         except KeyError:
             pass
-        print(test_var)
         return test_var
 
     def parse_sys_conf(self, sys_json, py_sipp_path):
