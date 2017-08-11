@@ -156,3 +156,6 @@ class TrunkClass():
         self.SipGroup = None
         self.SipDomain = None
         self.RtpPort = None
+        self.Login = None
+        self.Password = None
+        self.RegType = None

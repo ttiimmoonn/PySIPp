@@ -229,12 +229,24 @@ class Parser:
                 new_trunk.RtpPort = trunk["RtpPort"]
             except KeyError:
                 pass
+            try:
+                new_trunk.RegType = trunk["RegType"]
+            except:
+                pass
+            try:
+                new_trunk.Login = trunk["Login"]
+            except:
+                pass
+            try:
+                new_trunk.Password = trunk["Password"]
+            except:
+                pass
             #Если есть два транка с одинаковыми id, выходим
             if new_trunk.TrunkId in trunks:
                 logger.error("TrunkId = %d is already in use", new_trunk.TrunkId)
                 return False
             #Если два транка используют одинаковые порты, то выходим:
-            if len({trunkId: trunk for trunkId,trunk in trunks.items() if trunk.Port == new_trunk.Port}) > 0:
+            if {trunkId: trunk for trunkId,trunk in trunks.items() if trunk.Port == new_trunk.Port}:
                 logger.error("Trunk Port = %d is already in use. TrunkId: %d", new_trunk.Port,new_trunk.TrunkId)
                 return False
             trunks[new_trunk.TrunkId] = new_trunk
@@ -298,7 +310,7 @@ class Parser:
                 logger.error("UserId = %d is already in use", new_user.UserId)
                 return False
             #Если два транка используют одинаковые порты, то выходим:
-            if len({UserId: user for UserId,user in users.items() if user.Port == new_user.Port}) > 0:
+            if {UserId: user for UserId,user in users.items() if user.Port == new_user.Port}:
                 logger.error("User Port = %d is already in use. UserID: %d", new_user.Port, new_user.UserId)
                 return False
             users[new_user.UserId] = new_user
