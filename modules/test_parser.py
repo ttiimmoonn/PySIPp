@@ -221,6 +221,7 @@ class Parser:
             new_trunk.SipDomain = trunk["SipDomain"]
             new_trunk.SipGroup = trunk["SipGroup"]
             new_trunk.Port = trunk["Port"]
+            new_trunk.TrunkName = trunk["TrunkName"]
             try:
                 new_trunk.SipTransport = trunk["SipTransport"]
             except KeyError:
@@ -241,6 +242,14 @@ class Parser:
                 new_trunk.Password = trunk["Password"]
             except:
                 pass
+            try:
+                new_trunk.Expires = trunk["Expires"]
+            except:
+                new_trunk.Expires = 90
+            try:
+                new_trunk.QParam = trunk["QParam"]
+            except:
+                new_trunk.QParam = 1
             #Если есть два транка с одинаковыми id, выходим
             if new_trunk.TrunkId in trunks:
                 logger.error("TrunkId = %d is already in use", new_trunk.TrunkId)
@@ -383,20 +392,26 @@ class Parser:
         #Забираем переменные, описанные юзером
         if "UserVar" in test_desc:
             test_var = test_desc["UserVar"][0]
-        for user in test_desc["Users"]:
-            #Добавляем описание основных параметров юзера
-            var_prefix = "%%" + str(user["UserId"])
-            test_var[str(var_prefix + "." + "SipDomain" + "%%")] = str(user["SipDomain"])
-            test_var[str(var_prefix + "." + "SipGroup" + "%%")] = str(user["SipGroup"])
-            test_var[str(var_prefix + "." + "Number" + "%%")] = str(user["Number"])
-            test_var[str(var_prefix + "." + "Port" + "%%")] = str(user["Port"])
-        for trunk in test_desc["Trunks"]:
-            #Добавляем описание основных параметров транков
-            var_prefix = "%%Tr." + str(trunk["TrunkId"])
-            test_var[str(var_prefix + "." + "SipDomain" + "%%")] = str(trunk["SipDomain"])
-            test_var[str(var_prefix + "." + "SipGroup" + "%%")] = str(trunk["SipGroup"])
-            test_var[str(var_prefix + "." + "Port" + "%%")] = str(trunk["Port"])
-            test_var[str(var_prefix + "." + "TrunkId" + "%%")] = str(trunk["TrunkId"])
+        try:
+            for user in test_desc["Users"]:
+                #Добавляем описание основных параметров юзера
+                var_prefix = "%%" + str(user["UserId"])
+                test_var[str(var_prefix + "." + "SipDomain" + "%%")] = str(user["SipDomain"])
+                test_var[str(var_prefix + "." + "SipGroup" + "%%")] = str(user["SipGroup"])
+                test_var[str(var_prefix + "." + "Number" + "%%")] = str(user["Number"])
+                test_var[str(var_prefix + "." + "Port" + "%%")] = str(user["Port"])
+        except KeyError:
+            pass
+        try:
+            for trunk in test_desc["Trunks"]:
+                #Добавляем описание основных параметров транков
+                var_prefix = "%%Tr." + str(trunk["TrunkId"])
+                test_var[str(var_prefix + "." + "SipDomain" + "%%")] = str(trunk["SipDomain"])
+                test_var[str(var_prefix + "." + "SipGroup" + "%%")] = str(trunk["SipGroup"])
+                test_var[str(var_prefix + "." + "Port" + "%%")] = str(trunk["Port"])
+                test_var[str(var_prefix + "." + "TrunkId" + "%%")] = str(trunk["TrunkId"])
+        except KeyError:
+            pass
 
         return test_var
 

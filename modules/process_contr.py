@@ -10,83 +10,106 @@ logger = logging.getLogger("tester")
 def SubscribeToUser(user):
     pass
 
-def RegisterUser (user, mode="reg"):
+def RegisterUser (reg_obj, mode="reg"):
     if mode == "reg":
         # Взводим timer если нет флага onetimereg
-        if not user.RegOneTime:
-            user.SetRegistrationTimer()
+        if not reg_obj.RegOneTime:
+            reg_obj.SetRegistrationTimer()
         # Запускаем процесс
-        process = start_ua(user.RegCommand)
+        process = start_ua(reg_obj.RegCommand)
         if not process:
-            logger.error(" ---| User %s not registred. Detail: Can't start process {SIPp not found}",user.Number)
-            user.Status = "Registration process not started."
+            if type(reg_obj).__name__ == "UserClass":
+                logger.error(" ---| User %s not registred. Detail: Can't start process {SIPp not found}",reg_obj.Number)
+            elif type(reg_obj).__name__ == "TrunkClass":
+                logger.error(" ---| Trunk %s not registred. Detail: Can't start process {SIPp not found}",reg_obj.TrunkName)
+            reg_obj.Status = "Registration process not started."
             # Выставляем Status код равный 1
-            user.SetStatusCode(1)
+            reg_obj.SetStatusCode(1)
             # Удаляем timer
-            user.CleanRegistrationTimer()
+            reg_obj.CleanRegistrationTimer()
             return False
         else:
-            user.RegProcess = process
+            reg_obj.RegProcess = process
 
         try:
-            user.RegProcess.communicate(timeout=5)
-            if user.RegProcess.poll() != 0:
-                user.Status = "Error of registration"
+            reg_obj.RegProcess.communicate(timeout=5)
+            if reg_obj.RegProcess.poll() != 0:
+                reg_obj.Status = "Error of registration"
                 # Cтавим код выхода
-                user.SetStatusCode(user.RegProcess.poll())
+                reg_obj.SetStatusCode(reg_obj.RegProcess.poll())
                 # Делаем сброс таймера
-                user.CleanRegistrationTimer()
-                logger.error(" ---| User %s not registred. Detail: Registeration failed. SIPp process return bad exit code: %d.",user.Number,user.RegProcess.poll())
+                reg_obj.CleanRegistrationTimer()
+                if type(reg_obj).__name__ == "UserClass":
+                    logger.error(" ---| User %s not registred. Detail: Registeration failed. SIPp process return bad exit code: %d.",reg_obj.Number,reg_obj.RegProcess.poll())
+                elif type(reg_obj).__name__ == "TrunkClass":
+                    logger.error(" ---| Trunk %s not registred. Detail: Registeration failed. SIPp process return bad exit code: %d.",reg_obj.TrunkName,reg_obj.RegProcess.poll())
                 return False
             else:
-                user.Status = "Registered"
-                user.SetStatusCode(user.RegProcess.poll()) 
-                logger.info(" ---| User %s registred at %s; on port %s; exp time = %d, mode = %s",user.Number,str(datetime.strftime(datetime.now(), "%H:%M:%S")),user.Port,(int(user.Expires) * 2 / 3),user.Mode)
+                reg_obj.Status = "Registered"
+                reg_obj.SetStatusCode(reg_obj.RegProcess.poll())
+                if type(reg_obj).__name__ == "UserClass":
+                    logger.info(" ---| User %s registred at %s; on port %s; exp time = %d, mode = %s",reg_obj.Number,str(datetime.strftime(datetime.now(), "%H:%M:%S")),reg_obj.Port,(int(reg_obj.Expires) * 2 / 3),reg_obj.Mode)
+                elif type(reg_obj).__name__ == "TrunkClass":
+                    logger.info(" ---| Trunk %s registred at %s; on port %s; exp time = %d, mode = %s",reg_obj.TrunkName,str(datetime.strftime(datetime.now(), "%H:%M:%S")),reg_obj.Port,(int(reg_obj.Expires) * 2 / 3),reg_obj.Mode)
                 return True
         except subprocess.TimeoutExpired:
-            user.RegProcess.kill()
-            user.Status = "Error of registration (timeout)."
-            user.SetStatusCode(2)
-            user.CleanRegistrationTimer()
-            logger.error(" ---| User %s not registred. Detail: UA registration process break by timeout.",user.Number)
+            reg_obj.RegProcess.kill()
+            reg_obj.Status = "Error of registration (timeout)."
+            reg_obj.SetStatusCode(2)
+            reg_obj.CleanRegistrationTimer()
+            if type(reg_obj).__name__ == "UserClass":
+                logger.error(" ---| User %s not registred. Detail: UA registration process break by timeout.",reg_obj.Number)
+            elif type(reg_obj).__name__ == "TrunkClass":
+                logger.error(" ---| Trunk %s not registred. Detail: UA registration process break by timeout.",reg_obj.TrunkName)
             return False
     elif mode == "unreg":
         try:
-            if user.RegProcess.poll() == None:
-                user.RegProcess.wait()
+            if reg_obj.RegProcess.poll() == None:
+                reg_obj.RegProcess.wait()
         except AttributeError:
             return False
-        process = start_ua(user.UnRegCommand)
+        process = start_ua(reg_obj.UnRegCommand)
         if not process:
-            logger.error(" ---| User registration %s not dropped. Detail: Can't start process {SIPp not found}",user.Number)
-            user.SetStatusCode(3)
+            if type(reg_obj).__name__ == "UserClass":
+                logger.error(" ---| User registration %s not dropped. Detail: Can't start process {SIPp not found}",reg_obj.Number)
+            elif type(reg_obj).__name__ == "TrunkClass":
+                logger.error(" ---| Trunk registration %s not dropped. Detail: Can't start process {SIPp not found}",reg_obj.TrunkName)
+            reg_obj.SetStatusCode(3)
             return False
         else:
-            user.UnRegProcess = process
+            reg_obj.UnRegProcess = process
         try:
-            user.UnRegProcess.communicate(timeout=5)
-            if user.UnRegProcess.poll() != 0:
-                user.Status = "Error of drop registration"
-                logger.error(" ---| User registration %s not dropped. Detail: SIPp process return bad exit code.",user.Number)
-                user.SetStatusCode(user.RegProcess.poll())
+            reg_obj.UnRegProcess.communicate(timeout=5)
+            if reg_obj.UnRegProcess.poll() != 0:
+                reg_obj.Status = "Error of drop registration"
+                if type(reg_obj).__name__ == "UserClass":
+                    logger.error(" ---| User registration %s not dropped. Detail: SIPp process return bad exit code.",reg_obj.Number)
+                elif type(reg_obj).__name__ == "TrunkClass":
+                    logger.error(" ---| Trunk registration %s not dropped. Detail: SIPp process return bad exit code.",reg_obj.Trunk)
+                reg_obj.SetStatusCode(reg_obj.RegProcess.poll())
                 return False
             else:
-                user.Status = "Dropped"
-                logger.info(" ---| User registration %s is dropped.",user.Number)
-                user.SetStatusCode(user.RegProcess.poll())
+                reg_obj.Status = "Dropped"
+                if type(reg_obj).__name__ == "UserClass":
+                    logger.info(" ---| User registration %s is dropped.",reg_obj.Number)
+                elif type(reg_obj).__name__ == "TrunkClass":
+                    logger.info(" ---| Trunk registration %s is dropped.",reg_obj.TrunkName)
+                reg_obj.SetStatusCode(reg_obj.RegProcess.poll())
                 return True
         except subprocess.TimeoutExpired:
-            user.UnRegProcess.kill()
-            user.Status = "Error of drop (timeout)"
-            logger.error(" ---| User registration %s not dropped. Detail: UA registration process break by timeout.",user.Number)
-            user.SetStatusCode(4)
+            reg_obj.UnRegProcess.kill()
+            reg_obj.Status = "Error of drop (timeout)"
+            if type(reg_obj).__name__ == "UserClass":
+                logger.error(" ---| User registration %s not dropped. Detail: UA registration process break by timeout.",reg_obj.Number)
+            elif type(reg_obj).__name__ == "TrunkClass":
+                logger.error(" ---| Trunk registration %s not dropped. Detail: UA registration process break by timeout.",reg_obj.TrunkName)
+            reg_obj.SetStatusCode(4)
             return False
     else:
         logger.error(" ---| Bad arg {set registration func}")
         return False
 
 
-            
 def preexec_process():
     import os
     os.setpgrp()

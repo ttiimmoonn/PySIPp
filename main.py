@@ -160,11 +160,11 @@ fs_work = fs.fs_working()
 py_sipp_path = os.path.dirname(__file__)
 
 try:
-    logging.basicConfig(filename=log_file,format = u'%(asctime)-8s %(levelname)-8s [%(module)s -> %(funcName)s:%(lineno)d] %(message)-8s', filemode='w', level = logging.DEBUG)
+    logging.basicConfig(filename=log_file,format = u'%(asctime)-8s %(levelname)-8s [%(module)s -> %(funcName)s:%(lineno)d] %(message)-8s', filemode='w', level = logging.INFO)
 except FileNotFoundError:
     match_result = re.search("^([\w.-_]+\/)[\w.-_]+$",log_file)
     fs_work.create_log_dir(match_result.group(1))
-    logging.basicConfig(filename=log_file,format = u'%(asctime)-8s %(levelname)-8s [%(module)s -> %(funcName)s:%(lineno)d] %(message)-8s', filemode='w', level = logging.DEBUG)
+    logging.basicConfig(filename=log_file,format = u'%(asctime)-8s %(levelname)-8s [%(module)s -> %(funcName)s:%(lineno)d] %(message)-8s', filemode='w', level = logging.INFO)
 except:
     sys.exit(1)
 
@@ -205,15 +205,21 @@ if valid:
 
 #Парсинг данных о пользователях
 logger.info("Parsing users from json...")
-test_users = parse.parse_user_info(test_desc["Users"])
-if test_users == False:
-    sys.exit(1)
+try:
+    test_users = parse.parse_user_info(test_desc["Users"])
+    if test_users == False:
+        sys.exit(1)
+except KeyError:
+    pass
 
 #Парсинг данных о транках
 logger.info("Parsing trunks from json...")
-test_trunks = parse.parse_trunk_info(test_desc["Trunks"])
-if test_trunks == False:
-    sys.exit(1)
+try:
+    test_trunks = parse.parse_trunk_info(test_desc["Trunks"])
+    if test_trunks == False:
+        sys.exit(1)
+except KeyError:
+    pass
 
 #Парсинг данных о тестах
 logger.info("Parsing tests from json string...")

@@ -115,7 +115,6 @@ class UserClass:
         self.Mode = "Auto"
         self.BindPort = None
 
-    
     def SetRegistrationTimer(self):
         self.Timer = threading.Timer((int(self.Expires) * 2 / 3), proc.RegisterUser, args=(self,) , kwargs=None)
         self.Timer.start()
@@ -150,7 +149,10 @@ class UserClass:
 class TrunkClass():
     def __init__(self):
         self.Status = None
+        self.Timer = None
+        self.StatusCode = None
         self.TrunkId = None
+        self.TrunkName = None
         self.Port = None
         self.SipTransport = None
         self.SipGroup = None
@@ -159,3 +161,43 @@ class TrunkClass():
         self.Login = None
         self.Password = None
         self.RegType = None
+        self.Script = None
+        self.RegCommand = None
+        self.UnRegCommand = None
+        self.RegProcess = None
+        self.UnRegProcess = None
+        self.Expires = None
+        self.QParam = None
+        self.RegOneTime = None
+        self.TrunkLock = threading.Lock()
+
+    def SetRegistrationTimer(self):
+        self.Timer = threading.Timer((int(self.Expires) * 2 / 3), proc.RegisterUser, args=(self,) , kwargs=None)
+        self.Timer.start()
+
+    def CleanRegistrationTimer(self):
+        try:
+            self.Timer.cancel()
+        except AttributeError:
+            pass
+
+    def ReadStatusCode(self):
+        if not self.TrunkLock.acquire():
+            #не удалось заблокировать ресурс
+            return False
+        else:
+            try:
+                #Возвращаем статус код
+                return self.StatusCode
+            finally:
+                self.TrunkLock.release() 
+    def SetStatusCode(self,statusCode):
+        if not self.TrunkLock.acquire():
+            #не удалось заблокировать ресурс
+            return False
+        else:
+            try:
+                #Возвращаем статус код
+                self.StatusCode = statusCode
+            finally:
+                self.TrunkLock.release()

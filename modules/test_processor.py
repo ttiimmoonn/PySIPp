@@ -19,12 +19,14 @@ class TestProcessor():
 
         #Словарь для сборки команд
         self.TestVar = kwargs["TestVar"]
-        #Объекты юзеров и транков
+        #Словари юзеров и транков
         self.Users = kwargs["Users"]
         self.Trunks = kwargs["Trunks"]
-        self.AutoRegUsers = {user_id: user for user_id, user in kwargs["Users"].items() if user.Mode == "Auto"}
-        self.ManualRegUsers = {user_id: user for user_id, user in kwargs["Users"].items() if user.Mode == "Manual"}
-        self.Trunks = kwargs["Trunks"]
+
+        #Словари для объектов с регистрацией
+        self.AutoRegTrunks = {trunk_id: trunk for trunk_id,trunk in self.Trunks.items() if trunk.RegType == "out"}
+        self.AutoRegUsers = {user_id: user for user_id, user in self.Users.items() if user.Mode == "Auto"}
+        self.ManualRegUsers = {user_id: user for user_id, user in self.Users.items() if user.Mode == "Manual"}
 
         #Генератор Item для TestProcedure
         self.GenForTest = None
@@ -408,12 +410,19 @@ class TestProcessor():
             return False
 
     def StartTestProcessor(self):
+        if not self._StartUserRegistration(self.AutoRegTrunks):
+            self.Status == "Registration Failed"
+            self.failed_flag = True
+            return False
+        else:
+            self.Status = "Registration Complite"
         if not self._StartUserRegistration(self.AutoRegUsers):
             self.Status == "Registration Failed"
             self.failed_flag = True
             return False
         else:
             self.Status = "Registration Complite"
+
 
         self.Status = "Test pocessing"
         for test in self.Tests:
