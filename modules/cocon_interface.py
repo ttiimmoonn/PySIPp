@@ -178,6 +178,9 @@ def cocon_configure(Commands,coconInt,test_var = None):
     Commands = Commands[0]
     cmd_build = builder.Command_building()
     if not Commands:
+        #Отпускаем lock
+        if coconInt.global_ccn_lock:
+            coconInt.lock_release()
         return True
     cmd_string = ""
     for Command in Commands.values():
