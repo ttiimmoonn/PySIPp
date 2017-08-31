@@ -53,11 +53,7 @@ class TestProcessor():
 
     def StopTestProcessor(self):
         self.Status = "Stopping test_processor"
-
-        #Для корректного завершения теста нужно выслать все ccn_cmd, которые он не послал.
-        self._SendAllCcnCmd()
         logger.debug("Drop all SIPp processes...")
-        
         #Дропаем процессы
         if self.NowRunningTest != None:
             for ua in self.NowRunningTest.UserAgent + self.NowRunningTest.WaitBackGroundUA:
@@ -65,15 +61,22 @@ class TestProcessor():
                     if process.poll() == None:
                         process.kill()
 
+        #Разрегистрируем транки
+        if self.RegLock and len(self.AutoRegUsers) > 0:
+            self._StopUserRegistration(self.AutoRegTrunks)
         #Разрегистрируем юзеров
         if self.RegLock and len(self.AutoRegUsers) > 0:
             self._StopUserRegistration(self.AutoRegUsers)
+
+        #Для корректного завершения теста нужно выслать все ccn_cmd, которые он не послал.
+        self._SendAllCcnCmd()
+
         #Даём время на сворачивание thread
         self._sleep(0.2)
         return True
 
     def _StopUserRegistration(self, reg_users):
-        logger.info("Drop registration of users.")
+        logger.info("Drop registration...")
         unreg_thread = threading.Thread(target=proc.ChangeUsersRegistration, args=(reg_users,self.RegLock,"unreg",))
         unreg_thread.start()
         #Даём завершиться thread'у разрегистрации
@@ -83,7 +86,7 @@ class TestProcessor():
         return True
 
     def _StartUserRegistration(self, reg_users):
-        self.Status = "Register users"
+        self.Status = "Start Registration..."
         if not self._buildRegCommands(reg_users):
             return False
         #Врубаем регистрацию для всех юзеров
@@ -415,13 +418,13 @@ class TestProcessor():
             self.failed_flag = True
             return False
         else:
-            self.Status = "Registration Complite"
+            self.Status = "Trunk Registration Complite"
         if not self._StartUserRegistration(self.AutoRegUsers):
             self.Status == "Registration Failed"
             self.failed_flag = True
             return False
         else:
-            self.Status = "Registration Complite"
+            self.Status = "User Registration Complite"
 
 
         self.Status = "Test pocessing"

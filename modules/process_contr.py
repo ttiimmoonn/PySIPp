@@ -40,9 +40,9 @@ def RegisterUser (reg_obj, mode="reg"):
                 # Делаем сброс таймера
                 reg_obj.CleanRegistrationTimer()
                 if type(reg_obj).__name__ == "UserClass":
-                    logger.error(" ---| User %s not registred. Detail: Registeration failed. SIPp process return bad exit code: %d.",reg_obj.Number,reg_obj.RegProcess.poll())
+                    logger.error(" ---| User %s not registred. Detail: Registration failed. SIPp process return bad exit code: %d.",reg_obj.Number,reg_obj.RegProcess.poll())
                 elif type(reg_obj).__name__ == "TrunkClass":
-                    logger.error(" ---| Trunk %s not registred. Detail: Registeration failed. SIPp process return bad exit code: %d.",reg_obj.TrunkName,reg_obj.RegProcess.poll())
+                    logger.error(" ---| Trunk %s not registred. Detail: Registration failed. SIPp process return bad exit code: %d.",reg_obj.TrunkName,reg_obj.RegProcess.poll())
                 return False
             else:
                 reg_obj.Status = "Registered"
@@ -50,7 +50,7 @@ def RegisterUser (reg_obj, mode="reg"):
                 if type(reg_obj).__name__ == "UserClass":
                     logger.info(" ---| User %s registred at %s; on port %s; exp time = %d, mode = %s",reg_obj.Number,str(datetime.strftime(datetime.now(), "%H:%M:%S")),reg_obj.Port,(int(reg_obj.Expires) * 2 / 3),reg_obj.Mode)
                 elif type(reg_obj).__name__ == "TrunkClass":
-                    logger.info(" ---| Trunk %s registred at %s; on port %s; exp time = %d, mode = %s",reg_obj.TrunkName,str(datetime.strftime(datetime.now(), "%H:%M:%S")),reg_obj.Port,(int(reg_obj.Expires) * 2 / 3),reg_obj.Mode)
+                    logger.info(" ---| Trunk %s registred at %s; on port %s; exp time = %d",reg_obj.TrunkName,str(datetime.strftime(datetime.now(), "%H:%M:%S")),reg_obj.Port,(int(reg_obj.Expires) * 2 / 3))
                 return True
         except subprocess.TimeoutExpired:
             reg_obj.RegProcess.kill()

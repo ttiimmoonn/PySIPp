@@ -55,7 +55,6 @@ class Command_building:
         command += " -error_overwrite false -trace_err -error_file " + log_path + "/" + LOG_PREFIX + "ERROR"
         command = self.replace_key_value(command, test_var)
         if command:
-            print(command)
             return command
         else:
             return False
@@ -110,7 +109,6 @@ class Command_building:
                     no_timeout_err = command["NoTimeOutError"]
                 except KeyError:
                     no_timeout_err = False
-
                 command=""                
                 command += "%%SIPP_PATH%%"
                 command += " -sf " + "%%SRC_PATH%%" + "/" + sipp_sf + " "
