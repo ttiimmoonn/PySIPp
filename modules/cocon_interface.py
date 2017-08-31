@@ -39,9 +39,6 @@ class coconInterface:
         return True
 
     def get_channel(self):
-        if self.global_ccn_lock:
-            logger.info("Try to get global_ccn_lock")
-            self.lock_acquire()
         try:
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -91,9 +88,6 @@ class coconInterface:
             except:
                  logger.warning("Exception on exec ssh command! Close ssh connection")
                  return False
-            finally:
-                if self.global_ccn_lock:
-                    self.lock_release()
             logger.debug("Recv ccn output.")
             #Сохраняем вывод
             self.data = b""
@@ -124,9 +118,6 @@ class coconInterface:
             else:
                 return True
         else:
-            if self.global_ccn_lock:
-                self.lock_release()
-            #Возвращаем False
             return False
 
     def close_connection(self):
@@ -177,8 +168,13 @@ def ccn_command_handler(coconInt):
                 time.sleep(random.randint(2, 5))
                 continue
 
-    
+
 def cocon_configure(Commands,coconInt,test_var = None):
+    #Пытаемся захватить lock
+    if coconInt.global_ccn_lock:
+        logger.info("Try to get global_ccn_lock")
+        coconInt.lock_acquire()
+
     Commands = Commands[0]
     cmd_build = builder.Command_building()
     if not Commands:
@@ -195,12 +191,18 @@ def cocon_configure(Commands,coconInt,test_var = None):
             else:
                 cmd_string += Command + "\n"
         else:
+            #Отпускаем lock
+            if coconInt.global_ccn_lock:
+                coconInt.lock_release()
             return False
     cmd_string += "exit\n"
     #Если команда собралась без ошибок отправляем её в thread
     coconInt.coconQueue.put(cmd_string)
     #Ждём пока thread разгребёт очередь
     coconInt.coconQueue.join()
+    #Отпускаем lock
+    if coconInt.global_ccn_lock:
+        coconInt.lock_release()
     #Проверяем, что все команды были отправлены
     if coconInt.ConnectionStatus:
         return True
@@ -209,12 +211,19 @@ def cocon_configure(Commands,coconInt,test_var = None):
 
 #For pakru tests
 def cocon_push_string_command(Commands,coconInt):
+    #Пытаемся захватить lock
+    if coconInt.global_ccn_lock:
+        logger.info("Try to get global_ccn_lock")
+        coconInt.lock_acquire()
     cmd_string = Commands
     cmd_string += "exit\n"
     #Если команда собралась без ошибок отправляем её в thread
     coconInt.coconQueue.put(cmd_string)
     #Ждём пока thread разгребёт очередь
     coconInt.coconQueue.join()
+    #Отпускаем lock
+    if coconInt.global_ccn_lock:
+        coconInt.lock_release()
     #Проверяем, что все команды были отправлены
     if coconInt.ConnectionStatus:
         return True
