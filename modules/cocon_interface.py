@@ -189,7 +189,11 @@ def cocon_configure(Commands,coconInt,test_var = None):
         if test_var:
             Command = cmd_build.replace_key_value(Command, test_var)
         if Command:
-            cmd_string += Command + "\n" + "sleep 0.5\n"
+            #Ставим паузу для команд, которые юзают blf или делают import
+            if Command.find("blf") != -1 or Command.find("import") != -1:
+                cmd_string += Command + "\n" + "sleep 0.5\n"
+            else:
+                cmd_string += Command + "\n"
         else:
             return False
     cmd_string += "exit\n"
