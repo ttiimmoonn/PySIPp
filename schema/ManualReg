@@ -10,7 +10,8 @@
                                           "type" : "object",
                                           "properties" : {
                                                   "script" : {"type" : "string", "minLength" : 1},
-                                                  "need_drop" : {"type" : "boolean"}
+                                                  "need_drop" : {"type" : "boolean"},
+                                                  "additional_options" : {"type" : "string", "minLength" : 1}
                                            },
                                            "required" : ["script"]
                                     }

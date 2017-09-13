@@ -24,6 +24,8 @@ class Command_building:
         else:
             command+=" -set PORT " + str(user.Port)
         if mode == "reg":
+            if user.AddRegParams != None:
+                command+=" " + str(user.AddRegParams)
             command+=" -set EXPIRES " + str(user.Expires)
         elif mode == "unreg":
             command+=" -set EXPIRES " + "0"
