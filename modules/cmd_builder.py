@@ -90,7 +90,7 @@ class Command_building:
             for command in ua.RawJsonCommands:
                 sipp_sf = command["SourceFile"]
                 sipp_options = command["Options"]
-                sipp_type = command["SippType"]          
+                sipp_type = command["SippType"]
                 #Если был передан флаг о сбросе UAC команд, то просто не собираем их.
                 if uac_drop_flag:
                     if sipp_type == "uac":

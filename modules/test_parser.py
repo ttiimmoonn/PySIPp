@@ -404,16 +404,19 @@ class Parser:
             pass
         try:
             for trunk in test_desc["Trunks"]:
-                #Добавляем описание основных параметров транков
-                var_prefix = "%%Tr." + str(trunk["TrunkId"])
-                test_var[str(var_prefix + "." + "SipDomain" + "%%")] = str(trunk["SipDomain"])
-                test_var[str(var_prefix + "." + "SipGroup" + "%%")] = str(trunk["SipGroup"])
-                test_var[str(var_prefix + "." + "Port" + "%%")] = str(trunk["Port"])
-                test_var[str(var_prefix + "." + "TrunkId" + "%%")] = str(trunk["TrunkId"])
-                test_var[str(var_prefix + "." + "TrunkName" + "%%")] = str(trunk["TrunkName"])
-                test_var[str(var_prefix + "." + "Login" + "%%")] = str(trunk["Login"])
-                test_var[str(var_prefix + "." + "Password" + "%%")] = str(trunk["Password"])
-        except KeyError:
+               #Добавляем описание основных параметров транков
+               var_prefix = "%%Tr." + str(trunk["TrunkId"])
+               try:
+                   test_var[str(var_prefix + "." + "SipDomain" + "%%")] = str(trunk["SipDomain"])
+                   test_var[str(var_prefix + "." + "SipGroup" + "%%")] = str(trunk["SipGroup"])
+                   test_var[str(var_prefix + "." + "Port" + "%%")] = str(trunk["Port"])
+                   test_var[str(var_prefix + "." + "TrunkId" + "%%")] = str(trunk["TrunkId"])
+                   test_var[str(var_prefix + "." + "TrunkName" + "%%")] = str(trunk["TrunkName"])
+                   test_var[str(var_prefix + "." + "Login" + "%%")] = str(trunk["Login"])
+                   test_var[str(var_prefix + "." + "Password" + "%%")] = str(trunk["Password"])
+               except KeyError:
+                pass
+        except:
             pass
 
         return test_var
