@@ -107,6 +107,7 @@ class UserClass:
         self.SipGroup = None
         self.SipTransport = None
         self.UserIP = None
+        self.AddRegParams = None
         #Для тестирования регистраций с левого ip:port
         self.FakePort = None
         self.UserLock = threading.Lock()

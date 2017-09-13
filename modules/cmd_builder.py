@@ -27,6 +27,9 @@ class Command_building:
                 command+=" -set PORT " + str(reg_obj.Port)
             if reg_obj.BindPort != None:
                 command+=" -p " + str(reg_obj.BindPort)
+            if mode == "reg":
+                if reg_obj.AddRegParams != None:
+                    command+=" " + str(reg_obj.AddRegParams)
             command+=" -set NUMBER " + reg_obj.Number
             LOG_PREFIX = "REG_" + "USER_NUMBER_" + reg_obj.Number + "_"
 

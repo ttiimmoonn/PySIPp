@@ -383,18 +383,24 @@ class TestProcessor():
                 logger.error("Can't find userId: %d in ManualRegUsers dict.", int(user_id))
                 self.NowRunningTest.Status="Failed"
                 return False
-            #Затычка. По идеи это должен был сделать парсер теста.
+            #TODO. По идеи это должен был сделать парсер теста.
             if not "need_drop" in reg_scripts[user_id]:
                 reg_scripts[user_id]["need_drop"] = "False"
 
         reg_users = {user_id: user for user_id, user in self.ManualRegUsers.items() if str(user_id) in reg_scripts.keys()}
         for user_id, user in reg_users.items():
             user.Script = reg_scripts[str(user_id)]["script"]
+            #Если есть дополнительные параметры регистрации, то добавляем их
+            try:
+                user.AddRegParams = reg_scripts[str(user_id)]["additional_options"]
+            except KeyError:
+                pass
             #Выставляем флаг разовой регистрации
             user.RegOneTime = True
         #Запускаем процесс регистрации
         if not self._StartUserRegistration(reg_users):
             self.NowRunningTest.Status="Failed"
+        #Собираем в drop_users тех юзеров, которые запросили разрегистрацию
         drop_users = {user_id: user for user_id, user in reg_users.items() if reg_scripts[str(user_id)]["need_drop"]=="True"}
         if not self._StopUserRegistration(drop_users):
             self.NowRunningTest.Status="Failed"
