@@ -59,19 +59,34 @@ class diff_timestamp():
 		if ua.TimeStampFile:
 			stat_file = fs_work.get_fd(ua.TimeStampFile)
 			if stat_file:
-				logger.info("Parse short_msg_file for UA %s",str(ua.UserObject.Number))
+				if ua.UserObject != None:
+					logger.info("Parse short_msg_file for UserObject with Number %s",str(ua.UserObject.Number))
+				elif ua.TrunkObject:
+					logger.info("Parse short_msg_file for TrunkObject with Port %s",str(ua.TrunkObject.Port))
 				ua.ShortTrParser = tr_parser.short_trace_parser(stat_file)
 				ua.ShortTrParser.parse_trace_msg()
-				logger.debug("Сlose short_msg_file for UA %s",str(ua.UserObject.Number))
+				if ua.UserObject != None:
+					logger.debug("Сlose short_msg_file for UserObject with Number %s",str(ua.UserObject.Number))
+				elif ua.TrunkObject:
+					logger.debug("Сlose short_msg_file for TrunkObject with Port %s",str(ua.TrunkObject.Port))
 				stat_file.close()
 				if ua.ShortTrParser.Status == "Failed":
-					logger.error("Parse complite for UA %s. Result: fail.",str(ua.UserObject.Number))
+					if ua.UserObject != None:
+						logger.error("Parse complite for UserObject with Number %s. Result: fail.",str(ua.UserObject.Number))
+					elif ua.TrunkObject != None:
+						logger.error("Parse complite for TrunkObject with Port %s. Result: fail.",str(ua.TrunkObject.Port))
 					self.Status = "Failed"
 				else:
-					logger.info("Parse complite for UA %s. Result: succ.",str(ua.UserObject.Number))
+					if ua.UserObject != None:
+						logger.info("Parse complite for UserObject with Number %s. Result: succ.",str(ua.UserObject.Number))
+					elif ua.TrunkObject != None:
+						logger.info("Parse complite for TrunkObject with Port %s. Result: succ.",str(ua.TrunkObject.Port))
 					self.ua_with_traces[ua.UserId] = ua
 			else:
-				logger.error("Parse complite for UA %s. Result: fail.",str(ua.UserObject.Number))
+				if ua.UserObject != None:
+					logger.error("Parse complite for UserObject with Number %s. Result: fail.",str(ua.UserObject.Number))
+				elif ua.TrunkObject != None:
+					logger.error("Parse complite for TrunkObject with Port %s. Result: fail.",str(ua.TrunkObject.Port))
 				self.Status = "Failed"
 		return ua
 
