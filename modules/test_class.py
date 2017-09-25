@@ -170,6 +170,8 @@ class TrunkClass():
         self.Expires = None
         self.QParam = None
         self.RegOneTime = None
+        self.RemotePort = None
+        self.Mode = "Auto"
         self.TrunkLock = threading.Lock()
 
     def SetRegistrationTimer(self):

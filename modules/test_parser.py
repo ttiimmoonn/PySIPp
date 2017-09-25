@@ -223,6 +223,10 @@ class Parser:
             new_trunk.Port = trunk["Port"]
             new_trunk.TrunkName = trunk["TrunkName"]
             try:
+                new_trunk.RemotePort = trunk["RemotePort"]
+            except:
+                pass
+            try:
                 new_trunk.SipTransport = trunk["SipTransport"]
             except KeyError:
                 new_trunk.SipTransport = "UDP"
@@ -414,6 +418,10 @@ class Parser:
                    test_var[str(var_prefix + "." + "TrunkName" + "%%")] = str(trunk["TrunkName"])
                    test_var[str(var_prefix + "." + "Login" + "%%")] = str(trunk["Login"])
                    test_var[str(var_prefix + "." + "Password" + "%%")] = str(trunk["Password"])
+               except KeyError:
+                pass
+               try:
+                   test_var[str(var_prefix + "." + "RemotePort" + "%%")] = str(trunk["RemotePort"])
                except KeyError:
                 pass
         except:

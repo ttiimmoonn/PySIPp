@@ -10,7 +10,14 @@ class Command_building:
         #Сборка команды для регистрации
         command=""
         command+="%%SIPP_PATH%%" + " "
-        command+="%%EXTER_IP%%" + ":" + "%%EXTER_PORT%%" + " "
+        command+="%%EXTER_IP%%" + ":"
+        try:
+            if reg_obj.RemotePort != None:
+                command+=reg_obj.RemotePort + " "
+            else:
+                command+="%%EXTER_PORT%%" + " "
+        except:
+            command+="%%EXTER_PORT%%" + " "
         command+="-i " + "%%IP%%" + " "
         command+=" -set DOMAIN " + str(reg_obj.SipDomain) + " "
 
@@ -115,7 +122,14 @@ class Command_building:
                 command=""                
                 command += "%%SIPP_PATH%%"
                 command += " -sf " + "%%SRC_PATH%%" + "/" + sipp_sf + " "
-                command += "%%EXTER_IP%%" + ":" + "%%EXTER_PORT%%"
+                command += "%%EXTER_IP%%" + ":"
+                try:
+                    if ua.TrunkObject.RemotePort != None:
+                        command+=str(ua.TrunkObject.RemotePort) + " "
+                    else:
+                        command+="%%EXTER_PORT%%" + " "
+                except:
+                    command+="%%EXTER_PORT%%" + " "
                 command += " -i " + "%%IP%%" + " "
                 command += sipp_options
                 if ua.Type == "User":
