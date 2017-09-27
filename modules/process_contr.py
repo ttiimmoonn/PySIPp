@@ -48,7 +48,7 @@ def RegisterUser (reg_obj, mode="reg"):
                 reg_obj.Status = "Registered"
                 reg_obj.SetStatusCode(reg_obj.RegProcess.poll())
                 if type(reg_obj).__name__ == "UserClass":
-                    logger.info(" ---| User %s registred at %s; on port %s; exp time = %d, mode = %s",reg_obj.Number,str(datetime.strftime(datetime.now(), "%H:%M:%S")),reg_obj.Port,(int(reg_obj.Expires) * 2 / 3),reg_obj.Mode)
+                    logger.info(" ---| User %s registred at %s; on port %s; exp time = %d, mode = %s",reg_obj.Number,str(datetime.strftime(datetime.now(), "%H:%M:%S")),reg_obj.Port,(int(reg_obj.Expires) * 2 / 3),reg_obj.RegMode)
                 elif type(reg_obj).__name__ == "TrunkClass":
                     logger.info(" ---| Trunk %s registred at %s; on port %s; exp time = %d",reg_obj.TrunkName,str(datetime.strftime(datetime.now(), "%H:%M:%S")),reg_obj.Port,(int(reg_obj.Expires) * 2 / 3))
                 return True

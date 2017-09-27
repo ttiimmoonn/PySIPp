@@ -96,7 +96,7 @@ class UserClass:
         self.Login = None
         self.Password = None
         self.SipDomain = None
-        self.Expires = 3600
+        self.Expires = 90
         self.QParam = 1
         self.Port = None
         self.RtpPort = None
@@ -106,14 +106,15 @@ class UserClass:
         self.UnRegProcess = None
         self.SipGroup = None
         self.SipTransport = None
-        self.UserIP = None
+        self.RegContactIP = None
+        self.RegContactPort = None
         self.AddRegParams = None
         #Для тестирования регистраций с левого ip:port
         self.FakePort = None
         self.UserLock = threading.Lock()
         #Для тестов регистрации, необходимо поддержать manual режим
         self.Script = None
-        self.Mode = "Auto"
+        self.RegMode = "Auto"
         self.BindPort = None
 
     def SetRegistrationTimer(self):
@@ -167,11 +168,16 @@ class TrunkClass():
         self.UnRegCommand = None
         self.RegProcess = None
         self.UnRegProcess = None
-        self.Expires = None
+        self.Expires = 90
+        self.ContactIP = None
+        self.ContactPort = None
         self.QParam = None
         self.RegOneTime = None
         self.RemotePort = None
-        self.Mode = "Auto"
+        self.RegContactIP = None
+        self.RegContactPort = None
+        self.RegMode = "Auto"
+        self.BindPort = None
         self.TrunkLock = threading.Lock()
 
     def SetRegistrationTimer(self):

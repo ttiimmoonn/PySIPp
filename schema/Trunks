@@ -8,6 +8,8 @@
               "TrunkId" : {"type" : "integer", "minimum" : 0, "exclusiveMinimum" : false},
               "TrunkName" : {"type" : "string", "minLength" : 1},
               "SipDomain" : {"type" : "string", "minLength" : 1},
+              "RegContactIP" : {"type" : "string", "minLength" : 7, "maxLength" : 15},
+              "RegContactPort" : {"type" : "integer", "minimum" : 1024, "maximum" : 65536, "exclusiveMinimum" : false, "exclusiveMaximum" : false},
               "SipGroup" : {"type" : "string", "minLength" : 1},
               "Port" : {"type" : "integer", "minimum" : 1024, "maximum" : 65536, "exclusiveMinimum" : false, "exclusiveMaximum" : false},
               "RemotePort" : {"type" : "integer", "minimum" : 1024, "maximum" : 65536, "exclusiveMinimum" : false, "exclusiveMaximum" : false},

@@ -24,9 +24,12 @@ class TestProcessor():
         self.Trunks = kwargs["Trunks"]
 
         #Словари для объектов с регистрацией
-        self.AutoRegTrunks = {trunk_id: trunk for trunk_id,trunk in self.Trunks.items() if trunk.RegType == "out"}
-        self.AutoRegUsers = {user_id: user for user_id, user in self.Users.items() if user.Mode == "Auto"}
-        self.ManualRegUsers = {user_id: user for user_id, user in self.Users.items() if user.Mode == "Manual"}
+        self.AutoRegTrunks = {trunk_id: trunk for trunk_id,trunk in self.Trunks.items() if trunk.RegType == "out" and trunk.RegMode == "Auto"}
+        self.ManualRegTrunks = {trunk_id: trunk for trunk_id,trunk in self.Trunks.items() if trunk.RegType == "out" and trunk.RegMode == "Manual"}
+        self.AutoRegUsers = {user_id: user for user_id, user in self.Users.items() if user.RegMode == "Auto"}
+        self.ManualRegUsers = {user_id: user for user_id, user in self.Users.items() if user.RegMode == "Manual"}
+
+
 
         #Генератор Item для TestProcedure
         self.GenForTest = None
@@ -377,46 +380,89 @@ class TestProcessor():
                 if item[0] == "SendSSHCommand":
                     ssh.cocon_configure(item[1],self.CoconInt,self.TestVar)
 
-    def _RegUserManual(self, reg_scripts):
-        for user_id, mode in  reg_scripts.items():
-            if not int(user_id) in self.ManualRegUsers.keys():
-                logger.error("Can't find userId: %d in ManualRegUsers dict.", int(user_id))
-                self.NowRunningTest.Status="Failed"
-                return False
-            #TODO. По идеи это должен был сделать парсер теста.
-            if not "need_drop" in reg_scripts[user_id]:
-                reg_scripts[user_id]["need_drop"] = "False"
+    def _RegManual(self, reg_objects, mode="user"):
 
-        reg_users = {user_id: user for user_id, user in self.ManualRegUsers.items() if str(user_id) in reg_scripts.keys()}
-        for user_id, user in reg_users.items():
-            user.Script = reg_scripts[str(user_id)]["script"]
-            #Если есть дополнительные параметры регистрации, то добавляем их
-            try:
-                user.AddRegParams = reg_scripts[str(user_id)]["additional_options"]
-            except KeyError:
-                pass
-            #Выставляем флаг разовой регистрации
-            user.RegOneTime = True
+        for obj_id in reg_objects.keys():
+            #Проверяем, что запрашиваемый юезер существует
+            if mode == "user":
+                if not int(obj_id) in self.ManualRegUsers.keys():
+                    logger.error("Can't find userId: %d in ManualRegUsers dict.", int(obj_id))
+            #Проверяем, что запрашиваемый транк существует
+            elif mode == "trunk":
+                if not int(obj_id) in self.ManualRegTrunks.keys():
+                    logger.error("Can't find trunkId: %d in ManualRegTrunks dict.", int(obj_id))
+
+            #Если need_drop не был передан, то выставляем его в False
+            if not "need_drop" in reg_objects[obj_id]:
+                reg_objects[obj_id]["need_drop"] = False
+
+            #Собираем словарь для регистрируемых объектов
+            if mode == "user":
+                reg_dict = {user_id: user for user_id, user in self.ManualRegUsers.items() if str(user_id) in reg_objects.keys()}
+            elif mode == "trunk":
+                reg_dict = {trunk_id: trunk for trunk_id, trunk in self.ManualRegTrunks.items() if str(trunk_id) in reg_objects.keys()}
+
+            #Производим настройку объектов для рагистрации
+            for obj_id, obj in reg_dict.items():
+                obj.Script = reg_objects[str(obj_id)]["script"]
+                #Если есть дополнительные параметры регистрации, то добавляем их
+                try:
+                    obj.AddRegParams = reg_objects[str(obj_id)]["additional_options"]
+                except KeyError:
+                    pass
+                #Устанавливаем параметры RegContactPort и RegContactIP
+                try:
+                    obj.RegContactPort = reg_objects[str(obj_id)]["contact_port"]
+                except KeyError:
+                    obj.RegContactPort = None
+                try:
+                    obj.RegContactIP = reg_objects[str(obj_id)]["contact_ip"]
+                except KeyError:
+                    obj.RegContactIP = None
+                try:
+                    obj.Expires = reg_objects[str(obj_id)]["expires"]
+                except KeyError:
+                    pass
+                #Выставляем флаг разовой регистрации
+                obj.RegOneTime = True
+
         #Запускаем процесс регистрации
-        if not self._StartUserRegistration(reg_users):
+        if not self._StartUserRegistration(reg_dict):
             self.NowRunningTest.Status="Failed"
         #Собираем в drop_users тех юзеров, которые запросили разрегистрацию
-        drop_users = {user_id: user for user_id, user in reg_users.items() if reg_scripts[str(user_id)]["need_drop"]=="True"}
-        if not self._StopUserRegistration(drop_users):
-            self.NowRunningTest.Status="Failed"
-
-    def _DropManualReg(self, drop_user_id):
-        drop_users={}
-        for user_id in drop_user_id:
-            if not int(user_id) in self.ManualRegUsers.keys():
-                logger.error("Can't find userId: %d in ManualRegUsers dict.", int(user_id))
+        if mode == "user":
+            drop_dict = {user_id: user for user_id, user in reg_dict.items() if reg_objects[str(user_id)]["need_drop"]==True}
+        elif mode == "trunk":
+            drop_dict = {trunk_id: trunk for trunk_id, trunk in reg_dict.items() if reg_objects[str(trunk_id)]["need_drop"]==True}
+        if drop_dict:
+            if not self._StopUserRegistration(drop_dict):
                 self.NowRunningTest.Status="Failed"
-                return False
-            else:
-                drop_users[int(user_id)]=self.ManualRegUsers[int(user_id)]
-        if not self._StopUserRegistration(drop_users):
+
+    def _DropManualReg(self, obj_id_list,mode):
+        drop_dict={}
+        for obj_id in obj_id_list:
+            if mode == "user":
+                if not int(obj_id) in self.ManualRegUsers.keys():
+                    logger.error("Can't find userId: %d in ManualRegUsers dict.", int(obj_id))
+                    self.NowRunningTest.Status="Failed"
+                    return False
+                else:
+                    drop_dict[int(obj_id)]=self.ManualRegUsers[int(obj_id)]
+            elif mode=="trunk":
+                if not int(obj_id) in self.ManualRegTrunks.keys():
+                    logger.error("Can't find trunkId: %d in ManualRegTrunks dict.", int(obj_id))
+                    self.NowRunningTest.Status="Failed"
+                    return False
+                else:
+                    drop_dict[int(obj_id)]=self.ManualRegTrunks[int(obj_id)]
+        if not self._StopUserRegistration(drop_dict):
             self.NowRunningTest.Status="Failed"
             return False
+        #Сброс в дефолт параметров для регистрации
+        for obj in drop_dict.values():
+            obj.RegContactPort = None
+            obj.RegContactIP = None
+            obj.Expires = 90
 
     def StartTestProcessor(self):
         if not self._StartUserRegistration(self.AutoRegTrunks):
@@ -479,9 +525,15 @@ class TestProcessor():
             elif item[0] == "CheckRetransmission":
                 self._execCheckRetransmission(item[1])
             elif item[0] == "ManualReg":
-                self._RegUserManual(item[1])
+                if "Users" in item[1]:
+                    self._RegManual(item[1]["Users"],"user")
+                elif "Trunks" in item[1]:
+                    self._RegManual(item[1]["Trunks"],"trunk")
             elif item[0] == "DropManualReg":
-                self._DropManualReg(item[1])
+                if "Users" in item[1]:
+                    self._DropManualReg(item[1]["Users"],"user")
+                elif "Trunks" in item[1]:
+                    self._DropManualReg(item[1]["Trunks"],"trunk")
             else:
                 logger.error("Unknown metod: %s in test procedure. Test aborting.",item[0])
                 self.NowRunningTest.Status = "Failed"

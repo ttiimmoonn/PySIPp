@@ -26,14 +26,6 @@ class Command_building:
                 command+="-sf " + "%%REG_XML%%" + " "
             else:
                 command+="-sf "  + "%%SRC_PATH%%" + "/" + reg_obj.Script + " "
-            if reg_obj.UserIP != None:
-                command+=" -set USER_IP " + str(reg_obj.UserIP)
-            if reg_obj.FakePort != None:
-                command+=" -set PORT " + str(reg_obj.FakePort)
-            else:
-                command+=" -set PORT " + str(reg_obj.Port)
-            if reg_obj.BindPort != None:
-                command+=" -p " + str(reg_obj.BindPort)
             if mode == "reg":
                 if reg_obj.AddRegParams != None:
                     command+=" " + str(reg_obj.AddRegParams)
@@ -42,9 +34,21 @@ class Command_building:
 
         elif type(reg_obj).__name__ == "TrunkClass":
             command+="-sf " + "%%REG_XML%%" + " "
-            command += " -set PORT " + str(reg_obj.Port)
             command+=" -set NUMBER " + reg_obj.TrunkName
             LOG_PREFIX = "REG_" + "TRUNK_" + reg_obj.TrunkName + "_"
+
+        if reg_obj.RegContactIP != None:
+            command += " -set USER_IP " + str(reg_obj.RegContactIP)
+        else:
+            command += " -set USER_IP " + "%%IP%%"
+        if reg_obj.RegContactPort != None:
+            command += " -set PORT " + str(reg_obj.RegContactPort)
+        else:
+            command+=" -set PORT " + str(reg_obj.Port)
+
+        if reg_obj.BindPort != None:
+            command+=" -p " + str(reg_obj.BindPort)
+
 
         if mode == "reg":
             command+=" -set EXPIRES " + str(reg_obj.Expires)

@@ -15,11 +15,9 @@
               "Expires" : {"type" : "integer", "minimum" : 0, "maximum" : 3600, "exclusiveMinimum" : false, "exclusiveMaximum" : false},
               "QParam" : {"type" : "number", "minimum" : 0, "maximum" : 1, "exclusiveMinimum" : false, "exclusiveMaximum" : false},
               "OneTime" : {"type" : "boolean"},
-              "UserIP" : {"type" : "string", "minLength" : 7, "maxLength" : 15},
-              "FakePort" : {"type" : "integer", "minimum" : 1024, "maximum" : 65536, "exclusiveMinimum" : false, "exclusiveMaximum" : false},
               "RtpPort" : {"type" : "integer","minimum" : 1024, "maximum" : 65536, "exclusiveMinimum" : false, "exclusiveMaximum" : false},
               "SipTransport" : {"type" : "string", "enum" : ["UDP", "TCP"]},
-              "Mode" : {"type" : "string", "enum" : ["Auto", "Manual"]},
+              "RegMode" : {"type" : "string", "enum" : ["Auto", "Manual"]},
               "BindPort" : {"type" : "integer", "minimum" : 1024, "maximum" : 65536, "exclusiveMinimum" : false, "exclusiveMaximum" : false} 
              },
              "required" : ["UserId", "Number", "Login", "Password", "SipDomain", "SipGroup", "Port"]

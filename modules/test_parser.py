@@ -70,8 +70,11 @@ class Validator:
                         else:
                             self.pretty_print(section, error_path, isreq=True)
                     else:
-                        error_key = error_path.pop()
-                        self.pretty_print(section, error_path, error_key=error_key)
+                        try:
+                            error_key = error_path.pop()
+                            self.pretty_print(section, error_path, error_key=error_key)
+                        except IndexError:
+                            print(e)
                 logger.info("Error description: \033[1;31m%s\033[1;m" % e.message)
                 sys.exit(1)
 
@@ -254,6 +257,14 @@ class Parser:
                 new_trunk.QParam = trunk["QParam"]
             except:
                 new_trunk.QParam = 1
+            try:
+                new_trunk.RegMode = trunk["RegMode"]
+            except KeyError:
+                new_trunk.RegMode = "Manual"
+            try:
+                new_trunk.BindPort = trunk["BindPort"]
+            except:
+                pass
             #Если есть два транка с одинаковыми id, выходим
             if new_trunk.TrunkId in trunks:
                 logger.error("TrunkId = %d is already in use", new_trunk.TrunkId)
@@ -311,7 +322,7 @@ class Parser:
             except KeyError:
                 pass
             try:
-                new_user.Mode = user["Mode"]
+                new_user.RegMode = user["RegMode"]
             except KeyError:
                 pass
             try:
