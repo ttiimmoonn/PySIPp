@@ -66,6 +66,7 @@ class Command_building:
         command += " -message_overwrite false -trace_msg -message_file " + log_path + "/" + LOG_PREFIX + "MESSAGE"
         #Добавляем error trace
         command += " -error_overwrite false -trace_err -error_file " + log_path + "/" + LOG_PREFIX + "ERROR"
+        command += " -cid_str " + str(user.RegCallId)
         command = self.replace_key_value(command, test_var)
         if command:
             return command
