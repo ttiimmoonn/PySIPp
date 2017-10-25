@@ -1,5 +1,6 @@
 import threading
 import modules.process_contr as proc
+import uuid
 import modules.fs_worker as fs
 
 class TestClass:
@@ -87,6 +88,7 @@ class UserClass:
     def __init__(self):
         self.Timer = None
         self.RegOneTime = False
+        self.RegCallId = uuid.uuid4()
         self.Status = "New"
         self.StatusCode = 0
         self.RegType = None
