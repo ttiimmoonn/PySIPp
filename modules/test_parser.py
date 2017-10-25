@@ -232,7 +232,7 @@ class Parser:
             try:
                 new_trunk.SipTransport = trunk["SipTransport"]
             except KeyError:
-                new_trunk.SipTransport = "UDP"
+                pass
             try:
                 new_trunk.RtpPort = trunk["RtpPort"]
             except KeyError:

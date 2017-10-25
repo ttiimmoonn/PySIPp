@@ -157,6 +157,7 @@ class TrunkClass():
         self.TrunkName = None
         self.Port = None
         self.SipTransport = None
+        self.AddRegParams = None
         self.SipGroup = None
         self.SipDomain = None
         self.RtpPort = None

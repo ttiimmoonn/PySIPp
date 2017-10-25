@@ -22,18 +22,10 @@ class Command_building:
         command+=" -set DOMAIN " + str(reg_obj.SipDomain) + " "
 
         if type(reg_obj).__name__ == "UserClass":
-            if reg_obj.Script == None:
-                command+="-sf " + "%%REG_XML%%" + " "
-            else:
-                command+="-sf "  + "%%SRC_PATH%%" + "/" + reg_obj.Script + " "
-            if mode == "reg":
-                if reg_obj.AddRegParams != None:
-                    command+=" " + str(reg_obj.AddRegParams)
             command+=" -set NUMBER " + reg_obj.Number
             LOG_PREFIX = "REG_" + "USER_NUMBER_" + reg_obj.Number + "_"
 
         elif type(reg_obj).__name__ == "TrunkClass":
-            command+="-sf " + "%%REG_XML%%" + " "
             command+=" -set NUMBER " + reg_obj.TrunkName
             LOG_PREFIX = "REG_" + "TRUNK_" + reg_obj.TrunkName + "_"
 
@@ -49,6 +41,13 @@ class Command_building:
         if reg_obj.BindPort != None:
             command+=" -p " + str(reg_obj.BindPort)
 
+        if reg_obj.Script == None:
+            command+=" -sf " + "%%REG_XML%%" + " "
+        else:
+            command+=" -sf "  + "%%SRC_PATH%%" + "/" + reg_obj.Script + " "
+        if mode == "reg":
+            if reg_obj.AddRegParams != None:
+                command+=" " + str(reg_obj.AddRegParams)
 
         if mode == "reg":
             command+=" -set EXPIRES " + str(reg_obj.Expires)
