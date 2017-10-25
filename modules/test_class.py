@@ -160,6 +160,7 @@ class TrunkClass():
         self.Port = None
         self.SipTransport = None
         self.AddRegParams = None
+        self.RegCallId = uuid.uuid4()
         self.SipGroup = None
         self.SipDomain = None
         self.RtpPort = None
