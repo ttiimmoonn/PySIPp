@@ -91,6 +91,10 @@ class TestProcessor():
         for obj in reg_objects.values():
             obj.RegCSeq = 1
             obj.RegCallId = uuid.uuid4()
+            obj.RegContactPort = None
+            obj.RegContactIP = None
+            obj.AddRegParams = None
+            obj.Expires = 90
         if not proc.CheckUserRegStatus(reg_objects):
             return False
         return True
@@ -466,11 +470,7 @@ class TestProcessor():
         if not self._StopUserRegistration(drop_dict):
             self.NowRunningTest.Status="Failed"
             return False
-        #Сброс в дефолт параметров для регистрации
-        for obj in drop_dict.values():
-            obj.RegContactPort = None
-            obj.RegContactIP = None
-            obj.Expires = 90
+
 
     def StartTestProcessor(self):
         if not self._StartUserRegistration(self.AutoRegTrunks):
