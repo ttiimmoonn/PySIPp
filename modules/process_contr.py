@@ -16,6 +16,7 @@ def RegisterUser (reg_obj, mode="reg"):
         if not reg_obj.RegOneTime:
             reg_obj.SetRegistrationTimer()
         # Запускаем процесс
+        
         process = start_ua(reg_obj.RegCommand)
         if not process:
             if type(reg_obj).__name__ == "UserClass":
@@ -304,7 +305,7 @@ def CheckUserRegStatus(test_users):
             return False
     return True
 
-def ChangeUsersRegistration(test_users, lock, mode="reg"):
+def ChangeUsersRegistration(reg_objs, lock, mode="reg"):
     if lock.locked():
         logger.warning("Registration lock object is acquired. Waiting release...")
     if not lock.acquire():
@@ -315,9 +316,10 @@ def ChangeUsersRegistration(test_users, lock, mode="reg"):
             if mode == "reg":
                 reg_threads=[]
                 #Запускаем регистрацию
-                for user in test_users:
-                    reg_thread = threading.Thread(target=RegisterUser, args=(test_users[user],mode))
+                for obj in reg_objs:
+                    reg_thread = threading.Thread(target=RegisterUser, args=(reg_objs[obj],mode))
                     reg_thread.start()
+                    reg_objs[obj].RegCSeq += 2
                     #Добавляем thread в массив
                     reg_threads.append(reg_thread)
 
@@ -325,21 +327,25 @@ def ChangeUsersRegistration(test_users, lock, mode="reg"):
                 for reg_thread in reg_threads:
                     reg_thread.join()
 
+
             elif mode == "unreg":
                 reg_threads=[]
                 #Делаем остановку всех таймеров
-                for user in test_users:
+                for user in reg_objs:
                     #Если таймер существует, то дропаем его
-                    if test_users[user].Timer:
-                        test_users[user].CleanRegistrationTimer()
+                    if reg_objs[user].Timer:
+                        reg_objs[user].CleanRegistrationTimer()
 
-                for user in test_users:
-                    if test_users[user].Status == "Dropped":
-                        logger.warning("Registaration for user %s already dropped",test_users[user].Login)
+                for obj in reg_objs:
+                    if reg_objs[obj].Status == "Dropped":
+                        logger.warning("Registaration for user %s already dropped",reg_objs[obj].Login)
+                        continue
+                    if reg_objs[obj].Status == "Failed":
+                        logger.warning("Previous registaration for user %s failed",reg_objs[obj].Login)
                         continue
                     #Дропаем только успешные регистрации
-                    if test_users[user].ReadStatusCode() == 0:
-                        reg_thread = threading.Thread(target=RegisterUser, args=(test_users[user],mode))
+                    if reg_objs[obj].ReadStatusCode() == 0:
+                        reg_thread = threading.Thread(target=RegisterUser, args=(reg_objs[obj],mode))
                         reg_thread.start()
                         #Добавляем thread в массив
                         reg_threads.append(reg_thread)

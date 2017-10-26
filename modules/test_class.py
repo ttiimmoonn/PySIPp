@@ -91,6 +91,7 @@ class UserClass:
         self.Timer = None
         self.RegOneTime = False
         self.RegCallId = uuid.uuid4()
+        self.RegCSeq = 1
         self.Status = "New"
         self.StatusCode = 0
         self.RegType = None
@@ -161,6 +162,7 @@ class TrunkClass():
         self.SipTransport = None
         self.AddRegParams = None
         self.RegCallId = uuid.uuid4()
+        self.RegCSeq = 1
         self.SipGroup = None
         self.SipDomain = None
         self.RtpPort = None

@@ -41,18 +41,19 @@ class Command_building:
         if reg_obj.BindPort != None:
             command+=" -p " + str(reg_obj.BindPort)
 
-        if reg_obj.Script == None:
-            command+=" -sf " + "%%REG_XML%%" + " "
-        else:
-            command+=" -sf "  + "%%SRC_PATH%%" + "/" + reg_obj.Script + " "
         if mode == "reg":
             if reg_obj.AddRegParams != None:
                 command+=" " + str(reg_obj.AddRegParams)
-
-        if mode == "reg":
             command+=" -set EXPIRES " + str(reg_obj.Expires)
+            if reg_obj.Script == None:
+                command+=" -sf " + "%%REG_XML%%" + " "
+            else:
+                command+=" -sf "  + "%%SRC_PATH%%" + "/" + reg_obj.Script + " "
         elif mode == "unreg":
             command+=" -set EXPIRES " + "0"
+            command+=" -sf " + "%%REG_XML%%" + " "
+
+
         command+=" -set USER_Q " + str(reg_obj.QParam)
         command+=" -s " + reg_obj.Login + " -ap " + reg_obj.Password
         command+=" -m 1"
@@ -67,6 +68,7 @@ class Command_building:
         #Добавляем error trace
         command += " -error_overwrite false -trace_err -error_file " + log_path + "/" + LOG_PREFIX + "ERROR"
         command += " -cid_str " + str(reg_obj.RegCallId)
+        command += " -base_cseq " + str(reg_obj.RegCSeq)
         command = self.replace_key_value(command, test_var)
         if command:
             return command

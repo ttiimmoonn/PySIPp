@@ -6,6 +6,7 @@ import modules.cmd_builder as builder
 import modules.process_contr as proc
 import modules.fs_worker as fs
 import sys
+import uuid
 import time
 from datetime import datetime
 import threading
@@ -78,52 +79,59 @@ class TestProcessor():
         self._sleep(0.2)
         return True
 
-    def _StopUserRegistration(self, reg_users):
+    def _StopUserRegistration(self,reg_objects):
         logger.info("Drop registration...")
-        unreg_thread = threading.Thread(target=proc.ChangeUsersRegistration, args=(reg_users,self.RegLock,"unreg",))
+        if not self._buildRegCommands(reg_objects,mode="unreg"):
+            return False
+        unreg_thread = threading.Thread(target=proc.ChangeUsersRegistration, args=(reg_objects,self.RegLock,"unreg",))
         unreg_thread.start()
         #Даём завершиться thread'у разрегистрации
         unreg_thread.join()
-        if not proc.CheckUserRegStatus(reg_users):
+        #Обновляем параметры регистрации
+        for obj in reg_objects.values():
+            obj.RegCSeq = 1
+            obj.RegCallId = uuid.uuid4()
+        if not proc.CheckUserRegStatus(reg_objects):
             return False
         return True
 
-    def _StartUserRegistration(self, reg_users):
+    def _StartUserRegistration(self, reg_objects):
         self.Status = "Start Registration..."
-        if not self._buildRegCommands(reg_users):
+        if not self._buildRegCommands(reg_objects):
             return False
-        #Врубаем регистрацию для всех юзеров
+        #Врубаем регистрацию для всех объектов
         logger.info("Starting of registration...")
 
-        self.RegThread  = threading.Thread(target=proc.ChangeUsersRegistration, args=(reg_users,self.RegLock))
+        self.RegThread  = threading.Thread(target=proc.ChangeUsersRegistration, args=(reg_objects,self.RegLock))
         self.RegThread.start()
         self.RegThread.join()
-        if not proc.CheckUserRegStatus(reg_users):
+        if not proc.CheckUserRegStatus(reg_objects):
             return False
         return True
 
 
-    def _buildRegCommands(self, users):
-        if len(users) > 0:
+    def _buildRegCommands(self, reg_objects, mode="reg"):
+        if len(reg_objects) > 0:
             #Собираем команды для регистрации абонентов
-            logger.info("Building of registration command for UA...")
-            cmd_build = builder.Command_building()
-            for user in users.values():
-                command = cmd_build.build_reg_command(user,self.LogPath,self.TestVar)
-                if command:
-                    user.RegCommand = command
-                else:
-                    return False
+            if mode =="reg":
+                logger.info("Building commands for starting registration...")
+            else:
+                logger.info("Building commands for stopping registration...")
 
-            #Собираем команды для сброса регистрации абонентов
-            logger.info("Building command for dropping of users registration...")
-            for user in users.values():
-                command = cmd_build.build_reg_command(user,self.LogPath,self.TestVar,"unreg")
+            cmd_build = builder.Command_building()
+
+            for obj in reg_objects.values():
+                command = cmd_build.build_reg_command(obj,self.LogPath,self.TestVar,mode=mode)
                 if command:
-                    user.UnRegCommand = command
+                    if mode=="reg":
+                        obj.RegCommand = command 
+                    else:
+                        obj.UnRegCommand = command 
                 else:
                     return False
         return True
+
+
 
     def _getTestItemGen(self,Test):
         for item in Test:
