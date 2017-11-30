@@ -24,7 +24,8 @@
              },
              "required" : ["TrunkId", "SipDomain", "SipGroup", "Port", "TrunkName"],
               "dependencies": {
-              "RegType": ["Login","Password"]
+              "RegType": ["Login","Password"],
+              "RegMode": ["RegType"]
               }
             }
 }
