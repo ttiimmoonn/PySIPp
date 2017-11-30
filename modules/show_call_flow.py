@@ -11,7 +11,10 @@ class sip_flow():
 
 	def print_flow(self):
 		for ua in self.trace_obj.ua_with_traces.values():
-			logger.info("Flow for user: %s",str(ua.UserObject.Number))
+			if ua.UserObject != None:
+				logger.info("Flow for user with number: %s",str(ua.UserObject.Number))
+			elif ua.TrunkObject != None:
+				logger.info("Flow for trunk with port: %s",str(ua.TrunkObject.Port))
 			for call in ua.ShortTrParser.calls:
 				logger.info("Call Flow for Call-ID: %s \n",call.call_id)
 				print_string = ""

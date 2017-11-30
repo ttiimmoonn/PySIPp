@@ -1,23 +1,72 @@
 {
-  "$schema" : "http://json-schema.org/draft-04/schema#",
-  "title" : "ManualReg schema",
-  "type" : "object",
-  "properties" : {
-                  "ManualReg" : {
-                         "type" : "object",
-                         "patternProperties" : {
-                                    "^\\d+$" : {
-                                          "type" : "object",
-                                          "properties" : {
-                                                  "script" : {"type" : "string", "minLength" : 1},
-                                                  "need_drop" : {"type" : "boolean"},
-                                                  "additional_options" : {"type" : "string", "minLength" : 1}
-                                           },
-                                           "required" : ["script"]
-                                    }
-                          },
-                          "additionalProperties": false
-                   }
-   },
-   "required" : ["ManualReg"]
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "ManualReg schema",
+  "definitions": {
+    "ManualRegItems": {
+      "type": "object",
+      "patternProperties": {
+        "^\\d+$": {
+          "type": "object",
+          "properties": {
+            "script": {
+              "type": "string",
+              "minLength": 1
+            },
+            "need_drop": {
+              "type": "boolean"
+            },
+            "additional_options": {
+              "type": "string",
+              "minLength": 1
+            },
+            "contact_ip": {
+              "type": "string",
+              "minLength": 1
+            },
+            "expires" : {
+              "type" : "integer",
+              "minimum" : 0,
+              "maximum" : 3600,
+              "exclusiveMinimum" : false
+            },
+            "contact_port" : {
+              "type" : "integer",
+              "minimum" : 1024,
+              "maximum" : 65536,
+              "exclusiveMinimum" : false
+            }
+          },
+          "additionalProperties" : false,
+          "required": [
+            "script"
+          ]
+        }
+      },
+      "additionalProperties" : false
+    }
+  },
+  "type": "object",
+  "required": ["ManualReg"],
+  "properties": {
+    "ManualReg": {
+      "type": "object",
+      "properties": {
+        "Users": {
+          "$ref": "#/definitions/ManualRegItems"
+        },
+        "Trunks": {
+          "$ref": "#/definitions/ManualRegItems"
+        }
+      },
+      "additionalProperties" : false,
+      "anyOf" : [
+          {
+              "required" : ["Users"]
+          }, 
+          {
+              "required" : ["Trunks"]
+          }
+      ]
+    }
+  }
 }

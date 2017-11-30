@@ -92,9 +92,16 @@ def get_test_info (test):
         print("     UaStatus:       ",ua.Status)
         print("     UaStatusCode:   ",ua.StatusCode)
         print("     UaType:         ",ua.Type)
-        print("     UaUserId:       ",ua.UserId)
-        print("     UaUserObj:      ",ua.UserObject)
-        print("     UaPort:         ",ua.Port)
+        if ua.UserObject != None:
+            print("     UaUserId:       ",ua.UserObject.UserId)
+            print("     UaUserObj:      ",ua.UserObject)
+            print("     UaUserPort:     ",ua.UserObject.Port)
+            print("     UaUserRtpPort:  ",ua.UserObject.RtpPort)
+        if ua.TrunkObject != None:
+            print("     UaTrunkId:      ",ua.TrunkObject.TrunkId)
+            print("     UaTrunkObj:     ",ua.TrunkObject)
+            print("     UaTrunkPort:    ",ua.TrunkObject.Port)
+            print("     UaTrunkRtpPort: ",ua.TrunkObject.RtpPort)
         print("     UaCommand:")
         for command in ua.Commands:
             print("      ",command)
@@ -137,6 +144,8 @@ log_file = namespace.log_file
 reg_lock = threading.Lock()
 #Декларируем массив для юзеров
 test_users = {}
+#Декларируем массив для транков
+test_trunks = {}
 #декларируем массив для тестов
 tests = []
 #Декларируем словарь пользовательских переменных
@@ -151,11 +160,11 @@ fs_work = fs.fs_working()
 py_sipp_path = os.path.dirname(__file__)
 
 try:
-    logging.basicConfig(filename=log_file,format = u'%(asctime)-8s %(levelname)-8s [%(module)s -> %(funcName)s:%(lineno)d] %(message)-8s', filemode='w', level = logging.DEBUG)
+    logging.basicConfig(filename=log_file,format = u'%(asctime)-8s %(levelname)-8s [%(module)s -> %(funcName)s:%(lineno)d] %(message)-8s', filemode='w', level = logging.INFO)
 except FileNotFoundError:
     match_result = re.search("^([\w.-_]+\/)[\w.-_]+$",log_file)
     fs_work.create_log_dir(match_result.group(1))
-    logging.basicConfig(filename=log_file,format = u'%(asctime)-8s %(levelname)-8s [%(module)s -> %(funcName)s:%(lineno)d] %(message)-8s', filemode='w', level = logging.DEBUG)
+    logging.basicConfig(filename=log_file,format = u'%(asctime)-8s %(levelname)-8s [%(module)s -> %(funcName)s:%(lineno)d] %(message)-8s', filemode='w', level = logging.INFO)
 except:
     sys.exit(1)
 
@@ -195,10 +204,22 @@ if valid:
     logger.info("Validation completed successfully")
 
 #Парсинг данных о пользователях
-logger.info("Parsing users from json string...")
-test_users = parse.parse_user_info(test_desc["Users"])
-if not test_users:
-    sys.exit(1)
+logger.info("Parsing users from json...")
+try:
+    test_users = parse.parse_user_info(test_desc["Users"])
+    if test_users == False:
+        sys.exit(1)
+except KeyError:
+    pass
+
+#Парсинг данных о транках
+logger.info("Parsing trunks from json...")
+try:
+    test_trunks = parse.parse_trunk_info(test_desc["Trunks"])
+    if test_trunks == False:
+        sys.exit(1)
+except KeyError:
+    pass
 
 #Парсинг данных о тестах
 logger.info("Parsing tests from json string...")
@@ -262,7 +283,7 @@ test_pr_config = {}
 test_pr_config["Tests"] = tests
 test_pr_config["ForceQuitFlag"] = force_quit
 test_pr_config["Users"] = test_users
-test_pr_config["Trunks"] = []
+test_pr_config["Trunks"] = test_trunks
 test_pr_config["CoconInt"] = coconInt
 test_pr_config["TestVar"] = test_var
 test_pr_config["ShowSipFlowFlag"] = show_sip_flow

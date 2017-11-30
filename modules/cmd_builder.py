@@ -6,47 +6,69 @@ logger = logging.getLogger("tester")
 
 class Command_building:
 
-    def build_reg_command(self, user, log_path, test_var, mode="reg"):
+    def build_reg_command(self, reg_obj, log_path, test_var, mode="reg"):
         #Сборка команды для регистрации
         command=""
         command+="%%SIPP_PATH%%" + " "
-        if user.Script == None:
-            command+="-sf " + "%%REG_XML%%" + " "
-        else:
-            command+="-sf "  + "%%SRC_PATH%%" + "/" + user.Script + " "
-        command+="%%EXTER_IP%%" + ":" + "%%EXTER_PORT%%" + " "
+        command+="%%EXTER_IP%%" + ":"
+        try:
+            if reg_obj.RemotePort != None:
+                command+=reg_obj.RemotePort + " "
+            else:
+                command+="%%EXTER_PORT%%" + " "
+        except:
+            command+="%%EXTER_PORT%%" + " "
         command+="-i " + "%%IP%%" + " "
-        command+=" -set DOMAIN " + str(user.SipDomain)
-        if user.UserIP != None:
-            command+=" -set USER_IP " + str(user.UserIP)
-        if user.FakePort != None:
-            command+=" -set PORT " + str(user.FakePort)
+        command+=" -set DOMAIN " + str(reg_obj.SipDomain) + " "
+
+        if type(reg_obj).__name__ == "UserClass":
+            command+=" -set NUMBER " + reg_obj.Number
+            LOG_PREFIX = "REG_" + "USER_NUMBER_" + reg_obj.Number + "_"
+
+        elif type(reg_obj).__name__ == "TrunkClass":
+            command+=" -set NUMBER " + reg_obj.TrunkName
+            LOG_PREFIX = "REG_" + "TRUNK_" + reg_obj.TrunkName + "_"
+
+        if reg_obj.RegContactIP != None:
+            command += " -set USER_IP " + str(reg_obj.RegContactIP)
         else:
-            command+=" -set PORT " + str(user.Port)
+            command += " -set USER_IP " + "%%IP%%"
+        if reg_obj.RegContactPort != None:
+            command += " -set PORT " + str(reg_obj.RegContactPort)
+        else:
+            command+=" -set PORT " + str(reg_obj.Port)
+
+        if reg_obj.BindPort != None:
+            command+=" -p " + str(reg_obj.BindPort)
+
         if mode == "reg":
-            if user.AddRegParams != None:
-                command+=" " + str(user.AddRegParams)
-            command+=" -set EXPIRES " + str(user.Expires)
+            if reg_obj.AddRegParams != None:
+                command+=" " + str(reg_obj.AddRegParams)
+            command+=" -set EXPIRES " + str(reg_obj.Expires)
+            if reg_obj.Script == None:
+                command+=" -sf " + "%%REG_XML%%" + " "
+            else:
+                command+=" -sf "  + "%%SRC_PATH%%" + "/" + reg_obj.Script + " "
         elif mode == "unreg":
             command+=" -set EXPIRES " + "0"
-        command+=" -set USER_Q " + str(user.QParam)
-        command+=" -set NUMBER " + user.Number
-        command+=" -s " + user.Login + " -ap " + user.Password
+            command+=" -sf " + "%%REG_XML%%" + " "
+
+
+        command+=" -set USER_Q " + str(reg_obj.QParam)
+        command+=" -s " + reg_obj.Login + " -ap " + reg_obj.Password
         command+=" -m 1"
         command+=" -nostdin"
         command+=" -timeout_error"
-        if user.BindPort != None:
-            command+=" -p " + str(user.BindPort)
-        if user.SipTransport == "TCP":
+        if reg_obj.SipTransport == "TCP":
             command+=" -t tn -max_socket 25"
-        if user.SipTransport != None:
-            command+=" -set USER_TRANSPORT " +  user.SipTransport.lower()
-        LOG_PREFIX = "REG_" + "NUMBER_" + user.Number + "_"
+        if reg_obj.SipTransport != None:
+            command+=" -set USER_TRANSPORT " +  reg_obj.SipTransport.lower()
         #Добавляем message trace
         command += " -message_overwrite false -trace_msg -message_file " + log_path + "/" + LOG_PREFIX + "MESSAGE"
         #Добавляем error trace
         command += " -error_overwrite false -trace_err -error_file " + log_path + "/" + LOG_PREFIX + "ERROR"
-        command += " -cid_str " + str(user.RegCallId)
+        command += " -cid_str " + str(reg_obj.RegCallId)
+        command += " -base_cseq " + str(reg_obj.RegCSeq)
         command = self.replace_key_value(command, test_var)
         if command:
             return command
@@ -84,7 +106,7 @@ class Command_building:
             for command in ua.RawJsonCommands:
                 sipp_sf = command["SourceFile"]
                 sipp_options = command["Options"]
-                sipp_type = command["SippType"]          
+                sipp_type = command["SippType"]
                 #Если был передан флаг о сбросе UAC команд, то просто не собираем их.
                 if uac_drop_flag:
                     if sipp_type == "uac":
@@ -103,11 +125,17 @@ class Command_building:
                     no_timeout_err = command["NoTimeOutError"]
                 except KeyError:
                     no_timeout_err = False
-
                 command=""                
                 command += "%%SIPP_PATH%%"
                 command += " -sf " + "%%SRC_PATH%%" + "/" + sipp_sf + " "
-                command += "%%EXTER_IP%%" + ":" + "%%EXTER_PORT%%"
+                command += "%%EXTER_IP%%" + ":"
+                try:
+                    if ua.TrunkObject.RemotePort != None:
+                        command+=str(ua.TrunkObject.RemotePort) + " "
+                    else:
+                        command+="%%EXTER_PORT%%" + " "
+                except:
+                    command+="%%EXTER_PORT%%" + " "
                 command += " -i " + "%%IP%%" + " "
                 command += sipp_options
                 if ua.Type == "User":
@@ -117,8 +145,10 @@ class Command_building:
                         command+=" -t tn -max_socket 25"
                     if ua.UserObject.RtpPort:
                         command += " -mp " + str(ua.UserObject.RtpPort)
-                else:
-                    command += " -p " + str(ua.Port)
+                elif ua.Type == "Trunk":
+                    command += " -p " + str(ua.TrunkObject.Port)
+                    if ua.TrunkObject.SipTransport == "TCP":
+                        command+=" -t tn -max_socket 25"
                 command+=" -nostdin"
 
                 if sipp_auth and ua.Type=="User":

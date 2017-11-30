@@ -1,15 +1,37 @@
 {
-  "$schema" : "http://json-schema.org/draft-04/schema#",
-  "title" : "DropManualReg schema",
-  "type" : "object",
-  "properties" : {
-          "DropManualReg" : {
-                   "type" : "array",
-                   "items" : {
-                        "type" : "string",
-                        "pattern" : "^\\d+$"
-                    }
-           }
-   },
-   "required" : ["DropManualReg"] 
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "DropManualReg schema",
+  "definitions": {
+    "DropManualRegItems": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^\\d+$"
+      }
+    }
+  },
+  "type": "object",
+  "required": ["DropManualReg"],
+  "properties": {
+    "DropManualReg": {
+      "type": "object",
+      "properties": {
+        "Users": {
+          "$ref": "#/definitions/DropManualRegItems"
+        },
+        "Trunks": {
+          "$ref": "#/definitions/DropManualRegItems"
+        }
+      },
+      "additionalProperties" : false,
+      "anyOf" : [
+          {
+              "required" : ["Users"]
+          }, 
+          {
+              "required" : ["Trunks"]
+          }
+      ]
+    }
+  }
 }
