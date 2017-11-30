@@ -18,31 +18,38 @@
             "additional_options": {
               "type": "string",
               "minLength": 1
+            },
+            "contact_ip": {
+              "type": "string",
+              "minLength": 1
+            },
+            "expires" : {
+              "type" : "integer",
+              "minimum" : 0,
+              "maximum" : 3600,
+              "exclusiveMinimum" : false
+            },
+            "contact_port" : {
+              "type" : "integer",
+              "minimum" : 1024,
+              "maximum" : 65536,
+              "exclusiveMinimum" : false
             }
           },
+          "additionalProperties" : false,
           "required": [
             "script"
           ]
         }
-      }
+      },
+      "additionalProperties" : false
     }
   },
   "type": "object",
+  "required": ["ManualReg"],
   "properties": {
     "ManualReg": {
       "type": "object",
-      "anyOf": [
-        {
-          "required": [
-            "Users"
-          ]
-        },
-        {
-          "required": [
-            "Trunks"
-          ]
-        }
-      ],
       "properties": {
         "Users": {
           "$ref": "#/definitions/ManualRegItems"
@@ -50,10 +57,16 @@
         "Trunks": {
           "$ref": "#/definitions/ManualRegItems"
         }
-      }
+      },
+      "additionalProperties" : false,
+      "anyOf" : [
+          {
+              "required" : ["Users"]
+          }, 
+          {
+              "required" : ["Trunks"]
+          }
+      ]
     }
-  },
-  "required": [
-    "ManualReg"
-  ]
+  }
 }
