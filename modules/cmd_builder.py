@@ -168,7 +168,7 @@ class Command_building:
                 if ua.Type == "User":
                     LOG_PREFIX = "TEST_" + str(test.TestId) + "_NUMBER_" + ua.UserObject.Number + "_"
                 elif ua.Type == "Trunk":
-                    LOG_PREFIX = "TEST_" + str(test.TestId) + "_TRUNK_PORT_" + str(ua.Port) + "_"
+                    LOG_PREFIX = "TEST_" + str(test.TestId) + "_TRUNK_" + str(ua.TrunkObject.TrunkName).upper() + "_PORT_" + str(ua.TrunkObject.Port) + "_"
                 else:
                     LOG_PREFIX = "TEST_" + str(test.TestId) + "_UNKNOWN_TYPE_"
 
