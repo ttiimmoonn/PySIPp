@@ -478,6 +478,6 @@ class Parser:
             return False
         if not "%%SF_XML%%" in sys_json:
             sys_json["%%SF_XML%%"] = py_sipp_path + "/xml/send_sf.xml"
-        if not "%%SSH_PORT%%" in sys_json:
-            sys_json["%%SSH_PORT%%"] = 22
+        if not "%%DEV_CONFIG_PORT%%" in sys_json:
+            sys_json["%%DEV_CONFIG_PORT%%"] = 22
         return sys_json

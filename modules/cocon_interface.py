@@ -15,7 +15,7 @@ class coconInterface:
         self.Login = str(test_var["%%DEV_USER%%"])
         self.Password = str(test_var["%%DEV_PASS%%"])
         self.Ip = str(test_var["%%SERV_IP%%"])
-        self.Port = int(test_var["%%SSH_PORT%%"])
+        self.Port = int(test_var["%%DEV_CONFIG_PORT%%"])
         self.sshChannel = None
         self.sshClient = None
         self.ConnectionStatus = True
