@@ -26,7 +26,7 @@
             "expires" : {
               "type" : "integer",
               "minimum" : 0,
-              "maximum" : 3600,
+              "maximum" : 24000,
               "exclusiveMinimum" : false
             },
             "contact_port" : {
