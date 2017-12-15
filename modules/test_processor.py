@@ -312,58 +312,91 @@ class TestProcessor():
         sys.stdin.flush()
         input("\033[1;31m[TEST_INFO] Test stopped. Please press any key to continue...\033[1;m")
 
-    def _execCheckDifference(self,diff_desc):
-        test_diff = diff_calc.diff_timestamp(self.NowRunningTest)
-        cmd_build = builder.Command_building()
+    def _convert_orderdict(self,dict,name="GenericDict"):
+        from collections import namedtuple
+        return namedtuple(str(name), dict.keys())(**dict)
 
+
+    def _execCheckDifference(self,method_body):
+        # Парсим short_msg_log sipp, чтобы рассичитать дифы между сообщениями
+        test_diff = diff_calc.diff_timestamp(self.NowRunningTest)
+        # Если не удалось пропарсить лог, то выходим.
         if test_diff.Status == "Failed":
             self.NowRunningTest.Status = "Failed"
             return False
 
-        for diff_item in diff_desc:
-            msg_info = {}
-            req_diff = diff_item["Difference"]
-            if type(req_diff) == str:
-                req_diff = cmd_build.replace_key_value(req_diff, self.TestVar)
-            diff_mode = diff_item["Mode"]
-            msg_info["msg_type"] = diff_item["Msg"][0]["MsgType"].lower()
-            if diff_item["Msg"][0]["Code"] == "None":
-                msg_info["resp_code"] = None
+        for method_item in method_body:
+            # Конвертируем описание метода в namedtuple
+            cur_diff = self._convert_orderdict(method_item,name="cur_diff")
+            # Если в Difference строка, значит кто-то передал в данный параметр имя переменной,
+            # поэтому пытаемся найти данную переменную в словаре и присвоить её зачение переменной req_diff.
+            # В противном случае просто приравниваем req_diff к Difference
+            if type(cur_diff.Difference) == str:
+                cmd_build = builder.Command_building()
+                req_diff = cmd_build.replace_key_value(cur_diff.Difference, self.TestVar)
             else:
-                msg_info["resp_code"] = diff_item["Msg"][0]["Code"]
-
-            msg_info["method"] = diff_item["Msg"][0]["Method"].upper()
-            chk_ua = list(map(int,diff_item["UA"].split(",")))
-            test_diff.compare_msg_diff(req_diff,diff_mode,*chk_ua,**msg_info)
-
-            if test_diff.Status == "Failed":
-                self.NowRunningTest.Status = "Failed"
+                req_diff = cur_diff.Difference
+            #Пытамся привести req_diff к int.
+            try:
+                req_diff = int(req_diff)
+            except ValueError:
+                # Если не удалось привести req_diff к int, то выходим.
+                self.NowRunningTest == "Failed"
                 return False
+            # Получаем список UA, для которых будут производиться вычисления.
+            ua_for_chk = list(map(int,cur_diff.UA.split(",")))
+            
+            # Начинаем попорядку проверять дифы всех сообщений
+            for cur_msg in cur_diff.Msg:
+                msg_desc = self._convert_orderdict(cur_msg,name="msg_desc")
+                # Словарь для хранения параметров сообщения.
+                msg_info = {}
+                # Забираем тип сообщения
+                msg_info["msg_type"] = msg_desc.MsgType.lower()
+                # Забираем код ответа, если он присутствует
+                msg_info["resp_code"] = None if msg_desc.Code == None else msg_desc.Code
+                # Забираем метод сообщения
+                msg_info["method"] = msg_desc.Method.upper()
+                # Производим расчёт
+                test_diff.compare_msg_diff(req_diff,cur_diff.Mode,*ua_for_chk,**msg_info)
+                # Ecли расчитанное значение не совпадает с req_diff,
+                # то test_diff.Status будет равен false. В этом случае выходим.
+                if test_diff.Status == "Failed":
+                    self.NowRunningTest.Status = "Failed"
+                    return False
         return True
 
-    def _execCheckRetransmission(self, retrans_desc):
+    def _execCheckRetransmission(self,method_body):
+        # Парсим short_msg_log sipp, чтобы рассичитать дифы между сообщениями
         test_diff = diff_calc.diff_timestamp(self.NowRunningTest)
-
+        # Если не удалось пропарсить лог, то выходим.
         if test_diff.Status == "Failed":
             self.NowRunningTest.Status = "Failed"
             return False
-
-        for diff_item in retrans_desc:
-            msg_info = {}
-            timer_name = diff_item["Timer"]
-            msg_info["msg_type"] = diff_item["Msg"][0]["MsgType"].lower()
-            if diff_item["Msg"][0]["Code"] == "None":
-                msg_info["resp_code"] = None
-            else:
-                msg_info["resp_code"] = diff_item["Msg"][0]["Code"]
-                
-            msg_info["method"] = diff_item["Msg"][0]["Method"].upper()
-            chk_ua = list(map(int,diff_item["UA"].split(",")))
-            test_diff.compare_timer_seq(timer_name,*chk_ua,**msg_info)
-
-            if test_diff.Status == "Failed":
-                self.NowRunningTest.Status = "Failed"
-                return False
+        for method_item in method_body:
+            # Конвертируем описание метода в namedtuple
+            cur_retrans = self._convert_orderdict(method_item,name="cur_retrans")
+            # Получаем список UA, для которых будут производиться вычисления.
+            ua_for_chk = list(map(int,cur_retrans.UA.split(",")))
+            # Начинаем попорядку проверять перепосылки всех сообщений
+            for cur_msg in cur_retrans.Msg:
+                msg_desc = self._convert_orderdict(cur_msg,name="msg_desc")
+                # Словарь для хранения параметров сообщения.
+                msg_info = {}
+                # Забираем тип сообщения
+                msg_info["msg_type"] = msg_desc.MsgType.lower()
+                # Забираем код ответа, если он присутствует
+                msg_info["resp_code"] = None if msg_desc.Code == None else msg_desc.Code
+                # Забираем метод сообщения
+                msg_info["method"] = msg_desc.Method.upper()
+                # Сравниваем числовую последовательность, полученную от UA
+                # C требуемой последовательностью для текущего таймера.
+                test_diff.compare_timer_seq(cur_retrans.Timer,*ua_for_chk,**msg_info)
+                # Ecли рассчитая последовательность не совпадает с требуемой,
+                # то test_diff.Status будет равен false. В этом случае выходим.
+                if test_diff.Status == "Failed":
+                    self.NowRunningTest.Status = "Failed"
+                    return False
         return True
 
     def _ChkBackgroundUA(self):
