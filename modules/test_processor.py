@@ -5,6 +5,8 @@ import modules.cocon_interface as ssh
 import modules.cmd_builder as builder
 import modules.process_contr as proc
 import modules.fs_worker as fs
+from collections import namedtuple
+import re
 import sys
 import uuid
 import time
@@ -313,9 +315,14 @@ class TestProcessor():
         input("\033[1;31m[TEST_INFO] Test stopped. Please press any key to continue...\033[1;m")
 
     def _convert_orderdict(self,dict,name="GenericDict"):
-        from collections import namedtuple
         return namedtuple(str(name), dict.keys())(**dict)
 
+    def _convert_old_ua_format(self,convert_str,namedtpl):
+        # Конвертируем старый формат 1,2,3 в новый user:1,user:2,user:3.
+        ua_for_chk = list(map(lambda x:x, convert_str.split(",")))
+        ua_for_chk = list(map(lambda x:"user:"+str(x),ua_for_chk))
+        ua_for_chk = list(map(lambda ua: namedtpl(*ua.split(":")) ,ua_for_chk))
+        return ua_for_chk
 
     def _execCheckDifference(self,method_body):
         # Парсим short_msg_log sipp, чтобы рассичитать дифы между сообщениями
@@ -338,14 +345,32 @@ class TestProcessor():
                 req_diff = cur_diff.Difference
             #Пытамся привести req_diff к int.
             try:
-                req_diff = int(req_diff)
+                if req_diff:
+                    req_diff = int(req_diff)
+                else:
+                    self.NowRunningTest == "Failed"
+                    return False
             except ValueError:
                 # Если не удалось привести req_diff к int, то выходим.
                 self.NowRunningTest == "Failed"
                 return False
             # Получаем список UA, для которых будут производиться вычисления.
-            ua_for_chk = list(map(int,cur_diff.UA.split(",")))
-            
+            # TODO. в дальнейшем нужно избавить в скриптах от старого формата 0,1,2... 
+            # После введения транков формат должен быть следующим user:1,trunk:1,user:2...
+            # Для обратной совместимости будем обрабатывать все форматы
+            ua_info = namedtuple('UaInfo', ['type', 'id'])
+            if re.match("^[0-9]{1,2}$|^([0-9]{1,2},)+[0-9]{1,2}$",cur_diff.UA):
+                # Обнаружен старый формат, даём warn и конвертим его в новый.
+                logger.warning("You are using the old format for the parameter UA in CheckDifference. Please fix it!")
+                ua_for_chk = self._convert_old_ua_format(cur_diff.UA,ua_info)
+            elif re.match("^(user|trunk):[0-9]{1,2}$|^((user|trunk):[0-9]{1,2},)+(user|trunk):[0-9]{1,2}",cur_diff.UA): 
+                ua_for_chk = list(map(lambda ua: ua_info(*ua.split(":")) ,cur_diff.UA.split(",")))
+            else:
+                # Если передали в неверном формате
+                logger.error("Wrong format of: %s",cur_diff.UA)
+                self.NowRunningTest == "Failed"
+                return False
+
             # Начинаем попорядку проверять дифы всех сообщений
             for cur_msg in cur_diff.Msg:
                 msg_desc = self._convert_orderdict(cur_msg,name="msg_desc")
@@ -377,7 +402,18 @@ class TestProcessor():
             # Конвертируем описание метода в namedtuple
             cur_retrans = self._convert_orderdict(method_item,name="cur_retrans")
             # Получаем список UA, для которых будут производиться вычисления.
-            ua_for_chk = list(map(int,cur_retrans.UA.split(",")))
+            ua_info = namedtuple('UaInfo', ['type', 'id'])
+            if re.match("^[0-9]{1,2}$|^([0-9]{1,2},)+[0-9]{1,2}$",cur_retrans.UA):
+                # Обнаружен старый формат, даём warn и конвертим его в новый.
+                logger.warning("You are using the old format for the parameter UA in CheckRetransmission. Please fix it!")
+                ua_for_chk = self._convert_old_ua_format(cur_retrans.UA,ua_info)
+            elif re.match("^(user|trunk):[0-9]{1,2}$|^((user|trunk):[0-9]{1,2},)+(user|trunk):[0-9]{1,2}",cur_retrans.UA): 
+                ua_for_chk = list(map(lambda ua: ua_info(*ua.split(":")) ,cur_retrans.UA.split(",")))
+            else:
+                # Если передали в неверном формате
+                logger.error("Wrong format of: %s",cur_retrans.UA)
+                self.NowRunningTest == "Failed"
+                return False
             # Начинаем попорядку проверять перепосылки всех сообщений
             for cur_msg in cur_retrans.Msg:
                 msg_desc = self._convert_orderdict(cur_msg,name="msg_desc")

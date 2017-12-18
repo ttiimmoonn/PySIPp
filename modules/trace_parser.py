@@ -238,7 +238,7 @@ class short_trace_parser():
 
 	def parse_trace_msg(self):
 		#Начинаем читать shorttrace log построчно
-		self.Status = "Start"
+		self.Status = "Processing"
 		for line in self.trace_fd:
 			line = line.rstrip('\n')
 			call_dict = self.get_call_dict(*line.split("\t"))
@@ -263,3 +263,4 @@ class short_trace_parser():
 			else:
 				self.Status = "Failed"
 				break
+		if self.Status != "Failed": self.Status = "Success"

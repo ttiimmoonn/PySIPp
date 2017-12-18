@@ -254,7 +254,7 @@ if not fs_work.create_log_dir(log_path):
 #Добавляем директорию с логами к тестам
 for test in tests:
     test.LogPath = log_path
-    
+
 #Поднимаем thread для отправки SSH command
 logger.info("Start configuration thread...")
 coconInt = ssh.coconInterface(test_var, show_cocon_output, global_ccn_lock)

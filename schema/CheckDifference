@@ -1,13 +1,33 @@
 {
-  "$schema" : "http://json-schema.org/draft-04/schema#",
-  "title" : "CheckDifference schema",
-  "type" : "array",
-  "items" : {
-      "type" : "object",
-      "properties" : {
-               "Mode" : {"type" : "string", "enum" : ["between_ua","inner_ua"]},
-               "UA" : {"type" : "string", "pattern" : "^[0-9]{1,2}$|^([0-9]{1,2},)+[0-9]{1,2}$"}
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "CheckDifference schema",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "Mode": {
+        "type": "string",
+        "enum": [
+          "between_ua",
+          "inner_ua"
+        ]
       },
-      "required" : ["Mode", "UA"]
+      "UA": {
+        "oneOf": [
+          {
+            "type": "string",
+            "pattern": "^[0-9]{1,2}$|^([0-9]{1,2},)+[0-9]{1,2}$"
+          },
+          {
+            "type": "string",
+            "pattern": "^(user|trunk):[0-9]{1,2}$|^((user|trunk):[0-9]{1,2},)+(user|trunk):[0-9]{1,2}$"
+          }
+        ]
+      }
+    },
+    "required": [
+      "Mode",
+      "UA"
+    ]
   }
 }
