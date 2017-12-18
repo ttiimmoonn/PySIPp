@@ -10,7 +10,7 @@ class sip_flow():
 		return str("\033[1;31m" + string +  "\033[1;m")
 
 	def print_flow(self):
-		for ua in self.trace_obj.ua_with_traces.values():
+		for ua in tuple(self.trace_obj.users_with_traces.values()) + tuple(self.trace_obj.trunks_with_traces.values()):
 			if ua.UserObject != None:
 				logger.info("Flow for user with number: %s",str(ua.UserObject.Number))
 			elif ua.TrunkObject != None:
