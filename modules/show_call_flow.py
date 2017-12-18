@@ -14,7 +14,7 @@ class sip_flow():
 			if ua.UserObject != None:
 				logger.info("Flow for user with number: %s",str(ua.UserObject.Number))
 			elif ua.TrunkObject != None:
-				logger.info("Flow for trunk with port: %s",str(ua.TrunkObject.Port))
+				logger.info("Flow for trunk %s, with port: %s",str(ua.TrunkObject.TrunkName),str(ua.TrunkObject.Port))
 			for call in ua.ShortTrParser.calls:
 				logger.info("Call Flow for Call-ID: %s \n",call.call_id)
 				print_string = ""
