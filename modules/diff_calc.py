@@ -147,6 +147,7 @@ class diff_timestamp():
         return result
 
     def get_diff(self,seq):
+        print(seq)
         msg_diff = []
         for count,timestp in enumerate(seq):
             try:
