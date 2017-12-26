@@ -120,9 +120,9 @@ class TestProcessor():
         if len(reg_objects) > 0:
             #Собираем команды для регистрации абонентов
             if mode =="reg":
-                logger.info("Building commands for starting registration...")
+                logger.info("Build commands for starting registration...")
             else:
-                logger.info("Building commands for stopping registration...")
+                logger.info("Build commands for stopping registration...")
 
             cmd_build = builder.Command_building()
 
@@ -176,7 +176,7 @@ class TestProcessor():
         return True
 
     def _buildSippCmd(self):
-        logger.info("Building SIPp commands for UA...")
+        logger.info("Build SIPp commands for UA...")
         cmd_build = builder.Command_building()
         if not cmd_build.build_sipp_command(self.NowRunningTest,self.TestVar, self.UacDropFlag, self.ShowSipFlowFlag):
             return False
@@ -186,11 +186,11 @@ class TestProcessor():
     def _buildSippCmdSF(self, serv_feature_ua, sf_code):
         #Собираем команду для активации сервис фичи
         cmd_build = builder.Command_building()
-        command = cmd_build.build_service_feature_command(self.NowRunningTest,serv_feature_ua.UserObject, sf_code, self.TestVar)
-        if not command:
+        cmd_desc = cmd_build.build_service_feature_command(self.NowRunningTest,serv_feature_ua.UserObject, sf_code, self.TestVar)
+        if not cmd_desc:
             return False
         else:
-            serv_feature_ua.Commands.append(command)
+            serv_feature_ua.Commands.append(cmd_desc)
             return True
 
     def _sleep(self,timeout = 32):
@@ -224,24 +224,24 @@ class TestProcessor():
         return True
 
     def _execStartUA(self, ua_desc):
-        logger.info("Parsing UA from test.")
+        logger.info("Parse UA from test.")
         parse = parser.Parser()
         if not parse.parse_user_agent(self.NowRunningTest,ua_desc):
             self.NowRunningTest.Status = "Failed"
-            logger.error("Parsing UA failed.")
+            logger.error("Parse UA failed.")
             return False
 
         #Линкуем юзеров к юзер агентам
-        logger.info("Linking UA object with User object...")
+        logger.info("Link UA object with User object...")
         if not self._link_user_to_ua():
             self.NowRunningTest.Status = "Failed"
-            logger.error("Linking UA object with User object failed.")
+            logger.error("Link UA object with User object failed.")
             return False
 
         #Собираем команды для UA.
         if not self._buildSippCmd():
             self.NowRunningTest.Status = "Failed"
-            logger.error("Building SIPp commands failed.")
+            logger.error("Build SIPp commands failed.")
             return False
 
         for ua in self.NowRunningTest.UserAgent + self.NowRunningTest.BackGroundUA:
@@ -288,7 +288,7 @@ class TestProcessor():
                 return False
 
             serv_feature_ua = test_class.UserAgentClass()
-            serv_feature_ua =serv_feature_ua.GetServiceFetureUA(sf_code,user)
+            serv_feature_ua = serv_feature_ua.GetServiceFetureUA(sf_code,user)
             if not self._buildSippCmdSF(serv_feature_ua,sf_code):
                 self.NowRunningTest.Status = "Failed"
                 return False
@@ -441,12 +441,12 @@ class TestProcessor():
             if not proc.CheckThreads(self.NowRunningTest.BackGroundThreads):
                 logger.error("One of Bg UA's thread not closed.")
                 self.NowRunningTest.ThreadEvent.clear()
-                #Переносим отработавшие UA в завершенные
+                # Переносим отработавшие UA в завершенные
                 self.NowRunningTest.Status = "Failed"
                 self.NowRunningTest.CompliteBgUA()
                 self._sleep()
             elif not proc.CheckUaStatus(self.NowRunningTest.WaitBackGroundUA):
-                #Переносим отработавшие UA в завершенные
+                # Переносим отработавшие UA в завершенные
                 logger.error("One of UAs return bad exit code")
                 self.NowRunningTest.Status = "Failed"
                 self.NowRunningTest.CompliteBgUA()
@@ -583,6 +583,9 @@ class TestProcessor():
     def _RunTestProcedure(self, test):
         self.GenForItem = self._getTestItemGen(test.TestProcedure)
         for item in self.GenForItem:
+            if not test.ThreadEvent.isSet():
+                logger.error("Some process thread set event for stop. Drop test procedure...")
+                break
             logger.info("Exec method \"%s\"",item[0])
             if item[0] == "StartUA":
                 #Передаём параметры startUa в метод _execStartUA

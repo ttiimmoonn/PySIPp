@@ -1,3 +1,4 @@
+from collections import namedtuple
 import subprocess
 import time
 import threading
@@ -6,6 +7,9 @@ import subprocess
 import shlex
 import logging
 logger = logging.getLogger("tester")
+
+ExCodes = namedtuple('ExCodes', ['NotStarted', 'Killed', 'WrongExitCode', 'Success'])
+StCodes = ExCodes(1,9,2,0)
 
 def SubscribeToUser(user):
     pass
@@ -116,7 +120,7 @@ def preexec_process():
     os.setpgrp()
 
 
-def start_ua (command):
+def start_ua(command):
 # Запуск подпроцесса регистрации
     try:
         args = shlex.split(str(command))
@@ -133,80 +137,53 @@ def start_ua (command):
     return ua_process
 
 def start_ua_thread(ua, event_for_stop):
-#    event_for_wait.wait() # wait for event
-#    event_for_wait.clear() # clean event for future
-#    event_for_set.set() # set event for neighbor thread
-    while  event_for_stop.isSet():
-        for commandCount, command in enumerate(ua.Commands,start=1):
-            if not event_for_stop.isSet():
-                # Если пришла команда остановить thread выходим
-                logger.warning("UA %s with command %s recv exit event.",ua.Name,commandCount)
-                ua.SetStatusCode(1)
-                break 
-            # Запускаем UA
-            process = start_ua (command)
+    while event_for_stop.isSet():
+        for count, cmd in enumerate(ua.Commands, start=1):
+            # Запускаем процесс
+            ua.Status = "Starting"
+            process = start_ua(cmd.cmd_str)
+            # Если процесс не запустился, то сигналим остальным thread, чтобы завершались.
             if not process:
-                ua.SetStatusCode(2)
-                #Сигналим в соседний thread
                 event_for_stop.clear()
+                ua.SetStatusCode(StCodes.NotStarted)
                 logger.error("UA %s not started",ua.Name)
                 return False
-            ua.Status = "Starting"
+            ua.Status = "Started"
+            logger.info("UA %s with command %s started.",ua.Name,count)
             # Добавляем новый процесс в массив
             ua.Process.append(process)
-            # Ждём
-            time.sleep(0.2)
-            if process.poll() != None and process.poll() != 0:
-                ua.Status = "Not Started"
-                logger.error("UA %s with command %s not started.",ua.Name,commandCount)
-                ua.SetStatusCode(3)
-                #Сигналим в соседний thread
-                event_for_stop.clear()
-                # Если процесс упал, выходим
+            # Ожидание exit code от процесса
+            while(event_for_stop.isSet()):
+                if process.poll() != None:
+                    #Процесс что-то нам вернул
+                    break
+                time.sleep(0.05)
+            # В данной точке может быть два кейса.
+            # 1. Соседний thread прислал event на завершение.
+            # 2. Процесс отработал и вернул нам exit code
+
+            # Обрабатываем первый кейс:
+            if not event_for_stop.isSet():
+                if process.poll() == None: process.kill()
+                ua.Status = "Killed (recv stop event)"
+                ua.SetStatusCode(StCodes.Killed)
+                logger.warning("UA %s with command %s killed (recv exit event).",ua.Name,count)
                 return False
             else:
-                ua.Status = "Started"
-                logger.info("UA %s with command %s started.",ua.Name,commandCount)
-            try:
-                while(event_for_stop.isSet()):
-                    code = process.poll()
-                    if code != None:
-                        # Если процесс завершился самостоятельно, то выходим из цикла
-                        break
-                    time.sleep(0.01)
-                
-                if not event_for_stop.isSet():
-                    process.kill()
-                    ua.Status = "Killed (recv stop event)"
-                    ua.SetStatusCode(4)
+                # Обрабатываем второй кейс
+                if process.poll() != cmd.req_ex_code:
+                    ua.Status = "SIPp error"
+                    # Выставляем статус код процессу.
+                    ua.SetStatusCode(StCodes.WrongExitCode)
                     #Сигналим в соседний thread
+                    logger.error("UA %s with command %s return %d exit code. Req exit code: %d",ua.Name,count,process.poll(),cmd.req_ex_code)
                     event_for_stop.clear()
-                    logger.warning("UA %s with command %s recv exit event.",ua.Name,commandCount)
-                    #print("--> [ERROR] UA", ua.Name, "with command", commandCount, "return", process.poll(), "exit code.")
-                    return False      
-                
-                if process.poll() != 0:
-                        ua.Status = "SIPp error"
-                        # Выставляем статус код процессу.
-                        ua.SetStatusCode(process.poll())
-                        #Сигналим в соседний thread
-                        event_for_stop.clear()
-                        logger.error("UA %s with command %s return %d exit code.",ua.Name,commandCount,process.poll())
-                        return False
+                    return False
                 else:
                     ua.Status = "Success"
-                    ua.SetStatusCode(process.poll())
-                    logger.info("UA %s with command %s return %d exit code.",ua.Name,commandCount,process.poll())
-            except subprocess.TimeoutExpired:
-                process.kill()
-                ua.Status = "Killed by timeout"
-                ua.SetStatusCode(5)
-                logger.error("UA %s killed by timeout",ua.Name)
-                #Сигналим в соседний thread
-                event_for_stop.clear()
-                return False
-            commandCount += 1
-        #Если передали параметр Cyclic = True
+                    ua.SetStatusCode(StCodes.Success)
+                    logger.info("UA %s with command %s return %d exit code. Req exit code: %d",ua.Name,count,process.poll(),cmd.req_ex_code)
+        # Если UA был запущен в циклическом режиме, то перезапускаемся.
         if not ua.Cyclic:
             #Выходим из цикла.
             break
@@ -218,9 +195,7 @@ def start_ua_thread(ua, event_for_stop):
 
 def start_process_controller(test):
     threads = []
-    #Устанавливаем его в true
-    test.ThreadEvent.set()
-   
+  
     #Начинаем запуск UA по очереди
     logger.info("Try to start UA...")
     for ua in test.UserAgent + test.BackGroundUA:
@@ -294,9 +269,8 @@ def CheckThreads(threads):
 
 def CheckUaStatus(user_agents):
     for ua in user_agents:
-        for proc in ua.Process:
-            if proc.poll() != 0:
-                return False
+        if ua.StatusCode != StCodes.Success and ua.StatusCode != StCodes.Killed:
+            return False
     return True
 
 def CheckUserRegStatus(test_users):

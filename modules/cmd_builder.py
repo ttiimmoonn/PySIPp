@@ -2,6 +2,7 @@ import re
 import time
 from datetime import datetime, date
 import logging
+from collections import namedtuple
 logger = logging.getLogger("tester")
 
 class Command_building:
@@ -92,37 +93,41 @@ class Command_building:
         command+=" -timeout 20s -recv_timeout 20s"
         if user.SipTransport == "TCP":
             command+=" -t tn -max_socket 25"
-        command = self.replace_key_value(command, test_var)
         LOG_PREFIX = "TEST_" + str(test.TestId) + "_NUMBER_" + user.Number + "_SF_" + code + "_"
         #Добавляем message trace
         command += " -message_overwrite false -trace_msg -message_file " + test.LogPath + "/" + LOG_PREFIX + "MESSAGE"
         #Добавляем error trace
         command += " -error_overwrite false -trace_err -error_file " + test.LogPath + "/" + LOG_PREFIX + "ERROR"
-        return command
+        command = self.replace_key_value(command, test_var)
+        if command:
+            CmdInfo = namedtuple('CmdInfo', ['cmd_str', 'req_ex_code'])
+            return CmdInfo(command,0)
+        else:
+            return False
 
     def build_sipp_command(self, test, test_var, uac_drop_flag=False, show_sip_flow=False):
         for ua in test.UserAgent + test.BackGroundUA:
             #Пытаемся достать параметры команды
-            for command in ua.RawJsonCommands:
-                sipp_sf = command["SourceFile"]
-                sipp_options = command["Options"]
-                sipp_type = command["SippType"]
+            for cmd_desc in ua.RawJsonCommands:
+                sipp_sf = cmd_desc["SourceFile"]
+                sipp_options = cmd_desc["Options"]
+                sipp_type = cmd_desc["SippType"]
                 #Если был передан флаг о сбросе UAC команд, то просто не собираем их.
                 if uac_drop_flag:
                     if sipp_type == "uac":
                         continue
                 try:
-                    sipp_auth = command["NeedAuth"]
+                    sipp_auth = cmd_desc["NeedAuth"]
                 except KeyError:
                     sipp_auth = False
                 try:
-                    timeout = command["Timeout"]
+                    timeout = cmd_desc["Timeout"]
                 except KeyError:
                     timeout = "60s" 
                 #В некоторых случаях полезно, чтобы UA завершился по timeout и при этом вернул 0 ex code
                 #Для таких случаев на уровне команды передаем параметр NoTimeOutError
                 try:
-                    no_timeout_err = command["NoTimeOutError"]
+                    no_timeout_err = cmd_desc["NoTimeOutError"]
                 except KeyError:
                     no_timeout_err = False
                 command=""                
@@ -187,7 +192,13 @@ class Command_building:
                     command += " -timeout_error"
                 command = self.replace_key_value(command, test_var)
                 if command:
-                    ua.Commands.append(command)
+                    #Создаём туплу для хранения команды и ex_code к ней
+                    CmdInfo = namedtuple('CmdInfo', ['cmd_str', 'req_ex_code'])
+                    try:
+                        ua.Commands.append(CmdInfo(command,cmd_desc["ReqExCode"]))
+                    except KeyError:
+                        # Если желаемый ex_code не задан, значит он равен 0
+                        ua.Commands.append(CmdInfo(command,0))
                 else:
                     return False
         return test

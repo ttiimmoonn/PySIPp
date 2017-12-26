@@ -12,6 +12,7 @@ class TestClass:
         self.BackGroundThreads = []
         self.WaitBackGroundUA = []
         self.ThreadEvent = threading.Event()
+        self.ThreadEvent.set()
         self.Name = "Unnamed test"
         self.Description = "No description"
         self.TestProcedure = None

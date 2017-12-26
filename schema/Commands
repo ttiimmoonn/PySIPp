@@ -10,8 +10,10 @@
        	       "SippType" : {"type" : "string", "enum" : ["uas","uac"]},
                "NeedAuth" : {"type" : "boolean"},
                "NoTimeOutError" : {"type" : "boolean"},
+               "ReqExCode" : {"type" : "integer", "minimum" : 0, "maximum" : 255, "exclusiveMinimum" : false, "exclusiveMaximum" : false},
        	       "Timeout" : {"type" : "string", "pattern" : "^\\d+[shm]$"}	  
       },
-      "required" : ["SourceFile", "SippType"]
+      "required" : ["SourceFile", "SippType"],
+      "additionalProperties" : false
   }
 }
