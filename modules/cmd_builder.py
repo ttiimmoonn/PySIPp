@@ -123,7 +123,7 @@ class Command_building:
                 try:
                     timeout = cmd_desc["Timeout"]
                 except KeyError:
-                    timeout = "60s" 
+                    timeout = "60s"
                 #В некоторых случаях полезно, чтобы UA завершился по timeout и при этом вернул 0 ex code
                 #Для таких случаев на уровне команды передаем параметр NoTimeOutError
                 try:
@@ -143,6 +143,15 @@ class Command_building:
                     command+="%%EXTER_PORT%%" + " "
                 command += " -i " + "%%IP%%" + " "
                 command += sipp_options
+                # Выставляем Call-ID и CSeq, если требуется.
+                try:
+                    command += " -cid_str " + str(cmd_desc["CidStr"])
+                except KeyError:
+                    pass
+                try:
+                    command += " -base_cseq " + str(cmd_desc["StartCseq"])
+                except KeyError:
+                    pass
                 if ua.Type == "User":
                     command += " -p " + str(ua.UserObject.Port)
                     command += " -s " + ua.UserObject.Login

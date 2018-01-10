@@ -204,7 +204,7 @@ if valid:
     logger.info("Validation completed successfully")
 
 #Парсинг данных о пользователях
-logger.info("Parsing users from json...")
+logger.info("Parse users from json...")
 try:
     test_users = parse.parse_user_info(test_desc["Users"])
     if test_users == False:
@@ -213,7 +213,7 @@ except KeyError:
     pass
 
 #Парсинг данных о транках
-logger.info("Parsing trunks from json...")
+logger.info("Parse trunks from json...")
 try:
     test_trunks = parse.parse_trunk_info(test_desc["Trunks"])
     if test_trunks == False:
@@ -222,7 +222,7 @@ except KeyError:
     pass
 
 #Парсинг данных о тестах
-logger.info("Parsing tests from json string...")
+logger.info("Parse tests from json string...")
 tests = parse.parse_test_info(test_desc["Tests"])
 
 #Если запросили show_test_info, показавыем информацию по тесту и выходим
