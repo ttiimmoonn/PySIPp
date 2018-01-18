@@ -228,7 +228,7 @@ tests = parse.parse_test_info(test_desc["Tests"])
 #Если запросили show_test_info, показавыем информацию по тесту и выходим
 if show_test_info:
     for count,test in enumerate(tests):
-        if not count in test_numbers:
+        if test_numbers and not count in test_numbers:
             continue
         print("Test ID:   ",count)
         print("---| Test Name: ",test.Name)
