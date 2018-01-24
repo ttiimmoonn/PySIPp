@@ -85,18 +85,16 @@ class UserAgentClass:
                 #Возвращаем статус код
                 self.StatusCode = statusCode
             finally:
-                self.UALock.release()         
-        
-class UserClass:
+                self.UALock.release()
+
+class Account:
     def __init__(self):
+        self.RegState = False
         self.Timer = None
-        self.RegOneTime = False
         self.RegCallId = uuid.uuid4()
         self.RegCSeq = 1
-        self.Status = "New"
-        self.StatusCode = 0
+        self.StatusCode = None
         self.RegType = None
-        self.Number = None
         self.Login = None
         self.Password = None
         self.SipDomain = None
@@ -110,16 +108,18 @@ class UserClass:
         self.UnRegProcess = None
         self.SipGroup = None
         self.SipTransport = None
-        self.RegContactIP = None
-        self.RegContactPort = None
         self.AddRegParams = None
-        #Для тестирования регистраций с левого ip:port
-        self.FakePort = None
-        self.UserLock = threading.Lock()
-        #Для тестов регистрации, необходимо поддержать manual режим
+        self.PjAccount = None
+        self.PjAccountCb = None
+        self.Lock = threading.Lock()
         self.Script = None
         self.RegMode = "Auto"
         self.BindPort = None
+        self.RegOneTime = False
+        self.RegContactIP = None
+        self.RegContactPort = None
+        self.Registrar = None
+        self.Proxy = None
 
     def SetRegistrationTimer(self):
         self.Timer = threading.Timer((int(self.Expires) * 2 / 3), proc.RegisterUser, args=(self,) , kwargs=None)
@@ -132,7 +132,7 @@ class UserClass:
             pass
 
     def ReadStatusCode(self):
-        if not self.UserLock.acquire():
+        if not self.Lock.acquire():
             #не удалось заблокировать ресурс
             return False
         else:
@@ -140,9 +140,10 @@ class UserClass:
                 #Возвращаем статус код
                 return self.StatusCode
             finally:
-                self.UserLock.release() 
+                self.Lock.release()
+
     def SetStatusCode(self,statusCode):
-        if not self.UserLock.acquire():
+        if not self.Lock.acquire():
             #не удалось заблокировать ресурс
             return False
         else:
@@ -150,70 +151,19 @@ class UserClass:
                 #Возвращаем статус код
                 self.StatusCode = statusCode
             finally:
-                self.UserLock.release()
+                self.Lock.release()
 
-class TrunkClass():
+class UserClass(Account):
     def __init__(self):
-        self.Status = None
-        self.Timer = None
-        self.StatusCode = None
+        Account.__init__(self)
+        self.Number = None
+        self.UserId = None
+        self.FakePort = None
+
+
+class TrunkClass(Account):
+    def __init__(self):
+        Account.__init__(self)
         self.TrunkId = None
         self.TrunkName = None
-        self.Port = None
-        self.SipTransport = None
-        self.AddRegParams = None
-        self.RegCallId = uuid.uuid4()
-        self.RegCSeq = 1
-        self.SipGroup = None
-        self.SipDomain = None
-        self.RtpPort = None
-        self.Login = None
-        self.Password = None
-        self.RegType = None
-        self.Script = None
-        self.RegCommand = None
-        self.UnRegCommand = None
-        self.RegProcess = None
-        self.UnRegProcess = None
-        self.Expires = 90
-        self.ContactIP = None
-        self.ContactPort = None
-        self.QParam = None
-        self.RegOneTime = None
         self.RemotePort = None
-        self.RegContactIP = None
-        self.RegContactPort = None
-        self.RegMode = "Auto"
-        self.BindPort = None
-        self.TrunkLock = threading.Lock()
-
-    def SetRegistrationTimer(self):
-        self.Timer = threading.Timer((int(self.Expires) * 2 / 3), proc.RegisterUser, args=(self,) , kwargs=None)
-        self.Timer.start()
-
-    def CleanRegistrationTimer(self):
-        try:
-            self.Timer.cancel()
-        except AttributeError:
-            pass
-
-    def ReadStatusCode(self):
-        if not self.TrunkLock.acquire():
-            #не удалось заблокировать ресурс
-            return False
-        else:
-            try:
-                #Возвращаем статус код
-                return self.StatusCode
-            finally:
-                self.TrunkLock.release() 
-    def SetStatusCode(self,statusCode):
-        if not self.TrunkLock.acquire():
-            #не удалось заблокировать ресурс
-            return False
-        else:
-            try:
-                #Возвращаем статус код
-                self.StatusCode = statusCode
-            finally:
-                self.TrunkLock.release()

@@ -206,7 +206,7 @@ if valid:
 #Парсинг данных о пользователях
 logger.info("Parse users from json...")
 try:
-    test_users = parse.parse_user_info(test_desc["Users"])
+    test_users = parse.parse_user_info(test_desc["Users"],custom_settings)
     if test_users == False:
         sys.exit(1)
 except KeyError:

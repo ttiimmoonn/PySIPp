@@ -13,7 +13,10 @@ import time
 from datetime import datetime
 import threading
 import logging
+
 logger = logging.getLogger("tester")
+cmd_build = builder.Command_building()
+
 
 class TestProcessor():
     def __init__(self,**kwargs):
@@ -31,8 +34,7 @@ class TestProcessor():
         self.ManualRegTrunks = {trunk_id: trunk for trunk_id,trunk in self.Trunks.items() if trunk.RegType == "out" and trunk.RegMode == "Manual"}
         self.AutoRegUsers = {user_id: user for user_id, user in self.Users.items() if user.RegMode == "Auto"}
         self.ManualRegUsers = {user_id: user for user_id, user in self.Users.items() if user.RegMode == "Manual"}
-
-
+        self.PjSipUsers = {user_id: user for user_id, user in self.Users.items() if user.RegMode == "pjsip"}
 
         #Генератор Item для TestProcedure
         self.GenForTest = None
@@ -55,6 +57,8 @@ class TestProcessor():
         self.RegThread = None
 
         self.failed_flag = False
+        # PjLib
+        self.pjlib = None
 
 
     def StopTestProcessor(self):
@@ -67,12 +71,15 @@ class TestProcessor():
                     if process.poll() == None:
                         process.kill()
 
-        #Разрегистрируем транки
+        # Разрегистрируем транки
         if self.RegLock and len(self.AutoRegUsers) > 0:
             self._StopUserRegistration(self.AutoRegTrunks)
-        #Разрегистрируем юзеров
+        # Разрегистрируем юзеров
         if self.RegLock and len(self.AutoRegUsers) > 0:
             self._StopUserRegistration(self.AutoRegUsers)
+        # Разрегистрируем pjsip юзеров.
+        if len(self.PjSipUsers) > 0:
+            self._StopPjUserRegistration(self.PjSipUsers)
 
         #Для корректного завершения теста нужно выслать все ccn_cmd, которые он не послал.
         self._SendAllCcnCmd()
@@ -80,6 +87,16 @@ class TestProcessor():
         #Даём время на сворачивание thread
         self._sleep(0.2)
         return True
+
+    def _ReInitRegObj(self,reg_objects):
+        for obj in reg_objects.values():
+            obj.RegCSeq = 1
+            obj.RegCallId = uuid.uuid4()
+            obj.RegContactPort = None
+            obj.RegContactIP = None
+            obj.AddRegParams = None
+            obj.Expires = 90
+
 
     def _StopUserRegistration(self,reg_objects):
         logger.info("Drop registration...")
@@ -90,29 +107,58 @@ class TestProcessor():
         #Даём завершиться thread'у разрегистрации
         unreg_thread.join()
         #Обновляем параметры регистрации
-        for obj in reg_objects.values():
-            obj.RegCSeq = 1
-            obj.RegCallId = uuid.uuid4()
-            obj.RegContactPort = None
-            obj.RegContactIP = None
-            obj.AddRegParams = None
-            obj.Expires = 90
+        self._ReInitRegObj(reg_objects)
         if not proc.CheckUserRegStatus(reg_objects):
             return False
         return True
 
+    def _StopPjUserRegistration(self,reg_objects):
+        for obj in reg_objects.values():
+            obj.PjAccount.set_registration(False)
+        for obj in reg_objects.values():
+            if not obj.PjAccountCb.check_registration():
+                return False
+        return True
+
+
     def _StartUserRegistration(self, reg_objects):
-        self.Status = "Start Registration..."
+        if not reg_objects: return True
         if not self._buildRegCommands(reg_objects):
             return False
+        self.Status = "Start Registration..."
         #Врубаем регистрацию для всех объектов
-        logger.info("Starting of registration...")
-
+        logger.info("Start Registration..")
         self.RegThread  = threading.Thread(target=proc.ChangeUsersRegistration, args=(reg_objects,self.RegLock))
         self.RegThread.start()
         self.RegThread.join()
         if not proc.CheckUserRegStatus(reg_objects):
             return False
+        return True
+
+    def _StartPjUserRegistration(self,users):
+        if not users: return True
+        try:
+            import modules.pjsua_fsm as pjfsm
+            # Инициализируем pjsua
+            self.pjlib = pjfsm.LibPjsua()
+        except:
+            logger.error("PjSIP not initialized.")
+            return False     
+        self.Status = "Start Registration for pjsip users..."       
+        logger.info("Start Registration for pjsip users..")
+        # Создаём аккаунты
+        for user in users.values():
+            user.SipDomain = cmd_build.replace_key_value(user.SipDomain, self.TestVar)
+            user.Registrar = cmd_build.replace_key_value(user.Registrar, self.TestVar)
+            user.Proxy = cmd_build.replace_key_value(user.Proxy, self.TestVar)
+            try:
+                user.PjAccount,user.PjAccountCb = self.pjlib.CreateAccount(user)
+            except:
+                logger.error("PjSIP accont not created. Start params: SipDom:%s,Reg:%s,Proxy:%s",user.SipDomain,user.Registrar,user.Proxy)
+                return False
+        for user in users.values():
+            if not user.PjAccountCb.check_registration():
+                return False
         return True
 
 
@@ -123,8 +169,6 @@ class TestProcessor():
                 logger.info("Build commands for starting registration...")
             else:
                 logger.info("Build commands for stopping registration...")
-
-            cmd_build = builder.Command_building()
 
             for obj in reg_objects.values():
                 command = cmd_build.build_reg_command(obj,self.LogPath,self.TestVar,mode=mode)
@@ -177,7 +221,6 @@ class TestProcessor():
 
     def _buildSippCmd(self):
         logger.info("Build SIPp commands for UA...")
-        cmd_build = builder.Command_building()
         if not cmd_build.build_sipp_command(self.NowRunningTest,self.TestVar, self.UacDropFlag, self.ShowSipFlowFlag):
             return False
         else:
@@ -185,7 +228,6 @@ class TestProcessor():
 
     def _buildSippCmdSF(self, serv_feature_ua, sf_code):
         #Собираем команду для активации сервис фичи
-        cmd_build = builder.Command_building()
         cmd_desc = cmd_build.build_service_feature_command(self.NowRunningTest,serv_feature_ua.UserObject, sf_code, self.TestVar)
         if not cmd_desc:
             return False
@@ -263,7 +305,6 @@ class TestProcessor():
     def _execServiceFeature(self, sf_desc):
         #Проверка на уникальность uid в serviceFeature cmd
         already_used_uid = []
-        cmd_build = builder.Command_building()
         for serv_feature in sf_desc:
             sf_code =  cmd_build.replace_key_value(serv_feature['code'], self.TestVar)
             sf_uid  =  serv_feature['userId']
@@ -339,7 +380,6 @@ class TestProcessor():
             # поэтому пытаемся найти данную переменную в словаре и присвоить её зачение переменной req_diff.
             # В противном случае просто приравниваем req_diff к Difference
             if type(cur_diff.Difference) == str:
-                cmd_build = builder.Command_building()
                 req_diff = cmd_build.replace_key_value(cur_diff.Difference, self.TestVar)
             else:
                 req_diff = cur_diff.Difference
@@ -540,7 +580,6 @@ class TestProcessor():
             self.NowRunningTest.Status="Failed"
             return False
 
-
     def StartTestProcessor(self):
         if not self._StartUserRegistration(self.AutoRegTrunks):
             self.Status == "Registration Failed"
@@ -548,7 +587,12 @@ class TestProcessor():
             return False
         else:
             self.Status = "Trunk Registration Complite"
+
         if not self._StartUserRegistration(self.AutoRegUsers):
+            self.Status == "Registration Failed"
+            self.failed_flag = True
+            return False
+        if not self._StartPjUserRegistration(self.PjSipUsers):
             self.Status == "Registration Failed"
             self.failed_flag = True
             return False

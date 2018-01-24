@@ -276,7 +276,7 @@ class Parser:
             trunks[new_trunk.TrunkId] = new_trunk
         return trunks
 
-    def parse_user_info(self, json_users):
+    def parse_user_info(self, json_users, settings):
         #Создаём словарь для хранения юзеров
         users = {}
         #Перебераем всех юзеров, описанных в секции Users
@@ -284,7 +284,6 @@ class Parser:
             #Создаём нового пользователя
             new_user = testClass.UserClass()
             #Обработка обязательных свойств
-            new_user.Status = "New"
             new_user.UserId = user["UserId"]
             new_user.Number = user["Number"]
             new_user.Login = user["Login"]
@@ -292,6 +291,8 @@ class Parser:
             new_user.SipDomain = user["SipDomain"]
             new_user.SipGroup = user["SipGroup"]
             new_user.Port = user["Port"]
+            new_user.Registrar = "sip:" + str(settings["%%EXTER_IP%%"]) + ":" + str(settings["%%EXTER_PORT%%"])
+            new_user.Proxy = "sip:" + str(settings["%%EXTER_IP%%"]) + ":" + str(settings["%%EXTER_PORT%%"])
             #Обработка опциональных свойств
             try:
                 new_user.RegOneTime = user["OneTime"]

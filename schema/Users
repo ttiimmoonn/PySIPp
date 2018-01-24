@@ -17,7 +17,7 @@
               "OneTime" : {"type" : "boolean"},
               "RtpPort" : {"type" : "integer","minimum" : 1024, "maximum" : 65536, "exclusiveMinimum" : false, "exclusiveMaximum" : false},
               "SipTransport" : {"type" : "string", "enum" : ["UDP", "TCP"]},
-              "RegMode" : {"type" : "string", "enum" : ["Auto", "Manual"]},
+              "RegMode" : {"type" : "string", "enum" : ["Auto", "Manual", "pjsip"]},
               "BindPort" : {"type" : "integer", "minimum" : 1024, "maximum" : 65536, "exclusiveMinimum" : false, "exclusiveMaximum" : false} 
              },
              "required" : ["UserId", "Number", "Login", "Password", "SipDomain", "SipGroup", "Port"]
