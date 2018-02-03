@@ -341,19 +341,23 @@ class TestProcessor():
             if type(cur_diff.Difference) == str:
                 cmd_build = builder.Command_building()
                 req_diff = cmd_build.replace_key_value(cur_diff.Difference, self.TestVar)
+                if type(req_diff) == bool:
+                    self.NowRunningTest.Status = "Failed"
+                    return False
             else:
                 req_diff = cur_diff.Difference
             #Пытамся привести req_diff к int.
             try:
-                if req_diff:
-                    req_diff = int(req_diff)
-                else:
-                    self.NowRunningTest == "Failed"
-                    return False
+                req_diff = int(req_diff)
             except ValueError:
                 # Если не удалось привести req_diff к int, то выходим.
-                self.NowRunningTest == "Failed"
+                logger.error("Can't convert Difference to int. Value: %s",str(req_diff))
+                self.NowRunningTest.Status = "Failed"
                 return False
+            try:
+                call_mask = list(map(int,cur_diff.Calls.split(",")))
+            except AttributeError:
+                call_mask = False
             # Получаем список UA, для которых будут производиться вычисления.
             # TODO. в дальнейшем нужно избавить в скриптах от старого формата 0,1,2... 
             # После введения транков формат должен быть следующим user:1,trunk:1,user:2...
@@ -368,7 +372,7 @@ class TestProcessor():
             else:
                 # Если передали в неверном формате
                 logger.error("Wrong format of: %s",cur_diff.UA)
-                self.NowRunningTest == "Failed"
+                self.NowRunningTest.Status = "Failed"
                 return False
 
             # Начинаем попорядку проверять дифы всех сообщений
@@ -383,7 +387,7 @@ class TestProcessor():
                 # Забираем метод сообщения
                 msg_info["method"] = msg_desc.Method.upper()
                 # Производим расчёт
-                test_diff.compare_msg_diff(req_diff,cur_diff.Mode,*ua_for_chk,**msg_info)
+                test_diff.compare_msg_diff(req_diff,cur_diff.Mode,call_mask,*ua_for_chk,**msg_info)
                 # Ecли расчитанное значение не совпадает с req_diff,
                 # то test_diff.Status будет равен false. В этом случае выходим.
                 if test_diff.Status == "Failed":
@@ -412,7 +416,7 @@ class TestProcessor():
             else:
                 # Если передали в неверном формате
                 logger.error("Wrong format of: %s",cur_retrans.UA)
-                self.NowRunningTest == "Failed"
+                self.NowRunningTest.Status = "Failed"
                 return False
             # Начинаем попорядку проверять перепосылки всех сообщений
             for cur_msg in cur_retrans.Msg:

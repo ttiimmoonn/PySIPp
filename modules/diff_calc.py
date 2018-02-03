@@ -147,7 +147,6 @@ class diff_timestamp():
         return result
 
     def get_diff(self,seq):
-        print(seq)
         msg_diff = []
         for count,timestp in enumerate(seq):
             try:
@@ -244,33 +243,38 @@ class diff_timestamp():
                         logger.error("--| Campare failed. No retrans in call: %s",str(call))
                         self.Status = "Failed"
 
-    def compare_msg_diff(self,diffrence,mode,*args,**kwargs):
+    def compare_msg_diff(self,diffrence,mode,call_mask,*args,**kwargs):
+        timestamps = []
+        msg_diff = []
         #Пока делим на 1000, так как таймера на ссв в основном в ms
         diffrence = float(diffrence)/1000
         ua_msg_timestamp = self.get_first_msg_timestamp(*args, **kwargs)
-        if self.Status != "Failed":
-            if mode == "between_ua":
-                timestamps = []
-                msg_diff = []
-                try:
-                    for ua_calls in ua_msg_timestamp.values():
-                        count_of_call = len(ua_calls)
-                        for timestamp in ua_calls.values():
-                            timestamps.append(timestamp)
-                    logger.info("Try to compare msg diff sequence with: %f. Mode: %s" , float(diffrence), str(mode))
-                    for i in range(count_of_call):
-                        msg_diff = self.get_diff(timestamps[i::count_of_call])
-                        self.value_compare(msg_diff,diffrence,max_diff=0.5)
-                except:
-                    logger.error("Exeption in compare_msg_diff function. Mode: %s", str(mode))
-                    self.Status = "Failed"
-                    return False
-            elif mode == "inner_ua":
+        if self.Status == "Failed":
+            return
+        # TODO: нужно придумать как будет обрабатываться inner_ua
+        if mode == "inner_ua":
+            self.Status = "Failed"
+            logger.error("Mode %s not supported now", mode)
+            return
+        if mode == "between_ua":
+            try:
                 for ua_calls in ua_msg_timestamp.values():
-                    timestamps = []
-                    msg_diff = []
-                    for timestamp in ua_calls.values():
-                        timestamps.append(timestamp)
-                    msg_diff = self.get_diff(timestamps)
-                    logger.info("Try to compare msg diff sequence with: %f. Mode: %s" , float(diffrence), str(mode))
-                    self.value_compare(msg_diff,diffrence,max_diff=0.5)
+                    # TODO: тут мы просто надеемся, что сравнение будет идти между 
+                    count_of_call = len(call_mask) if call_mask else len(ua_calls)
+                    ua_calls = list(ua_calls.values())
+                    if not ua_calls:
+                        self.Status = "Failed"
+                        logger.error("Timestamp list is empty.")
+                        return
+                    if call_mask:
+                        timestamps += [ua_calls[i-1] for i in call_mask]
+                    else:
+                        timestamps += ua_calls
+
+                logger.info("Try to compare msg diff sequence with: %f. Mode: %s" , float(diffrence), str(mode))
+                msg_diff = [self.get_diff(timestamps[i::count_of_call]) for i in range(count_of_call)]
+                _ = list(self.value_compare(cur_d,diffrence,max_diff=0.5) for cur_d in msg_diff)
+            except:
+                logger.error("Exeption in compare_msg_diff function. Mode: %s", str(mode))
+                self.Status = "Failed"
+                return False
