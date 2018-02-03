@@ -23,6 +23,14 @@
             "pattern": "^(user|trunk):[0-9]{1,2}$|^((user|trunk):[0-9]{1,2},)+(user|trunk):[0-9]{1,2}$"
           }
         ]
+      },
+      "Calls": {
+        "oneOf": [
+          {
+            "type": "string",
+            "pattern": "^[0-9]{1,2}$|^([0-9]{1,2},)+[0-9]{1,2}$"
+          }
+        ]
       }
     },
     "required": [
