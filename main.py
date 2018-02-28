@@ -3,6 +3,7 @@ import sys
 if sys.version_info < (3,5):
     print("Error. Use python 3.5 or greater")
     sys.exit(1)
+import datetime
 import modules.test_parser as parser
 import modules.cmd_builder as builder
 import modules.test_processor as processor
@@ -74,7 +75,7 @@ def createParser ():
     parser.add_argument ('--show_ua_info', action='store_const', const=True)
     parser.add_argument ('--show_sip_flow', action='store_const', const=True)
     parser.add_argument ('--force_quit', action='store_const', const=True)
-    parser.add_argument ('-l', '--log_file', type=match_file_path,required=False)
+    parser.add_argument ('-l', '--log_path', type=match_file_path,required=False)
     parser.add_argument ('-g', '--global_ccn_lock', type=argparse.FileType('w'),required=False)
     parser.add_argument ('--show_test_info', action='store_const', const=True)
     parser.add_argument ('--show_cocon_output', action='store_const', const=True)
@@ -138,7 +139,7 @@ jsonData = namespace.test_config.read()
 customSettings = namespace.custom_config.read()
 namespace.test_config.close()
 namespace.custom_config.close()
-log_file = namespace.log_file
+log_path = namespace.log_path
 
 #Декларируем lock объект для регистрации
 reg_lock = threading.Lock()
@@ -159,18 +160,21 @@ fs_work = fs.fs_working()
 
 py_sipp_path = os.path.dirname(__file__)
 
-try:
+if log_path:
+    now = datetime.datetime.now()
+    log_path +=  "/" + now.strftime("%Y_%m_%d_%H_%M_%S")
+    if not fs_work.create_log_dir(log_path):
+        #Если не удалось создать директорию, выходим
+        sys.exit(1)
+    log_file = log_path + "/test.log"
     logging.basicConfig(filename=log_file,format = u'%(asctime)-8s %(levelname)-8s [%(module)s -> %(funcName)s:%(lineno)d] %(message)-8s', filemode='w', level = logging.INFO)
-except FileNotFoundError:
-    match_result = re.search("^([\w.-_]+\/)[\w.-_]+$",log_file)
-    fs_work.create_log_dir(match_result.group(1))
-    logging.basicConfig(filename=log_file,format = u'%(asctime)-8s %(levelname)-8s [%(module)s -> %(funcName)s:%(lineno)d] %(message)-8s', filemode='w', level = logging.INFO)
-except:
-    sys.exit(1)
+else:
+    log_path = False
+    logging.basicConfig(format = u'%(asctime)-8s %(levelname)-8s [%(module)s -> %(funcName)s:%(lineno)d] %(message)-8s', level = logging.DEBUG)
 
 logger = logging.getLogger("tester")
-
 logger.info("Reading custom settings...")
+
 try:
     custom_settings = json.loads(customSettings)
 except (ValueError, KeyError, TypeError):
@@ -248,11 +252,14 @@ test_var = parse.parse_test_var(test_desc)
 #Добавляем системные переменные в словарь
 test_var.update(custom_settings)
 #Создаём директорию для логов
-log_path = str(test_var["%%LOG_PATH%%"]) + "/" + test_desc["TestName"]
-logger.info("Creating log dir.")
-if not fs_work.create_log_dir(log_path):
-    #Если не удалось создать директорию, выходим
-    sys.exit(1)
+if not log_path:
+    now = datetime.datetime.now()
+    log_path = str(test_var["%%LOG_PATH%%"]) + "/" + test_desc["TestName"]
+    log_path +=  "/" + now.strftime("%Y_%m_%d_%H_%M_%S")
+    logger.info("Creating log dir.")
+    if not fs_work.create_log_dir(log_path):
+        #Если не удалось создать директорию, выходим
+        sys.exit(1)
 #Добавляем директорию с логами к тестам
 for test in tests:
     test.LogPath = log_path
