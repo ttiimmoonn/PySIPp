@@ -115,7 +115,6 @@ class TestProcessor():
             return False
         return True
 
-
     def _buildRegCommands(self, reg_objects, mode="reg"):
         if len(reg_objects) > 0:
             #Собираем команды для регистрации абонентов
@@ -137,15 +136,14 @@ class TestProcessor():
                     return False
         return True
 
-
-
-    def _getTestItemGen(self,Test):
+    @staticmethod
+    def _get_test_item_gen(Test):
         for item in Test:
             for method in item.items():
                 yield method
 
     def _link_user_to_ua(self):
-        #Массив для использованных id
+        # Массив для использованных id
         use_id = []
         use_trunk_id = []
         for ua in self.NowRunningTest.UserAgent + self.NowRunningTest.BackGroundUA:
@@ -226,7 +224,7 @@ class TestProcessor():
     def _execStartUA(self, ua_desc):
         logger.info("Parse UA from test.")
         parse = parser.Parser()
-        if not parse.parse_user_agent(self.NowRunningTest,ua_desc):
+        if not parse.parse_user_agent(self.NowRunningTest, ua_desc):
             self.NowRunningTest.Status = "Failed"
             logger.error("Parse UA failed.")
             return False
@@ -254,6 +252,11 @@ class TestProcessor():
             elif ua.Type == "Trunk":
                 logging.info("---| UA Port:     %s", str(ua.TrunkObject.Port))
                 logging.info("---| UA RtpPort:  %s", str(ua.TrunkObject.RtpPort))
+
+        if self.UacDropFlag:
+            # Remove all ua with empty start commands
+            self.NowRunningTest.UserAgent = [ua for ua in self.NowRunningTest.UserAgent if ua.Commands]
+            self.NowRunningTest.BackGroundUA = [ua for ua in self.NowRunningTest.BackGroundUA if ua.Commands]
 
         if not self._execSippProcess():
             self.NowRunningTest.Status = "Failed"
@@ -585,7 +588,7 @@ class TestProcessor():
 
 
     def _RunTestProcedure(self, test):
-        self.GenForItem = self._getTestItemGen(test.TestProcedure)
+        self.GenForItem = self._get_test_item_gen(test.TestProcedure)
         for item in self.GenForItem:
             if not test.ThreadEvent.isSet():
                 logger.error("Some process thread set event for stop. Drop test procedure...")
