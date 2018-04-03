@@ -231,6 +231,12 @@ class TestProcessor():
         cdr_conf["timeout"] = 5
         # Make cdr path
         cdr_path = "/domain/%s/%s/csv" % (self.TestVar["%%DEV_DOM%%"], cdr_group)
+        # Make cdr finalize
+        logger.info("Finalize cdr for group %s", cdr_group)
+        if not ssh.cocon_push_string_command("/domain/%%DEV_DOM%%/cdr/make_finalize_cdr " + cdr_group,
+                                             self.CoconInt, self.TestVar):
+            self.NowRunningTest.Status = "Failed"
+            return False
         # Try ftp connect
         try:
             cdr_obj = cdr.CDR(**cdr_conf)
@@ -355,7 +361,7 @@ class TestProcessor():
 
     def _execCoconCmd(self,cmd_list):
         logger.info("Send SSH commands...")
-        if not ssh.cocon_configure(cmd_list,self.CoconInt,self.TestVar):
+        if not ssh.cocon_configure(cmd_list, self.CoconInt, self.TestVar):
             logger.error("Executing ccn cmd failed.")
             self.NowRunningTest.Status = "Failed"
             return False

@@ -169,11 +169,11 @@ def ccn_command_handler(coconInt):
                 continue
 
 
-def cocon_configure(Commands,coconInt,test_var = None):
-    Commands = Commands[0]
-    if not Commands:
+def cocon_configure(commands, coconInt, test_var = None):
+    commands = commands[0]
+    if not commands:
         return True
-    #Пытаемся захватить lock
+    # Пытаемся захватить lock
     if coconInt.global_ccn_lock:
         logger.info("Try to get global_ccn_lock")
         coconInt.lock_acquire()
@@ -181,51 +181,58 @@ def cocon_configure(Commands,coconInt,test_var = None):
     cmd_build = builder.CommandBuilding()
 
     cmd_string = ""
-    for Command in Commands.values():
-        #Пропускаем команду через словарь
+    for Command in commands.values():
+        # Пропускаем команду через словарь
         if test_var:
             Command = cmd_build.replace_var(Command, test_var)
         if Command:
-            #Ставим паузу для команд, которые юзают blf или делают import
+            # Ставим паузу для команд, которые юзают blf или делают import
             if Command.find("blf") != -1 or Command.find("import") != -1:
                 cmd_string += Command + "\n" + "sleep 0.5\n"
             else:
                 cmd_string += Command + "\n"
         else:
-            #Отпускаем lock
+            # Отпускаем lock
             if coconInt.global_ccn_lock:
                 coconInt.lock_release()
             return False
     cmd_string += "exit\n"
-    #Если команда собралась без ошибок отправляем её в thread
+    # Если команда собралась без ошибок отправляем её в thread
     coconInt.coconQueue.put(cmd_string)
-    #Ждём пока thread разгребёт очередь
+    # Ждём пока thread разгребёт очередь
     coconInt.coconQueue.join()
-    #Отпускаем lock
+    # Отпускаем lock
     if coconInt.global_ccn_lock:
         coconInt.lock_release()
-    #Проверяем, что все команды были отправлены
+    # Проверяем, что все команды были отправлены
     if coconInt.ConnectionStatus:
         return True
     else:
         return False
 
-#For pakru tests
-def cocon_push_string_command(Commands,coconInt):
-    #Пытаемся захватить lock
+
+def cocon_push_string_command(command, coconInt, test_var=False):
+    # Пытаемся захватить lock
     if coconInt.global_ccn_lock:
         logger.info("Try to get global_ccn_lock")
         coconInt.lock_acquire()
-    cmd_string = Commands
-    cmd_string += "exit\n"
-    #Если команда собралась без ошибок отправляем её в thread
+    cmd_string = command
+    cmd_string += "\nexit\n"
+    # Пропускаем команду через словарь
+    if test_var:
+        cmd_build = builder.CommandBuilding()
+        cmd_string = cmd_build.replace_var(cmd_string, test_var)
+        if type(cmd_string) != str:
+            return False
+
+    # Если команда собралась без ошибок отправляем её в thread
     coconInt.coconQueue.put(cmd_string)
-    #Ждём пока thread разгребёт очередь
+    # Ждём пока thread разгребёт очередь
     coconInt.coconQueue.join()
-    #Отпускаем lock
+    # Отпускаем lock
     if coconInt.global_ccn_lock:
         coconInt.lock_release()
-    #Проверяем, что все команды были отправлены
+    # Проверяем, что все команды были отправлены
     if coconInt.ConnectionStatus:
         return True
     else:
