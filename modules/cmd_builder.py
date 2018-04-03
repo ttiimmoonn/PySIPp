@@ -5,10 +5,10 @@ import logging
 from collections import namedtuple
 logger = logging.getLogger("tester")
 
-class Command_building:
 
+class CommandBuilding:
     def build_reg_command(self, reg_obj, log_path, test_var, mode="reg"):
-        #Сборка команды для регистрации
+        # Сборка команды для регистрации
         command=""
         command+="%%SIPP_PATH%%" + " "
         command+="%%EXTER_IP%%" + ":"
@@ -64,20 +64,20 @@ class Command_building:
             command+=" -t tn -max_socket 25"
         if reg_obj.SipTransport != None:
             command+=" -set USER_TRANSPORT " +  reg_obj.SipTransport.lower()
-        #Добавляем message trace
+        # Добавляем message trace
         command += " -message_overwrite false -trace_msg -message_file " + log_path + "/" + LOG_PREFIX + "MESSAGE"
-        #Добавляем error trace
+        # Добавляем error trace
         command += " -error_overwrite false -trace_err -error_file " + log_path + "/" + LOG_PREFIX + "ERROR"
         command += " -cid_str " + str(reg_obj.RegCallId)
         command += " -base_cseq " + str(reg_obj.RegCSeq)
-        command = self.replace_key_value(command, test_var)
+        command = self.replace_var(command, test_var)
         if command:
             return command
         else:
             return False
 
     def build_service_feature_command(self, test, user, code, test_var):
-        #Сборка команды для регистрации
+        # Сборка команды для регистрации
         command=""
         command+="%%SIPP_PATH%%" + " "
         command+="-sf " + "%%SF_XML%%" + " "
@@ -94,11 +94,11 @@ class Command_building:
         if user.SipTransport == "TCP":
             command+=" -t tn -max_socket 25"
         LOG_PREFIX = "TEST_" + str(test.TestId) + "_NUMBER_" + user.Number + "_SF_" + code + "_"
-        #Добавляем message trace
+        # Добавляем message trace
         command += " -message_overwrite false -trace_msg -message_file " + test.LogPath + "/" + LOG_PREFIX + "MESSAGE"
-        #Добавляем error trace
+        # Добавляем error trace
         command += " -error_overwrite false -trace_err -error_file " + test.LogPath + "/" + LOG_PREFIX + "ERROR"
-        command = self.replace_key_value(command, test_var)
+        command = self.replace_var(command, test_var)
         if command:
             CmdInfo = namedtuple('CmdInfo', ['cmd_str', 'req_ex_code'])
             return CmdInfo(command,0)
@@ -107,12 +107,12 @@ class Command_building:
 
     def build_sipp_command(self, test, test_var, uac_drop_flag=False, show_sip_flow=False):
         for ua in test.UserAgent + test.BackGroundUA:
-            #Пытаемся достать параметры команды
+            # Пытаемся достать параметры команды
             for cmd_desc in ua.RawJsonCommands:
                 sipp_sf = cmd_desc["SourceFile"]
                 sipp_options = cmd_desc["Options"]
                 sipp_type = cmd_desc["SippType"]
-                #Если был передан флаг о сбросе UAC команд, то просто не собираем их.
+                # Если был передан флаг о сбросе UAC команд, то просто не собираем их.
                 if uac_drop_flag:
                     if sipp_type == "uac":
                         continue
@@ -124,8 +124,8 @@ class Command_building:
                     timeout = cmd_desc["Timeout"]
                 except KeyError:
                     timeout = "60s"
-                #В некоторых случаях полезно, чтобы UA завершился по timeout и при этом вернул 0 ex code
-                #Для таких случаев на уровне команды передаем параметр NoTimeOutError
+                # В некоторых случаях полезно, чтобы UA завершился по timeout и при этом вернул 0 ex code
+                # Для таких случаев на уровне команды передаем параметр NoTimeOutError
                 try:
                     no_timeout_err = cmd_desc["NoTimeOutError"]
                 except KeyError:
@@ -176,7 +176,7 @@ class Command_building:
                 else:
                     command += " -timeout " + timeout
 
-                #Выставляем ленивый режим детектирования перепосылок.
+                # Выставляем ленивый режим детектирования перепосылок.
                 command += " -rtcheck loose"
 
                 if ua.Type == "User":
@@ -186,22 +186,22 @@ class Command_building:
                 else:
                     LOG_PREFIX = "TEST_" + str(test.TestId) + "_UNKNOWN_TYPE_"
 
-                #Если был передан флаг для записи timestamp, то добавляем соотвествующие ключи
+                # Если был передан флаг для записи timestamp, то добавляем соотвествующие ключи
                 if ua.WriteStat:
                     timestamp_file = test.LogPath + "/" + LOG_PREFIX + ua.Name + "_TIMESTAMP"
                     ua.TimeStampFile = timestamp_file
                     command += " -shortmessage_overwrite false -trace_shortmsg -shortmessage_file " + str(timestamp_file)
-                #Добавляем message trace
+                # Добавляем message trace
                 command += " -message_overwrite false -trace_msg -message_file " + test.LogPath + "/" + LOG_PREFIX + ua.Name + "_MESSAGE"
-                #Добавляем screen trace
+                # Добавляем screen trace
                 command += " -screen_overwrite false -trace_screen -screen_file " + test.LogPath + "/" + LOG_PREFIX + ua.Name + "_SCREEN"
-                #Добавляем error trace
+                # Добавляем error trace
                 command += " -error_overwrite false -trace_err -error_file " + test.LogPath + "/" + LOG_PREFIX + ua.Name + "_ERROR"
                 if not no_timeout_err:
                     command += " -timeout_error"
-                command = self.replace_key_value(command, test_var)
+                command = self.replace_var(command, test_var)
                 if command:
-                    #Создаём туплу для хранения команды и ex_code к ней
+                    # Создаём туплу для хранения команды и ex_code к ней
                     CmdInfo = namedtuple('CmdInfo', ['cmd_str', 'req_ex_code'])
                     try:
                         ua.Commands.append(CmdInfo(command,cmd_desc["ReqExCode"]))
@@ -212,13 +212,22 @@ class Command_building:
                     return False
         return test
 
-    def replace_key_value(self, string, var_list):
+    def replace_var_for_dict(self, dictionary, varlst):
+        for k, v in dictionary.items():
+            result = self.replace_var(v, varlst)
+            if type(result) == str:
+                dictionary[k] = result
+            else:
+                return False
+        return True
+
+    def replace_var(self, string, var_list):
         for counter in list(range(10)):
-            #Ищем все переменные в исходной строке
+            # Ищем все переменные в исходной строке
             command_vars = re.findall(r'%%.*?%%',string)
             for eachVar in command_vars:
-                #Если кто запросил текущее время +/- временной сдвиг в формате %%NowTime[+/-][delta]%%,
-                #то отправляем данную переменную в функцию сборки времени.
+                # Если кто запросил текущее время +/- временной сдвиг в формате %%NowTime[+/-][delta]%%,
+                # то отправляем данную переменную в функцию сборки времени.
                 if re.match(r'%%NowTime([+,-]?)([0-9]{0,4})(;.*)?%%',eachVar):
                     shift_time=self.get_time_with_shift(eachVar)
                     if shift_time:
@@ -231,7 +240,7 @@ class Command_building:
                         string = string.replace(str(eachVar),str(shift_weekday),1)
                     else:
                         return False
-                #Ищем значение в словаре
+                # Ищем значение в словаре
                 else:
                     try:
                         string = string.replace(str(eachVar),str(var_list[eachVar]))
@@ -247,7 +256,8 @@ class Command_building:
         string = self.replace_len_function(string)
         return string
 
-    def replace_len_function(self, string):
+    @staticmethod
+    def replace_len_function(string):
         pattern = re.compile(r'len\((.*)\)')
         match = re.search(pattern, string)
         while match:
@@ -255,7 +265,8 @@ class Command_building:
             match = re.search(pattern, string)
         return string
 
-    def get_weekday_with_shift(self, weekday_string):
+    @staticmethod
+    def get_weekday_with_shift(weekday_string):
         result = re.match(r'%%NowWeekDay([+,-]?)([1-6]{0,4})%%',weekday_string)
         try:
             shift = int(result.group(2))
@@ -283,9 +294,9 @@ class Command_building:
                     now_day = 7 + now_day
         return now_day
 
-
-    def get_time_with_shift(self, time_string):
-        result=re.match(r'%%NowTime([+,-]?)([0-9]{0,4})(;.*)?%%',time_string)
+    @staticmethod
+    def get_time_with_shift(time_string):
+        result = re.match(r'%%NowTime([+,-]?)([0-9]{0,4})(;.*)?%%',time_string)
         try:
             shift = int(result.group(2))
         except IndexError:
@@ -300,22 +311,23 @@ class Command_building:
             return False
         except ValueError:
             sign = "+"
-        #Если передали формат, то забираем его, иначе присваиваем дефолтный формат
+        # Если передали формат, то забираем его, иначе присваиваем дефолтный формат
+        format_time = None
         try:
-            format_time = str(result.group(3)).replace(";","")
+            format_time = str(result.group(3)).replace(";", "")
         except IndexError:
             logger.error("Can't get time format : \" no such group \"")
         except ValueError:
             format_time = "%H%M"
 
-        if format_time == "None":
+        if not format_time:
             format_time = "%H%M"
 
-        nowTime = time.time()
+        now_time = time.time()
         if shift:
             if sign == "+":
-                nowTime += shift
+                now_time += shift
             elif sign == "-":
-                nowTime -= shift
-        #Возвращаем время
-        return datetime.fromtimestamp(nowTime).strftime(format_time)
+                now_time -= shift
+        # Возвращаем время
+        return datetime.fromtimestamp(now_time).strftime(format_time)

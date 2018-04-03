@@ -5,12 +5,9 @@ if sys.version_info < (3,5):
     sys.exit(1)
 import datetime
 import modules.test_parser as parser
-import modules.cmd_builder as builder
 import modules.test_processor as processor
-import modules.process_contr as proc
 import modules.fs_worker as fs
 import modules.cocon_interface as ssh
-import modules.test_class as test_class
 import modules.show_call_flow as sip_call_flow
 import modules.diff_calc as diff_calc
 import logging
@@ -18,13 +15,11 @@ import re
 import os
 import signal
 import json
-import jsonschema
-from jsonschema import Draft4Validator
 import time
 import threading
 import argparse
-import math
 from collections import OrderedDict
+
 
 def signal_handler(current_signal, frame):
     signal.signal(signal.SIGINT, signal.SIG_IGN)
@@ -44,7 +39,8 @@ def signal_handler(current_signal, frame):
     stop_test(cp_test_processor,cp_test_desc,cp_coconInt)
     sys.exit(1)
 
-def stop_test(test_processor,test_desc,coconInt):
+
+def stop_test(test_processor, test_desc, coconInt):
     logger.debug("Stop test thread...")
     if test_processor:
         test_processor.StopTestProcessor()
@@ -170,7 +166,7 @@ if log_path:
     logging.basicConfig(filename=log_file,format = u'%(asctime)-8s %(levelname)-8s [%(module)s -> %(funcName)s:%(lineno)d] %(message)-8s', filemode='w', level = logging.INFO)
 else:
     log_path = False
-    logging.basicConfig(format = u'%(asctime)-8s %(levelname)-8s [%(module)s -> %(funcName)s:%(lineno)d] %(message)-8s', level = logging.DEBUG)
+    logging.basicConfig(format = u'%(asctime)-8s %(levelname)-8s [%(module)s -> %(funcName)s:%(lineno)d] %(message)-8s', level = logging.INFO)
 
 logger = logging.getLogger("tester")
 logger.info("Reading custom settings...")

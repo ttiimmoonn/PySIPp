@@ -178,13 +178,13 @@ def cocon_configure(Commands,coconInt,test_var = None):
         logger.info("Try to get global_ccn_lock")
         coconInt.lock_acquire()
 
-    cmd_build = builder.Command_building()
+    cmd_build = builder.CommandBuilding()
 
     cmd_string = ""
     for Command in Commands.values():
         #Пропускаем команду через словарь
         if test_var:
-            Command = cmd_build.replace_key_value(Command, test_var)
+            Command = cmd_build.replace_var(Command, test_var)
         if Command:
             #Ставим паузу для команд, которые юзают blf или делают import
             if Command.find("blf") != -1 or Command.find("import") != -1:
