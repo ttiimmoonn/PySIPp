@@ -228,7 +228,7 @@ class TestProcessor():
         cdr_conf["host"] = self.TestVar["%%SERV_IP%%"]
         cdr_conf["user"] = "cdr"
         cdr_conf["passwd"] = "cdr"
-        cdr_conf["timeout"] = 5
+        cdr_conf["timeout"] = 500
         # Make cdr path
         cdr_path = "/domain/%s/%s/csv" % (self.TestVar["%%DEV_DOM%%"], cdr_group)
         # Make cdr finalize
