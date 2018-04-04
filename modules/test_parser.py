@@ -18,7 +18,9 @@ class Validator:
         #Кортеж глобальных секций
         self.global_sections = ("Users","UserVar","PreConf","PostConf", "Trunks")
         #Кортеж тестовых процедур
-        self.simple_procedure_sections = ("Sleep","Print","Stop","ServiceFeature","ManualReg","DropManualReg","SendSSHCommand") 
+        self.simple_procedure_sections = ("Sleep", "Print", "Stop",
+                                          "ServiceFeature", "ManualReg",
+                                          "DropManualReg", "SendSSHCommand", "CompareCDR")
 
     #Метод записи информации схем в словарь
     def schemas_dict_forming(self, py_sipp_path):
