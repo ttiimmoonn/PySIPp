@@ -231,13 +231,13 @@ class CommandBuilding:
                 if re.match(r'%%NowTime([+,-]?)([0-9]{0,4})(;.*)?%%',eachVar):
                     shift_time=self.get_time_with_shift(eachVar)
                     if shift_time:
-                        string = string.replace(str(eachVar),str(shift_time),1)
+                        string = string.replace(str(eachVar), str(shift_time), 1)
                     else:
                         return False
-                elif re.match(r'\%\%NowWeekDay([+,-]?)([1-6]{1})?\%\%',eachVar):
-                    shift_weekday=self.get_weekday_with_shift(eachVar)
+                elif re.match(r'\%\%NowWeekDay([+,-]?)([1-6]{1})?\%\%', eachVar):
+                    shift_weekday = self.get_weekday_with_shift(eachVar)
                     if shift_weekday:
-                        string = string.replace(str(eachVar),str(shift_weekday),1)
+                        string = string.replace(str(eachVar), str(shift_weekday), 1)
                     else:
                         return False
                 # Ищем значение в словаре
@@ -314,12 +314,11 @@ class CommandBuilding:
         # Если передали формат, то забираем его, иначе присваиваем дефолтный формат
         format_time = None
         try:
-            format_time = str(result.group(3)).replace(";", "")
+            format_time = result.group(3).replace(";", "")
         except IndexError:
             logger.error("Can't get time format : \" no such group \"")
-        except ValueError:
+        except (AttributeError, ValueError):
             format_time = "%H%M"
-
         if not format_time:
             format_time = "%H%M"
 
