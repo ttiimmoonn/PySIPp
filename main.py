@@ -304,7 +304,7 @@ stop_test(test_processor,test_desc,coconInt)
 if show_sip_flow:
     for test in tests:
         logger.info("Call flows for TEST %d:",test.TestId)
-        test_diff = diff_calc.diff_timestamp(test)
+        test_diff = diff_calc.DifferCalc(test)
         call_flow = sip_call_flow.sip_flow(test_diff)
         call_flow.print_flow()
 
