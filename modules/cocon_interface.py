@@ -1,11 +1,10 @@
 import modules.cmd_builder as builder
 import paramiko
-import paramiko.ssh_exception as parm_excpt 
 import queue
 import time
 import logging
 import random
-import socket
+import re
 import fcntl
 logger = logging.getLogger("tester")
 MAX_ATTEMPT = 2
@@ -177,28 +176,23 @@ def cocon_configure(commands, coconInt, test_var = None):
     if coconInt.global_ccn_lock:
         logger.info("Try to get global_ccn_lock")
         coconInt.lock_acquire()
-
     cmd_build = builder.CommandBuilding()
-
-    cmd_string = ""
-    for Command in commands.values():
-        # Пропускаем команду через словарь
-        if test_var:
-            Command = cmd_build.replace_var(Command, test_var)
-        if Command:
-            # Ставим паузу для команд, которые юзают blf или делают import
-            if Command.find("blf") != -1 or Command.find("import") != -1:
-                cmd_string += Command + "\n" + "sleep 0.5\n"
-            else:
-                cmd_string += Command + "\n"
-        else:
+    commands = list(commands.values())
+    commands.append("exit\n")
+    if test_var:
+        commands = list(map(lambda x: cmd_build.replace_var(x, test_var), commands))
+        if False in commands:
             # Отпускаем lock
             if coconInt.global_ccn_lock:
                 coconInt.lock_release()
             return False
-    cmd_string += "exit\n"
+    # Добавляем sleep 0.5 для команд с blf и import
+    commands = [str(cmd) if not re.search(r'blf|import', cmd) else str(cmd) + "\nsleep 0.5" for cmd in commands]
+    # Собираем итоговую стороку
+    commands = '\n'.join(commands)
+    print(commands)
     # Если команда собралась без ошибок отправляем её в thread
-    coconInt.coconQueue.put(cmd_string)
+    coconInt.coconQueue.put(commands)
     # Ждём пока thread разгребёт очередь
     coconInt.coconQueue.join()
     # Отпускаем lock
