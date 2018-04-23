@@ -56,8 +56,6 @@ class Validator:
             logger.info(line)
 
     def validate_sections(self, section, section_schema, section_name):
-        if section_name == "SetVar":
-            print(section)
         errors = sorted(Draft4Validator(section_schema).iter_errors(section), key=lambda e: e.path)
         if errors:
             logger.error("Validation error in section %s:" % section_name)
