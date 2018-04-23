@@ -15,9 +15,9 @@ class CDR(ftplib.FTP):
         try:
             _ = list(map(self.delete, self.nlst()))
         except ftplib.error_perm as error:
-            logger.warning("Can't clear ftp dir %s. Reason: %s", self.CDRpath, error)
+            logger.warning("Can't clear ftp dir %s. Reason: %s", path, error)
         except ftplib.error_temp as error:
-            logger.warning("Can't clear ftp dir %s. Reason: %s", self.CDRpath, error)
+            logger.warning("Can't clear ftp dir %s. Reason: %s", path, error)
 
     def _remove_file(self, filename):
         try:
@@ -42,9 +42,7 @@ class CDR(ftplib.FTP):
     def _get_cdr_file(self, path, filename, attempts=5):
         for attempt in range(attempts):
             if not self._download_file(filename):
-                print(self.nlst())
-                time.sleep(1)
-                self.cwd(path)
+                time.sleep(2)
                 continue
             else:
                 return True
@@ -60,13 +58,14 @@ class CDR(ftplib.FTP):
     def parse_cdr_file(self, path, filename):
         self.cwd(path)
         if not self._get_cdr_file(path, filename):
-            self.cwd("/")
             raise StopIteration
         cdr_data = b"".join(self.BinBuff).decode('utf-8')
+        if not cdr_data:
+            raise StopIteration
         csv_reader = csv.DictReader(cdr_data.split("\n"), delimiter=';')
         for row in csv_reader:
             yield row
-        self._remove_file(filename)
+        self._clear_cdr_dir(path)
         self.cwd("/")
         self.BinBuff = []
 
@@ -75,7 +74,6 @@ class CDR(ftplib.FTP):
         for filename in self.nlst():
             logger.info("Parsing cdr file: %s", filename)
             if not self._get_cdr_file(path, filename):
-                self.cwd("/")
                 raise StopIteration
             logger.debug("Trying to parse cdr data from %s", filename)
             cdr_data = b"".join(self.BinBuff).decode('utf-8')

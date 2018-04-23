@@ -154,7 +154,7 @@ class TestProcessor():
                         logger.error("User with id = %d not found { UA : %s }",int(ua.UserId),ua.Name)
                         return False
                 else:
-                    logger.error("Duplicate UserId: %d { UA : %s }",int(ua.UserId),ua.Name)
+                    logger.error("Duplicate UserId: %d { UA : %s }", int(ua.UserId),ua.Name)
                     return False
             elif ua.Type == "Trunk":
                 if not ua.TrunkId in use_trunk_id:
@@ -236,14 +236,14 @@ class TestProcessor():
             self.NowRunningTest.Status = "Failed"
             return False
         # Trying to get cdr filename
-        cdr_file_name = re.search(r'\s([\w_]+\.csv)', self.CoconInt.data.decode('utf-8'))
-        if not cdr_file_name:
+        cdr_filename = re.search(r'\s([\w_]+\.csv)', self.CoconInt.data.decode('utf-8'))
+        if not cdr_filename:
             logger.error("Can't parse cdr filename from ssh output.")
             self.NowRunningTest.Status = "Failed"
             return False
         else:
             # get cdr file
-            cdr_filename = cdr_file_name.group(1)
+            cdr_filename = cdr_filename.group(1)
             # Make cdr path
             cdr_path = "/domain/%s/%s/csv" % (self.TestVar["%%DEV_DOM%%"], cdr_group)
         # Try ftp connect
@@ -263,24 +263,22 @@ class TestProcessor():
         if not self.CmdBuilder.replace_var_for_dict(cdr_params, self.TestVar):
             self.NowRunningTest.Status = "Failed"
             return False
-        for row in cdr_obj.parse_cdr_file(cdr_path, cdr_filename):
-            print(row)
+        for cdr_dict in cdr_obj.parse_cdr_file(cdr_path, cdr_filename):
+            # cdr_params must be a subset of cdr_dict. Check it!
+            if not set(cdr_params).issubset(set(cdr_dict)):
+                logger.error("CDR compare failed. Next params not found: %s",
+                             set(cdr_params).difference(set(cdr_dict)))
+                compare_result.append(False)
+                break
+            for key in cdr_params.keys():
+                if cdr_dict[key] != cdr_params[key]:
+                    logger.error("CDR compare failed. Parameter %s equal %s, req value: %s",
+                                key, cdr_dict[key], cdr_params[key])
+                    compare_result.append(False)
+                    break
+                else:
+                    compare_result.append(True)
 
-        # for cdr_dict in cdr_obj.parse_cdr_files():
-        #     # cdr_params must be a subset of cdr_dict. Check it!
-        #     if not set(cdr_params).issubset(set(cdr_dict)):
-        #         logger.error("CDR compare failed. Next params not found: %s",
-        #                        set(cdr_params).difference(set(cdr_dict)))
-        #         compare_result.append(False)
-        #         break
-        #     for key in cdr_params.keys():
-        #         if cdr_dict[key] != cdr_params[key]:
-        #             logger.error("CDR compare failed. Parameter %s equal %s, req value: %s",
-        #                         key, cdr_dict[key], cdr_params[key])
-        #             compare_result.append(False)
-        #             break
-        #         else:
-        #             compare_result.append(True)
         if compare_result and False not in compare_result:
             logger.info("CDR compare result: success.")
             return True
