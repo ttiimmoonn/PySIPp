@@ -1,0 +1,19 @@
+{
+  "$schema" : "http://json-schema.org/draft-04/schema#",
+  "title" : "SetVar schema",
+  "type" : "object",
+  "properties" : {
+    "SetVar" : {
+        "type" : "object",
+        "patternProperties": {
+            "^%%.*%%$" : {
+              "type": "string"
+            }
+          },
+          "minProperties": 1,
+          "additionalProperties": false
+        }
+   },
+   "required" : ["SetVar"],
+   "additionalProperties": false
+}

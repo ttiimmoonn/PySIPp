@@ -108,7 +108,7 @@ class TestProcessor():
         # Врубаем регистрацию для всех объектов
         logger.info("Starting of registration...")
 
-        self.RegThread  = threading.Thread(target=proc.ChangeUsersRegistration, args=(reg_objects,self.RegLock))
+        self.RegThread = threading.Thread(target=proc.ChangeUsersRegistration, args=(reg_objects,self.RegLock))
         self.RegThread.start()
         self.RegThread.join()
         if not proc.CheckUserRegStatus(reg_objects):
@@ -229,14 +229,23 @@ class TestProcessor():
         cdr_conf["user"] = "cdr"
         cdr_conf["passwd"] = "cdr"
         cdr_conf["timeout"] = 500
-        # Make cdr path
-        cdr_path = "/domain/%s/%s/csv" % (self.TestVar["%%DEV_DOM%%"], cdr_group)
         # Make cdr finalize
         logger.info("Finalize cdr for group %s", cdr_group)
-        if not ssh.cocon_push_string_command("/domain/%%DEV_DOM%%/cdr/make_finalize_cdr " + cdr_group,
-                                             self.CoconInt, self.TestVar):
+        if not ssh.ssh_push_string_command("/domain/%%DEV_DOM%%/cdr/make_finalize_cdr " + cdr_group,
+                                           self.CoconInt, self.TestVar):
             self.NowRunningTest.Status = "Failed"
             return False
+        # Trying to get cdr filename
+        cdr_file_name = re.search(r'\s([\w_]+\.csv)', self.CoconInt.data.decode('utf-8'))
+        if not cdr_file_name:
+            logger.error("Can't parse cdr filename from ssh output.")
+            self.NowRunningTest.Status = "Failed"
+            return False
+        else:
+            # get cdr file
+            cdr_filename = cdr_file_name.group(1)
+            # Make cdr path
+            cdr_path = "/domain/%s/%s/csv" % (self.TestVar["%%DEV_DOM%%"], cdr_group)
         # Try ftp connect
         try:
             cdr_obj = cdr.CDR(**cdr_conf)
@@ -248,29 +257,30 @@ class TestProcessor():
             logger.error("Can't connect to ftp server. Reason: %s", error)
             self.NowRunningTest.Status = "Failed"
             return False
-        # Set cdr path
-        cdr_obj.CDRpath = cdr_path
+
         # Replace vars in cdr params
         cdr_params = method_body.get("CDRParams", {})
         if not self.CmdBuilder.replace_var_for_dict(cdr_params, self.TestVar):
             self.NowRunningTest.Status = "Failed"
             return False
+        for row in cdr_obj.parse_cdr_file(cdr_path, cdr_filename):
+            print(row)
 
-        for cdr_dict in cdr_obj.parse_cdr_files():
-            # cdr_params must be a subset of cdr_dict. Check it!
-            if not set(cdr_params).issubset(set(cdr_dict)):
-                logger.error("CDR compare failed. Next params not found: %s",
-                               set(cdr_params).difference(set(cdr_dict)))
-                compare_result.append(False)
-                break
-            for key in cdr_params.keys():
-                if cdr_dict[key] != cdr_params[key]:
-                    logger.error("CDR compare failed. Parameter %s equal %s, req value: %s",
-                                key, cdr_dict[key], cdr_params[key])
-                    compare_result.append(False)
-                    break
-                else:
-                    compare_result.append(True)
+        # for cdr_dict in cdr_obj.parse_cdr_files():
+        #     # cdr_params must be a subset of cdr_dict. Check it!
+        #     if not set(cdr_params).issubset(set(cdr_dict)):
+        #         logger.error("CDR compare failed. Next params not found: %s",
+        #                        set(cdr_params).difference(set(cdr_dict)))
+        #         compare_result.append(False)
+        #         break
+        #     for key in cdr_params.keys():
+        #         if cdr_dict[key] != cdr_params[key]:
+        #             logger.error("CDR compare failed. Parameter %s equal %s, req value: %s",
+        #                         key, cdr_dict[key], cdr_params[key])
+        #             compare_result.append(False)
+        #             break
+        #         else:
+        #             compare_result.append(True)
         if compare_result and False not in compare_result:
             logger.info("CDR compare result: success.")
             return True
@@ -646,7 +656,9 @@ class TestProcessor():
             logger.info("---| StopTime:        %s", str(datetime.fromtimestamp(self.NowRunningTest.StopTime).strftime('%H:%M:%S %Y-%m-%d')))
             logger.info("---| TestDuration:    %ss", str(test.getTestDuration()))
 
-
+    def _set_variables(self, **variables):
+        logger.info("Set next variables: %s", variables)
+        self.TestVar.update(variables)
 
     def _RunTestProcedure(self, test):
         self.GenForItem = self._get_test_item_gen(test.TestProcedure)
@@ -684,6 +696,8 @@ class TestProcessor():
                     self._DropManualReg(item[1]["Trunks"],"trunk")
             elif item[0] == "CompareCDR":
                 self._cdr_compare(item[1])
+            elif item[0] == "SetVar":
+                self._set_variables(**item[1])
             else:
                 logger.error("Unknown metod: %s in test procedure. Test aborting.", item[0])
                 self.NowRunningTest.Status = "Failed"

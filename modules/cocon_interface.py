@@ -190,7 +190,6 @@ def cocon_configure(commands, coconInt, test_var = None):
     commands = [str(cmd) if not re.search(r'blf|import', cmd) else str(cmd) + "\nsleep 0.5" for cmd in commands]
     # Собираем итоговую стороку
     commands = '\n'.join(commands)
-    print(commands)
     # Если команда собралась без ошибок отправляем её в thread
     coconInt.coconQueue.put(commands)
     # Ждём пока thread разгребёт очередь
@@ -205,7 +204,7 @@ def cocon_configure(commands, coconInt, test_var = None):
         return False
 
 
-def cocon_push_string_command(command, coconInt, test_var=False):
+def ssh_push_string_command(command, coconInt, test_var=False):
     # Пытаемся захватить lock
     if coconInt.global_ccn_lock:
         logger.info("Try to get global_ccn_lock")

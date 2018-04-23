@@ -20,7 +20,6 @@ def RegisterUser (reg_obj, mode="reg"):
         if not reg_obj.RegOneTime:
             reg_obj.SetRegistrationTimer()
         # Запускаем процесс
-        
         process = start_ua(reg_obj.RegCommand)
         if not process:
             if type(reg_obj).__name__ == "UserClass":

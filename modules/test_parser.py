@@ -11,18 +11,18 @@ logger = logging.getLogger("tester")
 class Validator:
 
     def __init__(self):
-        #Словарь для хранения содержимого схем
+        # Словарь для хранения содержимого схем
         self.schemas_data = {}
-        #Директория, в которой хранятся схемы
+        # Директория, в которой хранятся схемы
         self.schemas_directory = "/schema/"
-        #Кортеж глобальных секций
-        self.global_sections = ("Users","UserVar","PreConf","PostConf", "Trunks")
-        #Кортеж тестовых процедур
+        # Кортеж глобальных секций
+        self.global_sections = ("Users", "UserVar", "PreConf", "PostConf", "Trunks")
+        # Кортеж тестовых процедур
         self.simple_procedure_sections = ("Sleep", "Print", "Stop",
                                           "ServiceFeature", "ManualReg",
-                                          "DropManualReg", "SendSSHCommand", "CompareCDR")
+                                          "DropManualReg", "SendSSHCommand", "CompareCDR", "SetVar")
 
-    #Метод записи информации схем в словарь
+    # Метод записи информации схем в словарь
     def schemas_dict_forming(self, py_sipp_path):
         path_to_schemas_directory = py_sipp_path + self.schemas_directory
         for schema_file in listdir(path_to_schemas_directory):
@@ -56,6 +56,8 @@ class Validator:
             logger.info(line)
 
     def validate_sections(self, section, section_schema, section_name):
+        if section_name == "SetVar":
+            print(section)
         errors = sorted(Draft4Validator(section_schema).iter_errors(section), key=lambda e: e.path)
         if errors:
             logger.error("Validation error in section %s:" % section_name)
@@ -147,7 +149,7 @@ class Validator:
                 sys.exit(1)
 
     def validation_tests(self, json_file):
-        #Валидация глобальных свойств
+        # Валидация глобальных свойств
         if not "TestName" in json_file:
             logger.error("Validation error in global section: \033[1;31mTestName is a required property\033[1;m")
             sys.exit(1)
@@ -160,7 +162,7 @@ class Validator:
         if "Isolate" in json_file and type(json_file["Isolate"]) != bool:
             logger.error("Validation error in global section: \033[1;31mIsolate must be bool\033[1;m")
             sys.exit(1)
-        #Валидация глобальных секций
+        # Валидация глобальных секций
         for section in self.global_sections:
             if section in json_file:
                 self.validate_sections(json_file[section], self.schemas_data[section], section)
@@ -168,7 +170,7 @@ class Validator:
             logger.error("Validation error in global section: \033[1;31mTests is required a property\033[1;m")
             sys.exit(1)
         else:
-            #Валидация тестов
+            # Валидация тестов
             for test in json_file["Tests"]:
                 if "Name" in test:
                     if type(test["Name"]) != str or len(test["Name"]) == 0:
@@ -182,7 +184,7 @@ class Validator:
                     logger.error("Validation error in section Tests: \033[1;31mTestProcedure is a required property\033[1;m")
                     sys.exit(1)
                 else:
-                    #Валидация тестовых процедур
+                    # Валидация тестовых процедур
                     for procedure in test["TestProcedure"]:
                         if "CheckRetransmission" in procedure:
                             self.validate_sections(procedure["CheckRetransmission"], self.schemas_data["CheckRetransmission"],"CheckRetransmission")
@@ -217,7 +219,7 @@ class Validator:
 
 class Parser:
     def parse_trunk_info(self,json_trunks):
-        #словарь для хранения транков
+        # словарь для хранения транков
         trunks={}
         for trunk in json_trunks:
             new_trunk = testClass.TrunkClass()
@@ -267,11 +269,11 @@ class Parser:
                 new_trunk.BindPort = trunk["BindPort"]
             except:
                 pass
-            #Если есть два транка с одинаковыми id, выходим
+            # Если есть два транка с одинаковыми id, выходим
             if new_trunk.TrunkId in trunks:
                 logger.error("TrunkId = %d is already in use", new_trunk.TrunkId)
                 return False
-            #Если два транка используют одинаковые порты, то выходим:
+            # Если два транка используют одинаковые порты, то выходим:
             if {trunkId: trunk for trunkId,trunk in trunks.items() if trunk.Port == new_trunk.Port}:
                 logger.error("Trunk Port = %d is already in use. TrunkId: %d", new_trunk.Port,new_trunk.TrunkId)
                 return False
@@ -279,13 +281,13 @@ class Parser:
         return trunks
 
     def parse_user_info(self, json_users):
-        #Создаём словарь для хранения юзеров
+        # Создаём словарь для хранения юзеров
         users = {}
-        #Перебераем всех юзеров, описанных в секции Users
+        # Перебераем всех юзеров, описанных в секции Users
         for user in json_users:
-            #Создаём нового пользователя
+            # Создаём нового пользователя
             new_user = testClass.UserClass()
-            #Обработка обязательных свойств
+            # Обработка обязательных свойств
             new_user.Status = "New"
             new_user.UserId = user["UserId"]
             new_user.Number = user["Number"]
@@ -294,7 +296,7 @@ class Parser:
             new_user.SipDomain = user["SipDomain"]
             new_user.SipGroup = user["SipGroup"]
             new_user.Port = user["Port"]
-            #Обработка опциональных свойств
+            # Обработка опциональных свойств
             try:
                 new_user.RegOneTime = user["OneTime"]
             except KeyError:
@@ -331,11 +333,11 @@ class Parser:
                 new_user.BindPort = user["BindPort"]
             except KeyError:
                 pass
-            #Если есть два юзера с одинаковыми id, выходим
+            # Если есть два юзера с одинаковыми id, выходим
             if new_user.UserId in users:
                 logger.error("UserId = %d is already in use", new_user.UserId)
                 return False
-            #Если два транка используют одинаковые порты, то выходим:
+            # Если два транка используют одинаковые порты, то выходим:
             if {UserId: user for UserId,user in users.items() if user.Port == new_user.Port}:
                 logger.error("User Port = %d is already in use. UserID: %d", new_user.Port, new_user.UserId)
                 return False
@@ -343,13 +345,13 @@ class Parser:
         return users
 
     def parse_test_info(self, json_tests):
-        #Создаём список для тестов
+        # Создаём список для тестов
         tests = []
         for count,test in enumerate(json_tests):
             new_test = testClass.TestClass()
             new_test.Status = "New"
             new_test.TestId = count
-            #Обработка опциональных свойств
+            # Обработка опциональных свойств
             try:
                 new_test.Name = test["Name"]
             except KeyError:
@@ -358,27 +360,27 @@ class Parser:
                 new_test.Description = test["Description"]
             except KeyError:
                 pass
-            #Обработка тестовой процедуры (обязательное свойство)
+            # Обработка тестовой процедуры (обязательное свойство)
             new_test.TestProcedure = test["TestProcedure"]
             tests.append(new_test)
         return tests
 
     def parse_user_agent(self, test, ua_desc):
-        #Пытаемся найти UserAgent в описании теста
+        # Пытаемся найти UserAgent в описании теста
         for ua in ua_desc:
-            #Создаём нового UserAgent
+            # Создаём нового UserAgent
             new_ua = testClass.UserAgentClass()
-            #Устанавливаем статус UserAgent
+            # Устанавливаем статус UserAgent
             new_ua.Status = "New"
-            #Обработка обязательных свойств
+            # Обработка обязательных свойств
             new_ua.Name = ua["Name"]
             new_ua.Type = ua["Type"]
-            #В зависимости от типа UA забираем свойство UserId(User) или TrunkID(Trunk)
+            # В зависимости от типа UA забираем свойство UserId(User) или TrunkID(Trunk)
             if new_ua.Type == "User":
                new_ua.UserId = ua["UserId"]
             else:
                 new_ua.TrunkId = ua["TrunkId"]
-            #Обработка опциональных свойств
+            # Обработка опциональных свойств
             try:
                 new_ua.WriteStat = ua["WriteStat"]
             except:
@@ -391,12 +393,12 @@ class Parser:
                 new_ua.BackGround = ua["BackGround"]
             except:
                 pass
-            #Обработка команд для UA (обязательное свойство)
+            # Обработка команд для UA (обязательное свойство)
             for command in ua["Commands"]:
-                #Поскольку на данном этапе юзеры не залинкованы к процессам
-                #Просто передаём объекту JSON описания команд
+                # Поскольку на данном этапе юзеры не залинкованы к процессам
+                # Просто передаём объекту JSON описания команд
                 new_ua.RawJsonCommands.append(command)
-            #Делим агентов
+            # Делим агентов
             if new_ua.BackGround:
                 test.BackGroundUA.append(new_ua)
             else:
@@ -404,14 +406,14 @@ class Parser:
         return True
 
     def parse_test_var(self, test_desc):
-        #Парсим пользовательские переменные
+        # Парсим пользовательские переменные
         test_var = {}
-        #Забираем переменные, описанные юзером
+        # Забираем переменные, описанные юзером
         if "UserVar" in test_desc:
             test_var = test_desc["UserVar"][0]
         try:
             for user in test_desc["Users"]:
-                #Добавляем описание основных параметров юзера
+                # Добавляем описание основных параметров юзера
                 var_prefix = "%%" + str(user["UserId"])
                 test_var[str(var_prefix + "." + "SipDomain" + "%%")] = str(user["SipDomain"])
                 test_var[str(var_prefix + "." + "SipGroup" + "%%")] = str(user["SipGroup"])
@@ -421,7 +423,7 @@ class Parser:
             pass
         try:
             for trunk in test_desc["Trunks"]:
-               #Добавляем описание основных параметров транков
+               # Добавляем описание основных параметров транков
                var_prefix = "%%Tr." + str(trunk["TrunkId"])
                try:
                    test_var[str(var_prefix + "." + "SipDomain" + "%%")] = str(trunk["SipDomain"])

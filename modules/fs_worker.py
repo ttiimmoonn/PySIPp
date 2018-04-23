@@ -4,7 +4,6 @@ import logging
 logger = logging.getLogger("tester")
 
 class fs_working:
-    
     def create_log_dir(self, log_path):
         #Создаём дикерторию
         try:
