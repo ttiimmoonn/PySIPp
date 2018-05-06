@@ -3,8 +3,9 @@ import modules.fs_worker as fs
 from collections import OrderedDict
 import logging
 import math
-logger = logging.getLogger("tester")
 from itertools import zip_longest
+
+logger = logging.getLogger("tester")
 
 
 class DiffCalcExeption(Exception):
@@ -28,7 +29,8 @@ class DifferCalc:
         # Парсим short_msg log
         _ = list(map(self.parse_short_trace_msg, test.CompliteUA))
 
-    def _get_ua_obj(self, ua_type, ua_id):
+    def _get_ua_obj(self, ua_info):
+        ua_type, ua_id = ua_info.split(":")
         if ua_type == "user":
             try:
                 return self.users_with_traces[int(ua_id)]
@@ -43,22 +45,20 @@ class DifferCalc:
             logger.error("Unknown type of ua object: %s", str(ua_pr.type))
             return False
 
-    def value_compare(self, sequence, req_value, max_diff=0.05):
-        if not sequence or False in sequence:
-            logger.error("Can't compare sequence: %s", sequence)
+    def value_compare(self, sequence, req_value, max_error=0.05):
+        req_value = float(req_value)
+        max_error = float(max_error)
+        sequence = list(map(float, sequence))
+        logger.info("Comparison start.")
+        logger.info("====================================")
+        logger.info("Sequence for compare: %s", list(map(lambda x: round(x, 1),sequence)))
+        logger.info("Require value: %s", str(req_value))
+        logger.info("Max error: %s", str(max_error))
+        if False in list(map(lambda x: math.fabs(x - req_value) <= max_error, sequence)):
+            logger.error("Comparison is complete. Result: fail")
             self.Status = "Failed"
-            raise DiffCalcExeption("Compare Error")
-        logger.info("Try to compare difference:")
-        logger.info("--| COM SEQ: %s",' '.join(map(str, [round(x, 1) for x in sequence])))
-        logger.info("--| REQ VAL: %s", req_value)
-        logger.info("--| Max diff: %s", str(max_diff))
-        for value in sequence:
-            if math.fabs(float(value) - float(req_value)) > max_diff:
-                logger.warning("--| Compare complite. Result: fail")
-                self.Status = "Failed"
-                return False
-        logger.info("--| Compare complite. Result: succ")
-        return True
+        else:
+            logger.info("Comparison is complete. Result: success")
 
     def seq_compare(self, seq_a, seq_b, max_diff=0.05):
         logger.info("--| SEQ A: %s", ' '.join(map(str, [round(x, 1)for x in seq_a])))
@@ -84,16 +84,16 @@ class DifferCalc:
 
     def parse_short_trace_msg(self, ua):
         if ua.UserObject:
-            log_postfix = "UserObject with Number: " + str(ua.UserObject.Number)
+            log_postfix = "UserObject with Number: %s" % str(ua.UserObject.Number)
         elif ua.TrunkObject:
-            log_postfix = "TrunkObject with Port: " + str(ua.TrunkObject.Port)
+            log_postfix = "TrunkObject with Port: %s" % str(ua.TrunkObject.Port)
         else:
             logger.error("Wrong ua object.")
             self.Status = "Failed"
             return
         # Парсим только те UA, которые имеют TimeStampFile
         if not ua.TimeStampFile:
-            logger.warning("Parse complite for %s. Result: Failed (trace file not found).", log_postfix)
+            logger.debug("Parse complite for %s. Result: Failed (trace file not found).", log_postfix)
             return
 
         fs_work = fs.fs_working()
@@ -102,7 +102,7 @@ class DifferCalc:
         # Если удалось получить дескриптор с short_trace, обрабатываем его
         if not stat_file:
             return
-        logger.info("Try to parse short_trace file for %s",log_postfix)
+        logger.debug("Try to parse short_trace file for %s",log_postfix)
         ua.ShortTrParser = tr_parser.short_trace_parser(stat_file)
         ua.ShortTrParser.parse_trace_msg()
         logger.debug("Сlose short_trace file for %s",log_postfix)
@@ -111,7 +111,7 @@ class DifferCalc:
             logger.error("Parse complite for %s. Result: %s.",log_postfix,ua.ShortTrParser.Status)
             self.Status = "Failed"
         else:
-            logger.info("Parse complite for %s. Result: %s.",log_postfix,ua.ShortTrParser.Status)
+            logger.debug("Parse complite for %s. Result: %s.",log_postfix,ua.ShortTrParser.Status)
             if ua.UserObject:
                 self.users_with_traces[ua.UserId] = ua
             elif ua.TrunkObject:
@@ -143,23 +143,20 @@ class DifferCalc:
         msg_info["method"] = kwargs.get("Method")
         msg_info["resp_code"] = kwargs.get("Code")
         result = OrderedDict()
-        logger.info("Try to found first msg timestamp")
-        logger.info("--| MSG param: type_of_msg - %s; method - %s; resp_code - %s", msg_info["msg_type"], msg_info["method"], msg_info["resp_code"])
+        logger.info("Try to search first timestamp for message: %s", kwargs)
         for ua_info in args:
-            ua_type, ua_id = ua_info.split(":")
-            ua = self._get_ua_obj(ua_type, ua_id)
+            ua = self._get_ua_obj(ua_info)
             if not ua:
-                logger.error("--| Timestamp not found. User with id: %s without traces", ua_id)
-                raise DiffCalcExeption("User wout trace file")
-            logger.info("--| Search first msg timestamp for user: %s", str(ua.UserObject.Number))
+                raise DiffCalcExeption("UA object %s without trace file." % (ua_info))
             ua_msg_timestamp = OrderedDict()
             for call in ua.ShortTrParser.calls:
-                ua_msg_timestamp[call.call_id] = call.get_first_msg_timestamp(**msg_info)
-                if ua_msg_timestamp[call.call_id]:
-                    logger.info("--| Msg timestamp for call: %s found.", call.call_id)
+                timestamp = call.get_first_msg_timestamp(**msg_info)
+                if not timestamp:
+                    ua_msg_timestamp[call.call_id] = None
                 else:
-                    logger.info("--| Msg timestamp for call: %s not found.", call.call_id)
-            result[str(ua_type) + ":" + str(ua_id)] = ua_msg_timestamp
+                    ua_msg_timestamp[call.call_id] = timestamp
+                    logger.info("Found timestamp: %s for %s in call: %s", timestamp, ua_info, call.call_id)
+            result[ua_info] = ua_msg_timestamp
         return result
 
     def get_retrans_diff(self, *args, **kwargs):
@@ -253,39 +250,50 @@ class DifferCalc:
 
     @staticmethod
     def get_diff(seq):
-        if not seq or False in seq:
-            logger.error("Can't calc message diff for %s", seq)
-            raise DiffCalcExeption("Compare Error")
-        msg_diff = []
-        for count, timestp in enumerate(seq):
-            try:
-                msg_diff.append(float(seq[count+1])-float(timestp))
-            except IndexError:
-                break
-        return msg_diff
+        logger.info("Try to get difference for timestamp sequence: %s", seq)
+        # Raise exception if len of seq < 2
+        if len(seq) < 2:
+            raise DiffCalcExeption("Timestamp sequence has wrong length: %d" % len(seq))
+        if None in seq:
+            raise DiffCalcExeption("Timestamp sequence has wrong item: None")
+        # Convert to float
+        seq = list(map(float, seq))
+        # Calculating difference
+        diffs = [seq[i+1] - seq[i] for i in range(len(seq) - 1)]
+        logger.info("Differences: %s", list(map(lambda x: round(x, 1), diffs)))
+        return diffs
+
+
+    @staticmethod
+    def _pprint_list(timestamp_list):
+        from pprint import pprint, pformat
+        _ = list(map(logger.info, pformat(timestamp_list).split('\n')))
 
     def get_timestamp_sequence(self, diff_desc, search_result):
+        logger.info("Try to get timestamp sequence.")
         # Get calls from ua
-        logger.debug("Search result:\n%s", search_result)
         search_result = list(search_result.values())
-        logger.debug("Get timestamps for each UA:\n%s", search_result)
         # Get timestamp from all calls
         timestamp_list = list(map(lambda x: list(x.values()), search_result))
-        logger.debug("Get timestamps for each call for all UA:\n%s", timestamp_list)
+        logger.info("Initial seq:")
+        self._pprint_list(timestamp_list)
         if diff_desc.Calls:
-            logger.info("Apply call mask: %s", ",".join(list(map(str, diff_desc.Calls))))
+            logger.info("Try to apply call filter: %s", ",".join(list(map(str, diff_desc.Calls))))
             # Make timestamp filtering by call mask
             try:
                 timestamp_list = list(map(lambda x: [x[i] for i in diff_desc.Calls], timestamp_list))
+                logger.info("Filtered seq:")
+                self._pprint_list(timestamp_list)
             except IndexError as error:
-                logger.error("Call mask not applied. Reason: %s", error)
-                self.Status = "Failed"
-                raise DiffCalcExeption("API error")
-        logger.debug("Timestamp list after call filtering:\n%s", timestamp_list)
+                raise DiffCalcExeption("Call mask can not be applied. %s" % error)
+
         if diff_desc.Mode == "between_ua":
             # For between_ua mode make zip of timestamps
             timestamp_list = list(zip_longest(*timestamp_list, fillvalue=False))
-        logger.debug("Timestamps list after transformation by mode option:\n%s", timestamp_list)
+            logger.info("Zipped seq:")
+            self._pprint_list(timestamp_list)
+        logger.info("Final seq:")
+        self._pprint_list(timestamp_list)
         return timestamp_list
 
     def compare_diff_between_ua(self, diff_desc):
@@ -298,9 +306,7 @@ class DifferCalc:
             # Link ua_id to request.
             # Warn! Count of request must be equal count of ua
             if len(diff_desc.UA) != len(diff_desc.Msg):
-                self.Status = "Failed"
-                logger.error("Count of messages must be equal count of ua in %s mode", diff_desc.CompareMode)
-                raise DiffCalcExeption("API error")
+                raise DiffCalcExeption("Count of messages must be equal count of ua for %s mode" % diff_desc.CompareMode)
             search_result = {}
             for ua, msg in zip_longest(diff_desc.UA, diff_desc.Msg, fillvalue=False):
                 search_result.update(self.get_first_msg_timestamp(ua, **msg.__dict__))
@@ -308,7 +314,7 @@ class DifferCalc:
             # Get all msg difference for several calls
             msg_diff = list(map(self.get_diff, timestamp_list))
             # Make compare
-            _ = list(map(lambda x: self.value_compare(x, diff_desc.Difference, max_diff=0.5), msg_diff))
+            _ = list(map(lambda x: self.value_compare(x, diff_desc.Difference, max_error=0.5), msg_diff))
         elif diff_desc.CompareMode == "perMsg":
             # Each message corresponds to ua_id.
             # So, in this mode we can compare time difference for one message between varied UA
@@ -320,7 +326,7 @@ class DifferCalc:
                 # Get all msg difference for several calls
                 msg_diff = list(map(self.get_diff, timestamp_list))
                 # Make compare
-                _ = list(map(lambda x: self.value_compare(x, diff_desc.Difference, max_diff=0.5), msg_diff))
+                _ = list(map(lambda x: self.value_compare(x, diff_desc.Difference, max_error=0.5), msg_diff))
         else:
             self.Status = "Failed"
             logger.error("Unknown compare mode %s.", diff_desc.CompareMode)
@@ -334,7 +340,7 @@ class DifferCalc:
                 search_result = self.get_first_msg_timestamp(*diff_desc.UA, **msg.__dict__)
                 timestamp_list = self.get_timestamp_sequence(diff_desc, search_result)
                 msg_diff = list(map(self.get_diff, timestamp_list))
-                _ = list(map(lambda x: self.value_compare(x, diff_desc.Difference, max_diff=0.5), msg_diff))
+                _ = list(map(lambda x: self.value_compare(x, diff_desc.Difference, max_error=0.5), msg_diff))
         elif diff_desc.CompareMode == "perUa":
             result = []
             for msg in diff_desc.Msg:
@@ -347,16 +353,20 @@ class DifferCalc:
             result = list(map(lambda x: list(zip_longest(*x, fillvalue=False)), result))
             for call in result:
                 msg_diff = list(map(self.get_diff, call))
-                _ = list(map(lambda x: self.value_compare(x, diff_desc.Difference, max_diff=0.5), msg_diff))
+                _ = list(map(lambda x: self.value_compare(x, diff_desc.Difference, max_error=0.5), msg_diff))
 
     def compare_msg_diff(self, diff_desc):
-        logger.info("Compare description:")
+        logger.info("====================================")
+        logger.info("Compare params:")
         logger.info("--| Mode: %s", diff_desc.Mode)
         logger.info("--| CompareMode: %s", diff_desc.CompareMode)
         logger.info("--| CompareUA: %s", diff_desc.UA)
         logger.info("--| CompareCalls: %s", diff_desc.Calls)
+        logger.info("--| Require diff: %s", str(diff_desc.Difference))
         logger.info("--| Messages:")
-        _ = list(map(lambda x: logger.info("----| MSG: %s", x.__dict__), diff_desc.Msg))
+        for msg in diff_desc.Msg:
+            logger.info("--| %s", msg.__dict__)
+        logger.info("====================================")
         if diff_desc.Mode == "inner_ua":
             self.compare_diff_inner_ua(diff_desc)
         if diff_desc.Mode == "between_ua":
