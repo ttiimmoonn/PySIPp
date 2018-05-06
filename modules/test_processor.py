@@ -17,6 +17,12 @@ import logging
 logger = logging.getLogger("tester")
 
 
+class Dict2Obj:
+    def __init__(self, dictionary):
+        """Constructor"""
+        for key in dictionary:
+            setattr(self, key, dictionary[key])
+
 class TestProcessor():
     def __init__(self,**kwargs):
         self.Tests = kwargs["Tests"]
@@ -389,86 +395,70 @@ class TestProcessor():
         return namedtuple(str(name), dict.keys())(**dict)
 
     @staticmethod
-    def _convert_old_ua_format(convert_str,namedtpl):
-        # Конвертируем старый формат 1,2,3 в новый user:1,user:2,user:3.
-        ua_for_chk = list(map(lambda x: x, convert_str.split(",")))
-        ua_for_chk = list(map(lambda x: "user:"+str(x),ua_for_chk))
-        ua_for_chk = list(map(lambda ua: namedtpl(*ua.split(":")), ua_for_chk))
-        return ua_for_chk
+    def _convert_ua2list(convert_str):
+        ua_list = []
+        if re.match("^[0-9]{1,2}$|^([0-9]{1,2},)+[0-9]{1,2}$", convert_str):
+            # Обнаружен старый формат, даём warn и конвертим его в новый.
+            logger.warning("You are using the old format for the parameter UA in CheckDifference. Please fix it!")
+            # Конвертируем старый формат 1,2,3 в новый user:1,user:2,user:3.
+            ua_list = list(map(lambda x: x, convert_str.split(",")))
+            ua_list = list(map(lambda x: "user:" + str(x), ua_list))
+        elif re.match("^(user|trunk):[0-9]{1,2}$|^((user|trunk):[0-9]{1,2},)+(user|trunk):[0-9]{1,2}", convert_str):
+            ua_list = convert_str.split(",")
+        return ua_list
 
-    def _execCheckDifference(self,method_body):
+    def _execCheckDifference(self, method_body):
         # Парсим short_msg_log sipp, чтобы рассичитать дифы между сообщениями
-        test_diff = diff_calc.diff_timestamp(self.NowRunningTest)
+        test_diff = diff_calc.DifferCalc(self.NowRunningTest)
         # Если не удалось пропарсить лог, то выходим.
         if test_diff.Status == "Failed":
             self.NowRunningTest.Status = "Failed"
             return False
-
-        for method_item in method_body:
-            # Конвертируем описание метода в namedtuple
-            cur_diff = self._convert_orderdict(method_item,name="cur_diff")
-            # Если в Difference строка, значит кто-то передал в данный параметр имя переменной,
-            # поэтому пытаемся найти данную переменную в словаре и присвоить её зачение переменной req_diff.
-            # В противном случае просто приравниваем req_diff к Difference
-            if type(cur_diff.Difference) == str:
-                req_diff = self.CmdBuilder.replace_var(cur_diff.Difference, self.TestVar)
-                if type(req_diff) == bool:
-                    self.NowRunningTest.Status = "Failed"
-                    return False
-            else:
-                req_diff = cur_diff.Difference
-            # Пытамся привести req_diff к int.
-            try:
-                req_diff = int(req_diff)
-            except ValueError:
-                # Если не удалось привести req_diff к int, то выходим.
-                logger.error("Can't convert Difference to int. Value: %s",str(req_diff))
+        for diff_desc in method_body:
+            diff_desc = Dict2Obj(diff_desc)
+            diff_desc.Difference = self.CmdBuilder.replace_var(str(diff_desc.Difference), self.TestVar)
+            if type(diff_desc.Difference) == bool:
                 self.NowRunningTest.Status = "Failed"
                 return False
+            else:
+                try:
+                    diff_desc.Difference = int(diff_desc.Difference)
+                    diff_desc.Difference = float(diff_desc.Difference / 1000)
+                except ValueError:
+                    # Если не удалось привести req_diff к int, то выходим.
+                    logger.error("Can't convert Difference to int. Value: %s", str(req_diff))
+                    self.NowRunningTest.Status = "Failed"
+                    return False
+            # Try to get call mask
             try:
-                call_mask = list(map(int,cur_diff.Calls.split(",")))
+                diff_desc.Calls = list(map(int, diff_desc.Calls.split(",")))
+                diff_desc.Calls = list(map(lambda x: x-1, diff_desc.Calls))
             except AttributeError:
-                call_mask = False
-            # Получаем список UA, для которых будут производиться вычисления.
-            # TODO. в дальнейшем нужно избавить в скриптах от старого формата 0,1,2... 
-            # После введения транков формат должен быть следующим user:1,trunk:1,user:2...
-            # Для обратной совместимости будем обрабатывать все форматы
-            ua_info = namedtuple('UaInfo', ['type', 'id'])
-            if re.match("^[0-9]{1,2}$|^([0-9]{1,2},)+[0-9]{1,2}$",cur_diff.UA):
-                # Обнаружен старый формат, даём warn и конвертим его в новый.
-                logger.warning("You are using the old format for the parameter UA in CheckDifference. Please fix it!")
-                ua_for_chk = self._convert_old_ua_format(cur_diff.UA,ua_info)
-            elif re.match("^(user|trunk):[0-9]{1,2}$|^((user|trunk):[0-9]{1,2},)+(user|trunk):[0-9]{1,2}",cur_diff.UA): 
-                ua_for_chk = list(map(lambda ua: ua_info(*ua.split(":")) ,cur_diff.UA.split(",")))
-            else:
-                # Если передали в неверном формате
-                logger.error("Wrong format of: %s",cur_diff.UA)
+                setattr(diff_desc, "Calls", False)
+            # Try to get CompareMode
+            try:
+                getattr(diff_desc, "CompareMode")
+            except AttributeError:
+                setattr(diff_desc, "CompareMode", "perMsg")
+
+            diff_desc.UA = self._convert_ua2list(diff_desc.UA)
+            diff_desc.Msg = list(map(lambda x: Dict2Obj(x), diff_desc.Msg))
+            for msg in diff_desc.Msg:
+                msg.MsgType = msg.MsgType.lower()
+                msg.Method = msg.Method.upper()
+            try:
+                test_diff.compare_msg_diff(diff_desc)
+            except diff_calc.DiffCalcExeption as error:
+                logger.error("CheckDifference failed. Reason %s")
                 self.NowRunningTest.Status = "Failed"
                 return False
-
-            # Начинаем попорядку проверять дифы всех сообщений
-            for cur_msg in cur_diff.Msg:
-                msg_desc = self._convert_orderdict(cur_msg,name="msg_desc")
-                # Словарь для хранения параметров сообщения.
-                msg_info = {}
-                # Забираем тип сообщения
-                msg_info["msg_type"] = msg_desc.MsgType.lower()
-                # Забираем код ответа, если он присутствует
-                msg_info["resp_code"] = None if msg_desc.Code == None else msg_desc.Code
-                # Забираем метод сообщения
-                msg_info["method"] = msg_desc.Method.upper()
-                # Производим расчёт
-                test_diff.compare_msg_diff(req_diff,cur_diff.Mode,call_mask,*ua_for_chk,**msg_info)
-                # Ecли расчитанное значение не совпадает с req_diff,
-                # то test_diff.Status будет равен false. В этом случае выходим.
-                if test_diff.Status == "Failed":
-                    self.NowRunningTest.Status = "Failed"
-                    return False
-        return True
+            if test_diff.Status == "Failed":
+                self.NowRunningTest.Status = "Failed"
+                return False
 
     def _execCheckRetransmission(self, method_body):
         # Парсим short_msg_log sipp, чтобы рассичитать дифы между сообщениями
-        test_diff = diff_calc.diff_timestamp(self.NowRunningTest)
+        test_diff = diff_calc.DifferCalc(self.NowRunningTest)
         # Если не удалось пропарсить лог, то выходим.
         if test_diff.Status == "Failed":
             self.NowRunningTest.Status = "Failed"
@@ -481,7 +471,7 @@ class TestProcessor():
             if re.match("^[0-9]{1,2}$|^([0-9]{1,2},)+[0-9]{1,2}$",cur_retrans.UA):
                 # Обнаружен старый формат, даём warn и конвертим его в новый.
                 logger.warning("You are using the old format for the parameter UA in CheckRetransmission. Please fix it!")
-                ua_for_chk = self._convert_old_ua_format(cur_retrans.UA,ua_info)
+                ua_for_chk = self._convert_ua2list(cur_retrans.UA, ua_info)
             elif re.match("^(user|trunk):[0-9]{1,2}$|^((user|trunk):[0-9]{1,2},)+(user|trunk):[0-9]{1,2}",cur_retrans.UA): 
                 ua_for_chk = list(map(lambda ua: ua_info(*ua.split(":")) ,cur_retrans.UA.split(",")))
             else:

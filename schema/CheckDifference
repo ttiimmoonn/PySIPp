@@ -12,6 +12,13 @@
           "inner_ua"
         ]
       },
+      "CompareMode": {
+        "type": "string",
+        "enum": [
+          "perUa",
+          "perMsg"
+        ]
+      },
       "UA": {
         "oneOf": [
           {
