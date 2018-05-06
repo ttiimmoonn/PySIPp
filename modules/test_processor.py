@@ -440,7 +440,8 @@ class TestProcessor():
                 msg.Method = msg.Method.upper()
             try:
                 test_diff.compare_msg_diff(diff_desc)
-            except diff_calc.DiffCalcExeption:
+            except diff_calc.DiffCalcExeption as error:
+                logger.error("CheckDifference failed. Reason %s")
                 self.NowRunningTest.Status = "Failed"
                 return False
             if test_diff.Status == "Failed":
