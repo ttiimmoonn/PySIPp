@@ -72,14 +72,14 @@ class DifferCalc:
 
             for a,b in zip(seq_a, seq_b):
                 if math.fabs(float(a)-float(b)) > max_diff:
-                    logger.warning("--| Compare complite. Result: fail")
+                    logger.warning("--| Compare complete. Result: fail")
                     self.Status = "Failed"
                     return False
         except:
             logger.warning("--| Exception in seq_compare function.")
             self.Status = "Failed"
             return False
-        logger.info("--| Compare complite. Result: succ")
+        logger.info("--| Compare complete. Result: succ")
         return True
 
     def parse_short_trace_msg(self, ua):
@@ -93,7 +93,7 @@ class DifferCalc:
             return
         # Парсим только те UA, которые имеют TimeStampFile
         if not ua.TimeStampFile:
-            logger.debug("Parse complite for %s. Result: Failed (trace file not found).", log_postfix)
+            logger.debug("Parse complete for %s. Result: Failed (trace file not found).", log_postfix)
             return
 
         fs_work = fs.fs_working()
@@ -108,10 +108,10 @@ class DifferCalc:
         logger.debug("Сlose short_trace file for %s",log_postfix)
         stat_file.close()
         if ua.ShortTrParser.Status == "Failed":
-            logger.error("Parse complite for %s. Result: %s.",log_postfix,ua.ShortTrParser.Status)
+            logger.error("Parse complete for %s. Result: %s.",log_postfix,ua.ShortTrParser.Status)
             self.Status = "Failed"
         else:
-            logger.debug("Parse complite for %s. Result: %s.",log_postfix,ua.ShortTrParser.Status)
+            logger.debug("Parse complete for %s. Result: %s.",log_postfix,ua.ShortTrParser.Status)
             if ua.UserObject:
                 self.users_with_traces[ua.UserId] = ua
             elif ua.TrunkObject:
