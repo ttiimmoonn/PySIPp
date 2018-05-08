@@ -4,7 +4,7 @@ import datetime
 import modules.test_parser as parser
 import modules.test_processor as processor
 import modules.fs_worker as fs
-import modules.cocon_interface as ssh
+import modules.ssh_interface as ssh
 import modules.show_call_flow as sip_call_flow
 import modules.diff_calc as diff_calc
 import logging
@@ -33,32 +33,32 @@ def signal_handler(current_signal, frame):
         cp_test_desc = False
     else:
         cp_test_desc = test_desc
-    if 'coconInt' not in globals():
-        cp_coconInt = False
+    if 'sshInt' not in globals():
+        cp_sshInt = False
     else:
-        cp_coconInt = coconInt
-    stop_test(cp_test_processor, cp_test_desc, cp_coconInt)
+        cp_sshInt = sshInt
+    stop_test(cp_test_processor, cp_test_desc, cp_sshInt)
     sys.exit(1)
 
 
-def stop_test(test_processor, test_desc, coconInt):
+def stop_test(test_processor, test_desc, sshInt):
     logger.debug("Stop test thread...")
     if test_processor:
         test_processor.StopTestProcessor()
-    if coconInt:
-        if coconInt.coconQueue and coconInt.myThread:
-            if coconInt.myThread.is_alive():
+    if sshInt:
+        if sshInt.sshQueue and sshInt.myThread:
+            if sshInt.myThread.is_alive():
                 # Чистим текущие задачи из очереди
-                coconInt.flush_queue()
+                sshInt.flush_queue()
                 # Засовываем команды на деконфигурацию в очередь
                 if test_desc:
                     if "PostConf" in test_desc:
                         logger.info("Start system reconfiguration...")
                         # Переменные для настройки соединения
-                        ssh.cocon_configure(test_desc["PostConf"],coconInt,test_var)
+                        ssh.cocon_configure(test_desc["PostConf"],sshInt,test_var)
                 # Отрубаем thread
                 # На всякий случай убеждаемся, что ccn thread существует и живой
-                coconInt.eventForStop.set()
+                sshInt.eventForStop.set()
 
 # Добавляем трап на SIGINT
 signal.signal(signal.SIGINT, signal_handler)
@@ -271,15 +271,15 @@ for test in tests:
 
 # Поднимаем thread для отправки SSH command
 logger.info("Start configuration thread...")
-coconInt = ssh.coconInterface(test_var, show_cocon_output, global_ccn_lock)
+sshInt = ssh.SSHInterface(test_var, show_cocon_output, global_ccn_lock)
 # Создаём event для остановки thread
-coconInt.eventForStop = threading.Event()
+sshInt.eventForStop = threading.Event()
 # Поднимаем thread
-coconInt.myThread = threading.Thread(target=ssh.ccn_command_handler, args=(coconInt,))
-coconInt.myThread.start()
+sshInt.myThread = threading.Thread(target=ssh.ccn_command_handler, args=(sshInt,))
+sshInt.myThread.start()
 # Проверяем, что он жив.
 time.sleep(0.2)
-if not coconInt.myThread.is_alive():
+if not sshInt.myThread.is_alive():
     logger.error("Can't start CCN configure thread")
     sys.exit(1)
 
@@ -287,9 +287,9 @@ if not coconInt.myThread.is_alive():
 if "PreConf" in test_desc:
     logger.info("Start system configuration...")
     # Переменные для настройки соединения
-    if not ssh.cocon_configure(test_desc["PreConf"],coconInt,test_var):
-        coconInt.eventForStop.set()
-        coconInt.myThread.join()
+    if not ssh.cocon_configure(test_desc["PreConf"],sshInt,test_var):
+        sshInt.eventForStop.set()
+        sshInt.myThread.join()
         sys.exit(1)
     time.sleep(1)
 
@@ -298,7 +298,7 @@ test_pr_config["Tests"] = tests
 test_pr_config["ForceQuitFlag"] = force_quit
 test_pr_config["Users"] = test_users
 test_pr_config["Trunks"] = test_trunks
-test_pr_config["CoconInt"] = coconInt
+test_pr_config["CoconInt"] = sshInt
 test_pr_config["TestVar"] = test_var
 test_pr_config["ShowSipFlowFlag"] = show_sip_flow
 test_pr_config["UacDropFlag"] = uac_drop_flag
@@ -308,7 +308,7 @@ test_processor = processor.TestProcessor(**test_pr_config)
 test_processor.StartTestProcessor()
 
 # Запускаем стоп тест
-stop_test(test_processor, test_desc, coconInt)
+stop_test(test_processor, test_desc, sshInt)
 
 if show_sip_flow:
     for test in tests:
@@ -321,7 +321,7 @@ if show_sip_flow:
 # Производим расчёт результатов теста
 logger.info("Test info:")
 # Если статус теста Failed, то поднимаем flag.
-for index,test in enumerate(tests):
+for index, test in enumerate(tests):
     # Если передавали параметр -n 1,3,4, то используем данные индексы.
     if test_numbers:
         index = test_numbers[index]
