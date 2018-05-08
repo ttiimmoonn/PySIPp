@@ -62,47 +62,50 @@ def stop_test(test_processor, test_desc, coconInt):
 #Добавляем трап на SIGINT
 signal.signal(signal.SIGINT, signal_handler)
 
-def createParser ():
-    parser = argparse.ArgumentParser()
-    parser.add_argument ('-t', '--test_config', type=argparse.FileType(),required=True)
-    parser.add_argument ('-c', '--custom_config', type=argparse.FileType(),required=True)
-    parser.add_argument ('-n', '--test_numbers', type=match_test_numbers,required=False)
-    parser.add_argument ('--drop_uac', action='store_const', const=True)
-    parser.add_argument ('--show_ua_info', action='store_const', const=True)
-    parser.add_argument ('--show_sip_flow', action='store_const', const=True)
-    parser.add_argument ('--force_quit', action='store_const', const=True)
-    parser.add_argument ('-l', '--log_path', type=match_file_path,required=False)
-    parser.add_argument ('-g', '--global_ccn_lock', type=argparse.FileType('w'),required=False)
-    parser.add_argument ('--show_test_info', action='store_const', const=True)
-    parser.add_argument ('--show_cocon_output', action='store_const', const=True)
-    return parser
 
-def get_test_info (test):
-    print("TestName:        ",test.Name)
-    print("TestStatus:      ",test.Status)
-    print("TestDesc:        ",test.Description)
-    print("TestUA:          ",test.UserAgent)
-    print("TestCompliteUA   ",test.CompliteUA)
+def create_parser():
+    new_parser = argparse.ArgumentParser()
+    new_parser.add_argument('-t', '--test_config', type=argparse.FileType(), required=True)
+    new_parser.add_argument('-c', '--custom_config', type=argparse.FileType(), required=True)
+    new_parser.add_argument('-n', '--test_numbers', type=match_test_numbers, required=False)
+    new_parser.add_argument('--drop_uac', action='store_const', const=True)
+    new_parser.add_argument('--show_ua_info', action='store_const', const=True)
+    new_parser.add_argument('--show_sip_flow', action='store_const', const=True)
+    new_parser.add_argument('--force_quit', action='store_const', const=True)
+    new_parser.add_argument('-l', '--log_path', type=match_file_path,required=False)
+    new_parser.add_argument('-g', '--global_ccn_lock', type=argparse.FileType('w'), required=False)
+    new_parser.add_argument('--show_test_info', action='store_const', const=True)
+    new_parser.add_argument('--show_cocon_output', action='store_const', const=True)
+    return new_parser
+
+
+def get_test_info(test):
+    print("TestName:        ", test.Name)
+    print("TestStatus:      ", test.Status)
+    print("TestDesc:        ", test.Description)
+    print("TestUA:          ", test.UserAgent)
+    print("TestCompleteUA   ", test.CompliteUA)
     print("")
     for ua in test.CompliteUA:
-        print("     UaName:         ",ua.Name)
-        print("     UaStatus:       ",ua.Status)
-        print("     UaStatusCode:   ",ua.StatusCode)
-        print("     UaType:         ",ua.Type)
-        if ua.UserObject != None:
-            print("     UaUserId:       ",ua.UserObject.UserId)
-            print("     UaUserObj:      ",ua.UserObject)
-            print("     UaUserPort:     ",ua.UserObject.Port)
-            print("     UaUserRtpPort:  ",ua.UserObject.RtpPort)
-        if ua.TrunkObject != None:
-            print("     UaTrunkId:      ",ua.TrunkObject.TrunkId)
-            print("     UaTrunkObj:     ",ua.TrunkObject)
-            print("     UaTrunkPort:    ",ua.TrunkObject.Port)
-            print("     UaTrunkRtpPort: ",ua.TrunkObject.RtpPort)
+        print("     UaName:         ", ua.Name)
+        print("     UaStatus:       ", ua.Status)
+        print("     UaStatusCode:   ", ua.StatusCode)
+        print("     UaType:         ", ua.Type)
+        if ua.UserObject:
+            print("     UaUserId:       ", ua.UserObject.UserId)
+            print("     UaUserObj:      ", ua.UserObject)
+            print("     UaUserPort:     ", ua.UserObject.Port)
+            print("     UaUserRtpPort:  ", ua.UserObject.RtpPort)
+        if ua.TrunkObject:
+            print("     UaTrunkId:      ", ua.TrunkObject.TrunkId)
+            print("     UaTrunkObj:     ", ua.TrunkObject)
+            print("     UaTrunkPort:    ", ua.TrunkObject.Port)
+            print("     UaTrunkRtpPort: ", ua.TrunkObject.RtpPort)
         print("     UaCommand:")
         for command in ua.Commands:
-            print("      ",command)
+            print("      ", command)
         print("")
+
 
 def match_test_numbers(test_numbers):
     match_result = re.search("^[0-9]{1,2}$|^([0-9]{1,2},)*[0-9]{1,2}$",test_numbers)
@@ -112,15 +115,16 @@ def match_test_numbers(test_numbers):
     else:
         raise argparse.ArgumentTypeError("Arg 'n' does not match required format : num1,num2,num3")
 
+
 def match_file_path(log_file):
-    match_result =re.search("^([\w.-_]+\/)[\w.-_]+$",log_file)
+    match_result = re.search("^([\w.-_]+\/)[\w.-_]+$", log_file)
     if match_result:
-        return  log_file
+        return log_file
     else:
         raise argparse.ArgumentTypeError("Log file path is incorrect")
 
-#Парсим аргументы командной строки
-arg_parser = createParser()
+# Парсим аргументы командной строки
+arg_parser = create_parser()
 namespace = arg_parser.parse_args()
 test_numbers = namespace.test_numbers
 uac_drop_flag = namespace.drop_uac
@@ -130,28 +134,29 @@ show_ua_info = namespace.show_ua_info
 show_test_info = namespace.show_test_info
 show_cocon_output = namespace.show_cocon_output
 global_ccn_lock = namespace.global_ccn_lock
-#Забираем описание теста и общие настройки
+
+# Забираем описание теста и общие настройки
 jsonData = namespace.test_config.read()
 customSettings = namespace.custom_config.read()
 namespace.test_config.close()
 namespace.custom_config.close()
 log_path = namespace.log_path
 
-#Декларируем lock объект для регистрации
+# Декларируем lock объект для регистрации
 reg_lock = threading.Lock()
-#Декларируем массив для юзеров
+# Декларируем массив для юзеров
 test_users = {}
-#Декларируем массив для транков
+# Декларируем массив для транков
 test_trunks = {}
-#декларируем массив для тестов
+# декларируем массив для тестов
 tests = []
-#Декларируем словарь пользовательских переменных
+# Декларируем словарь пользовательских переменных
 test_var = {}
-#Создаем объект парсера
+# Создаем объект парсера
 parse = parser.Parser()
-#Создаем объект валидатора
+# Создаем объект валидатора
 validator = parser.Validator()
-#Создаем объект fs_worker
+# Создаем объект fs_worker
 fs_work = fs.fs_working()
 
 py_sipp_path = os.path.dirname(__file__)
@@ -160,13 +165,13 @@ if log_path:
     now = datetime.datetime.now()
     log_path +=  "/" + now.strftime("%Y_%m_%d_%H_%M_%S")
     if not fs_work.create_log_dir(log_path):
-        #Если не удалось создать директорию, выходим
+        # Если не удалось создать директорию, выходим
         sys.exit(1)
     log_file = log_path + "/test.log"
-    logging.basicConfig(filename=log_file,format = u'%(asctime)-8s %(levelname)-8s [%(module)s -> %(funcName)s:%(lineno)d] %(message)-8s', filemode='w', level = logging.INFO)
+    logging.basicConfig(filename=log_file,format = u'%(asctime)-8s %(levelname)-8s [%(module)s:%(lineno)d] %(message)-8s', filemode='w', level = logging.INFO)
 else:
     log_path = False
-    logging.basicConfig(format = u'%(asctime)-8s %(levelname)-8s [%(module)s -> %(funcName)s:%(lineno)d] %(message)-8s', level = logging.INFO)
+    logging.basicConfig(format = u'%(asctime)-8s %(levelname)-8s [%(module)s:%(lineno)d] %(message)-8s', level = logging.INFO)
 
 logger = logging.getLogger("tester")
 logger.info("Reading custom settings...")
