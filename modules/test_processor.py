@@ -242,7 +242,7 @@ class TestProcessor():
             self.NowRunningTest.Status = "Failed"
             return False
         # Trying to get cdr filename
-        cdr_filename = re.search(r'\s([\w_]+\.csv)', self.CoconInt.data.decode('utf-8'))
+        cdr_filename = re.search(r'\s([\w_]+\.csv)', self.CoconInt.data)
         if not cdr_filename:
             logger.error("Can't parse cdr filename from ssh output.")
             self.NowRunningTest.Status = "Failed"
@@ -507,7 +507,7 @@ class TestProcessor():
             logger.info("Trying send to CCN all commands from test: %s",self.NowRunningTest.Name)
             for item in self.GenForItem:
                 if item[0] == "SendSSHCommand":
-                    ssh.cocon_configure(item[1],self.CoconInt,self.TestVar)
+                    ssh.cocon_configure(item[1], self.CoconInt, self.TestVar)
 
     def _RegManual(self, reg_objects, mode="user"):
 
