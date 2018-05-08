@@ -25,7 +25,7 @@ class SshCmdLockedExp(Exception):
 
 
 class SSHInterface:
-    def __init__(self, test_var, show_cocon_output=False, global_ccn_lock=None):
+    def __init__(self, test_var, show_cocon_output=False, global_ccn_lock=None, log_file=None):
         self.Login = str(test_var["%%DEV_USER%%"])
         self.Password = str(test_var["%%DEV_PASS%%"])
         self.Ip = str(test_var["%%SERV_IP%%"])
@@ -37,6 +37,7 @@ class SSHInterface:
         self.eventForStop = None
         self.myThread = None
         self.attempt = 0
+        self.log_file = log_file
         self.ShowCoConOutput = show_cocon_output
         self.read_buff = b""
         self.buff_size = 2048
@@ -105,9 +106,12 @@ class SSHInterface:
                 raise SshConnectionExp("Receiving data failed. Reason: %s" % error)
             self.data = b"".join((self.data, self.read_buff))
             if len(self.read_buff) > 0 and self.ShowCoConOutput:
-                print(self.read_buff.decode("utf-8", "strict"), end="")
+                if not self.log_file:
+                    print(self.read_buff.decode("utf-8", "strict"), end="")
             else:
                 time.sleep(0.01)
+        if self.log_file:
+            logger.info("%s", self.data.decode("utf-8", "strict"))
         return True
 
     def send_command(self, command):

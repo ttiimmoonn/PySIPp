@@ -162,6 +162,7 @@ fs_work = fs.fs_working()
 
 py_sipp_path = os.path.dirname(__file__)
 
+log_file = False
 if log_path:
     now = datetime.datetime.now()
     log_path = "/".join((log_path, now.strftime("%Y_%m_%d_%H_%M_%S")))
@@ -271,7 +272,7 @@ for test in tests:
 
 # Поднимаем thread для отправки SSH command
 logger.info("Start configuration thread...")
-sshInt = ssh.SSHInterface(test_var, show_cocon_output, global_ccn_lock)
+sshInt = ssh.SSHInterface(test_var, show_cocon_output, global_ccn_lock, log_file=log_file)
 # Создаём event для остановки thread
 sshInt.eventForStop = threading.Event()
 # Поднимаем thread
