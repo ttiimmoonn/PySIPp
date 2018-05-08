@@ -3,9 +3,10 @@ from datetime import datetime
 import logging
 logger = logging.getLogger("tester")
 
+
 class fs_working:
     def create_log_dir(self, log_path):
-        #Создаём дикерторию
+        # Создаём дикерторию
         try:
             os.makedirs(log_path)
         except FileExistsError:
@@ -16,20 +17,23 @@ class fs_working:
             return False
         return True
 
-    def clear_log_dir(self, log_path):
+    @staticmethod
+    def clear_log_dir(log_path):
         for file in os.listdir(log_path):
+            print(file)
             try:
                 file = log_path + "/" + file
-                #Удаляем всё кроме основного лог файла.
+                # Удаляем всё кроме основного лог файла.
                 if file != "" and os.path.isfile(file) and file != log_path + "/test.log":
                     os.remove(file)
             except PermissionError:
                 logger.error("Сan't clear log folder. Detail: %s",sys.exc_info()[1])
                 return False
         return True
-    
-    def open_log_file(self, ua_name, log_path):
-        #Создаём дикерторию
+
+    @staticmethod
+    def open_log_file(ua_name, log_path):
+        # Создаём дикерторию
         try:
             fileName = str(log_path) + "/" + str(ua_name) + "_" + str(datetime.strftime(datetime.now(), "%Y_%m_%d_%H_%M_%S")) + ".log"
             fd = open(fileName,"wb")
@@ -38,7 +42,8 @@ class fs_working:
             return False
         return fd
 
-    def get_fd(self, file_path):
+    @staticmethod
+    def get_fd(file_path):
         try:
             fd = open(file_path,"r")
         except:
