@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
 import sys
-if sys.version_info < (3,5):
-    print("Error. Use python 3.5 or greater")
-    sys.exit(1)
 import datetime
 import modules.test_parser as parser
 import modules.test_processor as processor
@@ -20,6 +17,10 @@ import threading
 import argparse
 from collections import OrderedDict
 
+if sys.version_info < (3, 5):
+    print("Error. Use python 3.5 or greater")
+    sys.exit(1)
+
 
 def signal_handler(current_signal, frame):
     signal.signal(signal.SIGINT, signal.SIG_IGN)
@@ -28,15 +29,15 @@ def signal_handler(current_signal, frame):
         cp_test_processor = False
     else:
         cp_test_processor = test_processor
-    if not 'test_desc' in globals():
+    if 'test_desc' not in globals():
         cp_test_desc = False
     else:
         cp_test_desc = test_desc
-    if not 'coconInt' in globals():
+    if 'coconInt' not in globals():
         cp_coconInt = False
     else:
         cp_coconInt = coconInt
-    stop_test(cp_test_processor,cp_test_desc,cp_coconInt)
+    stop_test(cp_test_processor, cp_test_desc, cp_coconInt)
     sys.exit(1)
 
 
@@ -47,19 +48,19 @@ def stop_test(test_processor, test_desc, coconInt):
     if coconInt:
         if coconInt.coconQueue and coconInt.myThread:
             if coconInt.myThread.is_alive():
-                #Чистим текущие задачи из очереди
+                # Чистим текущие задачи из очереди
                 coconInt.flush_queue()
-                #Засовываем команды на деконфигурацию в очередь
+                # Засовываем команды на деконфигурацию в очередь
                 if test_desc:
                     if "PostConf" in test_desc:
                         logger.info("Start system reconfiguration...")
-                        #Переменные для настройки соединения
+                        # Переменные для настройки соединения
                         ssh.cocon_configure(test_desc["PostConf"],coconInt,test_var)
-                #Отрубаем thread
-                #На всякий случай убеждаемся, что ccn thread существует и живой
+                # Отрубаем thread
+                # На всякий случай убеждаемся, что ccn thread существует и живой
                 coconInt.eventForStop.set()
 
-#Добавляем трап на SIGINT
+# Добавляем трап на SIGINT
 signal.signal(signal.SIGINT, signal_handler)
 
 
@@ -72,7 +73,7 @@ def create_parser():
     new_parser.add_argument('--show_ua_info', action='store_const', const=True)
     new_parser.add_argument('--show_sip_flow', action='store_const', const=True)
     new_parser.add_argument('--force_quit', action='store_const', const=True)
-    new_parser.add_argument('-l', '--log_path', type=match_file_path,required=False)
+    new_parser.add_argument('-l', '--log_path', type=match_file_path, required=False)
     new_parser.add_argument('-g', '--global_ccn_lock', type=argparse.FileType('w'), required=False)
     new_parser.add_argument('--show_test_info', action='store_const', const=True)
     new_parser.add_argument('--show_cocon_output', action='store_const', const=True)
@@ -111,7 +112,7 @@ def match_test_numbers(test_numbers):
     match_result = re.search("^[0-9]{1,2}$|^([0-9]{1,2},)*[0-9]{1,2}$",test_numbers)
     if match_result:
         test_numbers = [int(i) for i in test_numbers.split(",")]
-        return  test_numbers
+        return test_numbers
     else:
         raise argparse.ArgumentTypeError("Arg 'n' does not match required format : num1,num2,num3")
 
@@ -163,15 +164,18 @@ py_sipp_path = os.path.dirname(__file__)
 
 if log_path:
     now = datetime.datetime.now()
-    log_path +=  "/" + now.strftime("%Y_%m_%d_%H_%M_%S")
+    log_path = "/".join((log_path, now.strftime("%Y_%m_%d_%H_%M_%S")))
     if not fs_work.create_log_dir(log_path):
         # Если не удалось создать директорию, выходим
         sys.exit(1)
     log_file = log_path + "/test.log"
-    logging.basicConfig(filename=log_file,format = u'%(asctime)-8s %(levelname)-8s [%(module)s:%(lineno)d] %(message)-8s', filemode='w', level = logging.INFO)
+    logging.basicConfig(filename=log_file,
+                        format=u'%(asctime)-8s %(levelname)-8s [%(module)s:%(lineno)d] %(message)-8s',
+                        filemode='w', level=logging.INFO)
 else:
     log_path = False
-    logging.basicConfig(format = u'%(asctime)-8s %(levelname)-8s [%(module)s:%(lineno)d] %(message)-8s', level = logging.INFO)
+    logging.basicConfig(format=u'%(asctime)-8s %(levelname)-8s [%(module)s:%(lineno)d] %(message)-8s',
+                        level=logging.INFO)
 
 logger = logging.getLogger("tester")
 logger.info("Reading custom settings...")
@@ -192,55 +196,55 @@ except KeyError:
 
 logger.info("Reading JSON script...")
 try:
-    #Загружаем json описание теста
+    # Загружаем json описание теста
     test_desc = json.loads(jsonData,object_pairs_hook=OrderedDict)
 except (ValueError, KeyError, TypeError):
     logger.error("Wrong JSON format. Detail: %s", sys.exc_info()[1])
     sys.exit(1)
 
 logger.info("Reading JSON schema...")
-#Выгружаем содержимое схем в словарь
+# Выгружаем содержимое схем в словарь
 validator.schemas_dict_forming(py_sipp_path)
 
-#Валидация тестового сценария
+# Валидация тестового сценария
 logger.info("Validating JSON script...")
 valid = validator.validation_tests(test_desc)
 if valid:
     logger.info("Validation completed successfully")
 
-#Парсинг данных о пользователях
+# Парсинг данных о пользователях
 logger.info("Parse users from json...")
 try:
     test_users = parse.parse_user_info(test_desc["Users"])
-    if test_users == False:
+    if not test_users:
         sys.exit(1)
 except KeyError:
     pass
 
-#Парсинг данных о транках
+# Парсинг данных о транках
 logger.info("Parse trunks from json...")
 try:
     test_trunks = parse.parse_trunk_info(test_desc["Trunks"])
-    if test_trunks == False:
+    if not test_trunks:
         sys.exit(1)
 except KeyError:
     pass
 
-#Парсинг данных о тестах
+# Парсинг данных о тестах
 logger.info("Parse tests from json string...")
 tests = parse.parse_test_info(test_desc["Tests"])
 
-#Если запросили show_test_info, показавыем информацию по тесту и выходим
+# Если запросили show_test_info, показавыем информацию по тесту и выходим
 if show_test_info:
-    for count,test in enumerate(tests):
+    for count, test in enumerate(tests):
         if test_numbers and not count in test_numbers:
             continue
-        print("Test ID:   ",count)
-        print("---| Test Name: ",test.Name)
-        print("---| Test Desc: ",test.Description)
+        print("Test ID:   ", count)
+        print("---| Test Name: ", test.Name)
+        print("---| Test Desc: ", test.Description)
     sys.exit(0)
 
-#Если был передан test_numbers, то накладываем маску на массив тестов
+# Если был передан test_numbers, то накладываем маску на массив тестов
 if test_numbers:
     try:
         tests=list(tests[i] for i in test_numbers)
@@ -248,48 +252,48 @@ if test_numbers:
         logger.error("Test index out of range")
         sys.exit(1)
 
-#Парсим тестовые переменные в словарь
+# Парсим тестовые переменные в словарь
 test_var = parse.parse_test_var(test_desc)
-#Добавляем системные переменные в словарь
+# Добавляем системные переменные в словарь
 test_var.update(custom_settings)
-#Создаём директорию для логов
+# Создаём директорию для логов
 if not log_path:
     now = datetime.datetime.now()
     log_path = str(test_var["%%LOG_PATH%%"]) + "/" + test_desc["TestName"]
     log_path +=  "/" + now.strftime("%Y_%m_%d_%H_%M_%S")
     logger.info("Creating log dir.")
     if not fs_work.create_log_dir(log_path):
-        #Если не удалось создать директорию, выходим
+        # Если не удалось создать директорию, выходим
         sys.exit(1)
-#Добавляем директорию с логами к тестам
+# Добавляем директорию с логами к тестам
 for test in tests:
     test.LogPath = log_path
 
-#Поднимаем thread для отправки SSH command
+# Поднимаем thread для отправки SSH command
 logger.info("Start configuration thread...")
 coconInt = ssh.coconInterface(test_var, show_cocon_output, global_ccn_lock)
-#Создаём event для остановки thread
+# Создаём event для остановки thread
 coconInt.eventForStop = threading.Event()
-#Поднимаем thread
+# Поднимаем thread
 coconInt.myThread = threading.Thread(target=ssh.ccn_command_handler, args=(coconInt,))
 coconInt.myThread.start()
-#Проверяем, что он жив.
+# Проверяем, что он жив.
 time.sleep(0.2)
 if not coconInt.myThread.is_alive():
     logger.error("Can't start CCN configure thread")
     sys.exit(1)
 
-#Если требуется предварительное конфигурирование
+# Если требуется предварительное конфигурирование
 if "PreConf" in test_desc:
     logger.info("Start system configuration...")
-    #Переменные для настройки соединения
+    # Переменные для настройки соединения
     if not ssh.cocon_configure(test_desc["PreConf"],coconInt,test_var):
         coconInt.eventForStop.set()
         coconInt.myThread.join()
         sys.exit(1)
     time.sleep(1)
 
-test_pr_config = {}
+test_pr_config = dict()
 test_pr_config["Tests"] = tests
 test_pr_config["ForceQuitFlag"] = force_quit
 test_pr_config["Users"] = test_users
@@ -303,8 +307,8 @@ test_pr_config["LogPath"] = log_path
 test_processor = processor.TestProcessor(**test_pr_config)
 test_processor.StartTestProcessor()
 
-#Запускаем стоп тест
-stop_test(test_processor,test_desc,coconInt)
+# Запускаем стоп тест
+stop_test(test_processor, test_desc, coconInt)
 
 if show_sip_flow:
     for test in tests:
@@ -314,22 +318,22 @@ if show_sip_flow:
         call_flow.print_flow()
 
 
-#Производим расчёт результатов теста
+# Производим расчёт результатов теста
 logger.info("Test info:")
-#Если статус теста Failed, то поднимаем flag.
+# Если статус теста Failed, то поднимаем flag.
 for index,test in enumerate(tests):
-    #Если передавали параметр -n 1,3,4, то используем данные индексы.
+    # Если передавали параметр -n 1,3,4, то используем данные индексы.
     if test_numbers:
         index = test_numbers[index]
     if test.Status == "Failed":
-        logger.info(" ---| Test %d: %s - fail.",index,test.Name)
+        logger.info(" ---| Test %d: %s - fail.", index, test.Name)
     elif test.Status == "Complite":
-        logger.info(" ---| Test %d: %s - succ.",index,test.Name)
+        logger.info(" ---| Test %d: %s - succ.", index, test.Name)
     elif test.Status == "New":
-        logger.info(" ---| Test %d: %s - not running.",index,test.Name)
+        logger.info(" ---| Test %d: %s - not running.", index, test.Name)
     else:
-        logger.error("Unknown test status. %s",test.Name)
-        #Выводим дамп по этому тесту
+        logger.error("Unknown test status. %s", test.Name)
+        # Выводим дамп по этому тесту
         get_test_info(test)
 if show_ua_info:
     for test in tests:
@@ -337,7 +341,6 @@ if show_ua_info:
             get_test_info(test)
         else:
             logger.error("Test obj corrupted. Get test info failed!")
-
 
 if test_processor.failed_flag:
     sys.exit(1)
