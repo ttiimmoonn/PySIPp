@@ -52,12 +52,11 @@ class SSHInterface(paramiko.SSHClient):
     @staticmethod
     def _logging_ssh_output(buff):
         while buff.find(b"\n") != -1:
-            line, tail = buff.split(b"\n", maxsplit=1)
+            line, buff = buff.split(b"\n", maxsplit=1)
             try:
                 logger.info(line.decode("utf-8"))
             except UnicodeDecodeError as error:
                 logger.error("%s" % error)
-            buff = tail
         return buff
 
     def _receive_ssh_output(self, channel):
@@ -93,7 +92,7 @@ class SSHInterface(paramiko.SSHClient):
 
     def _send_ssh_command(self, cmd):
         logger.info("Commands list:")
-        _ = list(map(logger.info, cmd.split("\n")))
+        _ = list(map(logger.info, cmd.strip("exit\n").split("\n")))
         try:
             if self.GlobalLock:
                 logger.info("Acquire global ssh lock")
