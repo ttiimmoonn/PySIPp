@@ -8,6 +8,7 @@ import socket
 import threading
 
 logger = logging.getLogger("tester")
+
 MAX_ATTEMPT = 2
 
 
@@ -92,7 +93,7 @@ class SSHInterface(paramiko.SSHClient):
 
     def _send_ssh_command(self, cmd):
         logger.info("Commands list:")
-        _ = list(map(logger.info, cmd.strip("exit\n").split("\n")))
+        _ = list(map(lambda x: logger.info("├ %s", x), cmd.strip("exit\n").split("\n")))
         try:
             if self.GlobalLock:
                 logger.info("Acquire global ssh lock")
