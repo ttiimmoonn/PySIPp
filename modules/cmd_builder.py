@@ -8,100 +8,74 @@ logger = logging.getLogger("tester")
 
 class CmdBuild:
     def build_reg_command(self, reg_obj, log_path, test_var, mode="reg"):
-        # Сборка команды для регистрации
-        command=""
-        command+="%%SIPP_PATH%%" + " "
-        command+="%%EXTER_IP%%" + ":"
-        try:
-            if reg_obj.RemotePort != None:
-                command+=reg_obj.RemotePort + " "
-            else:
-                command+="%%EXTER_PORT%%" + " "
-        except:
-            command+="%%EXTER_PORT%%" + " "
-        command+="-i " + "%%IP%%" + " "
-        command+=" -set DOMAIN " + str(reg_obj.SipDomain) + " "
+        # Building reg command
+        command = list()
+        command.append("%%SIPP_PATH%% %%EXTER_IP%%:{}".format(reg_obj.RemotePort if reg_obj.RemotePort
+                                                          else "%%EXTER_PORT%% "))
+        command.append("-i %%IP%%")
+        command.append("-set DOMAIN {}".format(reg_obj.SipDomain))
 
         if type(reg_obj).__name__ == "UserClass":
-            command+=" -set NUMBER " + reg_obj.Number
-            LOG_PREFIX = "REG_" + "USER_NUMBER_" + reg_obj.Number + "_"
+            command.append(" -set NUMBER {}".format(reg_obj.Number))
+            log_prefix = "REG_USER_NUMBER_" + reg_obj.Number + "_"
 
         elif type(reg_obj).__name__ == "TrunkClass":
-            command+=" -set NUMBER " + reg_obj.TrunkName
-            LOG_PREFIX = "REG_" + "TRUNK_" + reg_obj.TrunkName + "_"
-
-        if reg_obj.RegContactIP != None:
-            command += " -set USER_IP " + str(reg_obj.RegContactIP)
+            command.append(" -set NUMBER {}".format(reg_obj.TrunkName))
+            log_prefix = "REG_TRUNK_" + reg_obj.TrunkName + "_"
         else:
-            command += " -set USER_IP " + "%%IP%%"
-        if reg_obj.RegContactPort != None:
-            command += " -set PORT " + str(reg_obj.RegContactPort)
-        else:
-            command+=" -set PORT " + str(reg_obj.Port)
-
-        if reg_obj.BindPort != None:
-            command+=" -p " + str(reg_obj.BindPort)
+            return False
+        command.append("-set USER_IP {}".format(reg_obj.RegContactIP if reg_obj.RegContactIP else "%%IP%%"))
+        command.append("-set PORT {}".format(reg_obj.RegContactPort if reg_obj.RegContactPort else reg_obj.Port))
+        if reg_obj.BindPort:
+            command.append(" -p {}".format(reg_obj.BindPort))
 
         if mode == "reg":
-            if reg_obj.AddRegParams != None:
-                command+=" " + str(reg_obj.AddRegParams)
-            command+=" -set EXPIRES " + str(reg_obj.Expires)
-            if reg_obj.Script == None:
-                command+=" -sf " + "%%REG_XML%%" + " "
-            else:
-                command+=" -sf "  + "%%SRC_PATH%%" + "/" + reg_obj.Script + " "
-        elif mode == "unreg":
-            command+=" -set EXPIRES " + "0"
-            command+=" -sf " + "%%REG_XML%%" + " "
+            if reg_obj.AddRegParams:
+                command.append(reg_obj.AddRegParams)
+            command.append("-set EXPIRES {}".format(reg_obj.Expires))
+            command.append("-sf {}".format("%%REG_XML%%" if not reg_obj.Script else "%%SRC_PATH%%/" + reg_obj.Script ))
+        else:
+            command.append("-set EXPIRES 0")
+            command.append("-sf %%REG_XML%%")
 
-
-        command+=" -set USER_Q " + str(reg_obj.QParam)
-        command+=" -s " + reg_obj.Login + " -ap " + reg_obj.Password
-        command+=" -m 1"
-        command+=" -nostdin"
-        command+=" -timeout_error"
+        command.append("-set USER_Q {}".format(str(reg_obj.QParam)))
+        command.append("-s {} -ap {}".format(reg_obj.Login, reg_obj.Password))
+        command.append("-m 1 -nostdin -timeout_error")
         if reg_obj.SipTransport == "TCP":
-            command+=" -t tn -max_socket 25"
-        if reg_obj.SipTransport != None:
-            command+=" -set USER_TRANSPORT " +  reg_obj.SipTransport.lower()
-        # Добавляем message trace
-        command += " -message_overwrite false -trace_msg -message_file " + log_path + "/" + LOG_PREFIX + "MESSAGE"
-        # Добавляем error trace
-        command += " -error_overwrite false -trace_err -error_file " + log_path + "/" + LOG_PREFIX + "ERROR"
-        command += " -cid_str " + str(reg_obj.RegCallId)
-        command += " -base_cseq " + str(reg_obj.RegCSeq)
-        command = self.replace_var(command, test_var)
-        if command:
-            return command
+            command.append("-t tn -max_socket 25")
+        if reg_obj.SipTransport:
+            command.append(" -set USER_TRANSPORT {}".format(reg_obj.SipTransport.lower()))
+        command.append("-message_overwrite false -trace_msg -message_file {}/{}MESSAGE".format(log_path, log_prefix))
+        command.append("-error_overwrite false -trace_err -error_file {}/{}ERROR".format(log_path, log_prefix))
+        command.append("-cid_str {} -base_cseq {}".format(reg_obj.RegCallId, reg_obj.RegCSeq))
+        command_str = " ".join(command)
+        command_str = self.replace_var(command_str, test_var)
+        if command_str:
+            return command_str
         else:
             return False
 
     def build_service_feature_command(self, test, user, code, test_var):
-        # Сборка команды для регистрации
-        command=""
-        command+="%%SIPP_PATH%%" + " "
-        command+="-sf " + "%%SF_XML%%" + " "
-        command+="%%EXTER_IP%%" + ":" + "%%EXTER_PORT%%" + " "
-        command+="-i " + "%%IP%%" + " "
-        command+=" -p " + str(user.Port)
-        command+=" -set CDPN " + str(code)
-        command+=" -set CDPNDOM " + str(user.SipDomain)
-        command+=" -set CGPNDOM " + str(user.SipDomain)
-        command+=" -s " + str(user.Login)
-        command+=" -ap " + str(user.Password)
-        command+=" -m 1 "
-        command+=" -timeout 20s -recv_timeout 20s"
+        # Building service feature command
+        command = list()
+        command.append("%%SIPP_PATH%% -sf %%SF_XML%%")
+        command.append("%%EXTER_IP%%:%%EXTER_PORT%%")
+        command.append("-i %%IP%% -p {}".format(user.Port))
+        command.append("-set CDPN {} -set CDPNDOM {}".format(code, user.SipDomain))
+        command.append("-set CGPNDOM {}".format(user.SipDomain))
+        command.append("-s {} -ap {}".format(user.Login, user.Password))
+        command.append("-m 1 -timeout 20s -recv_timeout 20s")
         if user.SipTransport == "TCP":
-            command+=" -t tn -max_socket 25"
-        LOG_PREFIX = "TEST_" + str(test.TestId) + "_NUMBER_" + user.Number + "_SF_" + code + "_"
-        # Добавляем message trace
-        command += " -message_overwrite false -trace_msg -message_file " + test.LogPath + "/" + LOG_PREFIX + "MESSAGE"
-        # Добавляем error trace
-        command += " -error_overwrite false -trace_err -error_file " + test.LogPath + "/" + LOG_PREFIX + "ERROR"
-        command = self.replace_var(command, test_var)
+            command.append("-t tn -max_socket 25")
+        log_prefix = "TEST_%s_NUMBER_%s_SF_%s_" % (test.TestId, user.Number, code)
+        command.append("-message_overwrite false -trace_msg")
+        command.append("-message_file {}/{}MESSAGE".format(test.LogPath, log_prefix))
+        command.append("-error_overwrite false -trace_err -error_file {}/{}ERROR".format(test.LogPath, log_prefix))
+        command_str = " ".join(command)
+        command_str = self.replace_var(command_str, test_var)
         if command:
             CmdInfo = namedtuple('CmdInfo', ['cmd_str', 'req_ex_code'])
-            return CmdInfo(command,0)
+            return CmdInfo(command_str, 0)
         else:
             return False
 
@@ -113,101 +87,91 @@ class CmdBuild:
                 sipp_options = cmd_desc["Options"]
                 sipp_type = cmd_desc["SippType"]
                 # Если был передан флаг о сбросе UAC команд, то просто не собираем их.
-                if uac_drop_flag:
-                    if sipp_type == "uac":
-                        continue
-                try:
-                    sipp_auth = cmd_desc["NeedAuth"]
-                except KeyError:
-                    sipp_auth = False
-                try:
-                    timeout = cmd_desc["Timeout"]
-                except KeyError:
-                    timeout = "60s"
+                if uac_drop_flag and sipp_type == "uac":
+                    continue
+                sipp_auth = cmd_desc.get("NeedAuth", False)
+                timeout = cmd_desc.get("Timeout", "60s")
+
                 # В некоторых случаях полезно, чтобы UA завершился по timeout и при этом вернул 0 ex code
                 # Для таких случаев на уровне команды передаем параметр NoTimeOutError
-                try:
-                    no_timeout_err = cmd_desc["NoTimeOutError"]
-                except KeyError:
-                    no_timeout_err = False
-                command=""                
-                command += "%%SIPP_PATH%%"
-                command += " -sf " + "%%SRC_PATH%%" + "/" + sipp_sf + " "
-                command += "%%EXTER_IP%%" + ":"
-                try:
-                    if ua.TrunkObject.RemotePort != None:
-                        command+=str(ua.TrunkObject.RemotePort) + " "
-                    else:
-                        command+="%%EXTER_PORT%%" + " "
-                except:
-                    command+="%%EXTER_PORT%%" + " "
-                command += " -i " + "%%IP%%" + " "
-                command += sipp_options
+                no_timeout_err = cmd_desc.get("NoTimeOutError", False)
+
+                command= list()
+                command.append("%%SIPP_PATH%% -sf %%SRC_PATH%%/{}".format(sipp_sf))
+                if ua.Type == "Trunk":
+                    command.append("%%EXTER_IP%%:{}".format(ua.TrunkObject.RemotePort if ua.TrunkObject.RemotePort
+                                                            else "%%EXTER_PORT%%"))
+                    command.append("-p {}".format(ua.TrunkObject.Port))
+                    if ua.TrunkObject.SipTransport == "TCP":
+                        command.append("-t tn -max_socket 25")
+                    if ua.TrunkObject.RtpPort:
+                        command.append("-mp {}".format(ua.UserObject.RtpPort))
+
+                if ua.Type == "User":
+                    command.append("%%EXTER_IP%%:%%EXTER_PORT%%")
+                    command.append("-p {}".format(ua.UserObject.Port))
+                    command.append("-s {}".format(ua.UserObject.Login))
+                    if sipp_auth:
+                        command.append("-ap {}".format(ua.UserObject.Password))
+                    if ua.UserObject.SipTransport == "TCP":
+                        command.append("-t tn -max_socket 25")
+                    if ua.UserObject.RtpPort:
+                        command.append("-mp {}".format(ua.UserObject.RtpPort))
+                    if sipp_type == "uac":
+                        command.append("-set CGPNDOM {}".format(ua.UserObject.SipDomain))
+
+
+                command.append("-i %%IP%%")
+                command.append(sipp_options)
+
                 # Выставляем Call-ID и CSeq, если требуется.
                 try:
-                    command += " -cid_str " + str(cmd_desc["CidStr"])
+                    command.append("-cid_str {}".format(str(cmd_desc["CidStr"])))
                 except KeyError:
                     pass
                 try:
-                    command += " -base_cseq " + str(cmd_desc["StartCseq"])
+                    command.append("-base_cseq {}".format(str(cmd_desc["StartCseq"])))
                 except KeyError:
                     pass
-                if ua.Type == "User":
-                    command += " -p " + str(ua.UserObject.Port)
-                    command += " -s " + ua.UserObject.Login
-                    if ua.UserObject.SipTransport == "TCP":
-                        command+=" -t tn -max_socket 25"
-                    if ua.UserObject.RtpPort:
-                        command += " -mp " + str(ua.UserObject.RtpPort)
-                elif ua.Type == "Trunk":
-                    command += " -p " + str(ua.TrunkObject.Port)
-                    if ua.TrunkObject.SipTransport == "TCP":
-                        command+=" -t tn -max_socket 25"
-                command+=" -nostdin"
 
-                if sipp_auth and ua.Type=="User":
-                    command += " -ap " + ua.UserObject.Password
+                command.append("-timeout {}".format(timeout))
+
+                if not no_timeout_err:
+                    command.append("-timeout_error")
 
                 if sipp_type == "uac":
-                    command += " -timeout " + timeout
-                    command += " -recv_timeout " + timeout
-                    if ua.Type=="User":
-                        command += " -set CGPNDOM " + ua.UserObject.SipDomain
-                else:
-                    command += " -timeout " + timeout
+                    command.append("-recv_timeout {}".format(timeout))
 
-                # Выставляем ленивый режим детектирования перепосылок.
-                command += " -rtcheck loose"
+                command.append("-rtcheck loose -nostdin")
 
                 if ua.Type == "User":
-                    LOG_PREFIX = "TEST_" + str(test.TestId) + "_NUMBER_" + ua.UserObject.Number + "_"
+                    log_prefix = "TEST_{}_NUMBER_{}_".format(test.TestId, ua.UserObject.Number)
                 elif ua.Type == "Trunk":
-                    LOG_PREFIX = "TEST_" + str(test.TestId) + "_TRUNK_" + str(ua.TrunkObject.TrunkName).upper() + "_PORT_" + str(ua.TrunkObject.Port) + "_"
-                else:
-                    LOG_PREFIX = "TEST_" + str(test.TestId) + "_UNKNOWN_TYPE_"
+                    log_prefix = "TEST_{}_TRUNK_{}_PORT_{}_".format(test.TestId, ua.TrunkObject.TrunkName.upper(),
+                                                                    ua.TrunkObject.Port)
+
 
                 # Если был передан флаг для записи timestamp, то добавляем соотвествующие ключи
                 if ua.WriteStat:
-                    timestamp_file = test.LogPath + "/" + LOG_PREFIX + ua.Name + "_TIMESTAMP"
+                    timestamp_file = "{}/{}{}_TIMESTAMP".format(test.LogPath, log_prefix, ua.Name)
                     ua.TimeStampFile = timestamp_file
-                    command += " -shortmessage_overwrite false -trace_shortmsg -shortmessage_file " + str(timestamp_file)
+                    command.append("-shortmessage_overwrite false -trace_shortmsg")
+                    command.append("-shortmessage_file {}".format(timestamp_file))
                 # Добавляем message trace
-                command += " -message_overwrite false -trace_msg -message_file " + test.LogPath + "/" + LOG_PREFIX + ua.Name + "_MESSAGE"
+                command.append("-message_overwrite false -trace_msg")
+                command.append("-message_file {}/{}{}_MESSAGE".format(test.LogPath, log_prefix, ua.Name))
                 # Добавляем screen trace
-                command += " -screen_overwrite false -trace_screen -screen_file " + test.LogPath + "/" + LOG_PREFIX + ua.Name + "_SCREEN"
+                command.append("-screen_overwrite false -trace_screen")
+                command.append("-screen_file {}/{}{}_SCREEN".format(test.LogPath, log_prefix, ua.Name))
                 # Добавляем error trace
-                command += " -error_overwrite false -trace_err -error_file " + test.LogPath + "/" + LOG_PREFIX + ua.Name + "_ERROR"
-                if not no_timeout_err:
-                    command += " -timeout_error"
-                command = self.replace_var(command, test_var)
-                if command:
-                    # Создаём туплу для хранения команды и ex_code к ней
+                command.append("-error_overwrite false -trace_err")
+                command.append("-error_file {}/{}{}_ERROR".format(test.LogPath, log_prefix, ua.Name))
+
+                command_str = " ".join(command)
+                command_str = self.replace_var(command_str, test_var)
+                if command_str:
                     CmdInfo = namedtuple('CmdInfo', ['cmd_str', 'req_ex_code'])
-                    try:
-                        ua.Commands.append(CmdInfo(command,cmd_desc["ReqExCode"]))
-                    except KeyError:
-                        # Если желаемый ex_code не задан, значит он равен 0
-                        ua.Commands.append(CmdInfo(command,0))
+                    ua.Commands.append(CmdInfo(command_str, cmd_desc.get("ReqExCode", 0)))
                 else:
                     return False
         return test
