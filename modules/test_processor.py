@@ -23,10 +23,11 @@ class Dict2Obj:
         for key in dictionary:
             setattr(self, key, dictionary[key])
 
-class TestProcessor():
-    def __init__(self,**kwargs):
+
+class TestProcessor:
+    def __init__(self, **kwargs):
         self.Tests = kwargs["Tests"]
-        self.CoconInt = kwargs["CoconInt"]
+        self.SSHInt = kwargs["SSHInt"]
 
         # Var dict
         self.TestVar = kwargs["TestVar"]
@@ -60,7 +61,7 @@ class TestProcessor():
         # Locks
         self.RegLock = threading.Lock()
         self.RegThread = None
-        self.CmdBuilder = builder.CommandBuilding()
+        self.CmdBuilder = kwargs["CmdBuilder"]
 
 
     def StopTestProcessor(self):
@@ -237,12 +238,15 @@ class TestProcessor():
         cdr_conf["timeout"] = 500
         # Make cdr finalize
         logger.info("Finalize cdr for group %s", cdr_group)
-        if not ssh.ssh_push_string_command("/domain/%%DEV_DOM%%/cdr/make_finalize_cdr " + cdr_group,
-                                           self.CoconInt, self.TestVar):
+        finalize_command = "/domain/%%DEV_DOM%%/cdr/make_finalize_cdr " + cdr_group
+        finalize_command = self.CmdBuilder.replace_var(finalize_command, self.TestVar)
+        if type(finalize_command) != str:
+            return False
+        if not self.SSHInt.push_cmd_string_to_ssh(finalize_command):
             self.NowRunningTest.Status = "Failed"
             return False
         # Trying to get cdr filename
-        cdr_filename = re.search(r'\s([\w_]+\.csv)', self.CoconInt.data)
+        cdr_filename = re.search(r'\s([\w_]+\.csv)', self.SSHInt.Output)
         if not cdr_filename:
             logger.error("Can't parse cdr filename from ssh output.")
             self.NowRunningTest.Status = "Failed"
@@ -373,9 +377,11 @@ class TestProcessor():
             self.NowRunningTest.Status = "Failed"
             return False
 
-    def _execCoconCmd(self,cmd_list):
+    def _execCoconCmd(self, cmd_list):
         logger.info("Send SSH commands...")
-        if not ssh.cocon_configure(cmd_list, self.CoconInt, self.TestVar):
+        if not self.CmdBuilder.replace_var_for_dict(cmd_list, self.TestVar):
+            return False
+        if not self.SSHInt.push_cmd_list_to_ssh(list(cmd_list.values())):
             logger.error("Executing ccn cmd failed.")
             self.NowRunningTest.Status = "Failed"
             return False
@@ -503,11 +509,12 @@ class TestProcessor():
                 self.NowRunningTest.CompliteBgUA()
 
     def _SendAllCcnCmd(self):
-        if self.NowRunningTest != None:
+        if self.NowRunningTest:
             logger.info("Trying send to CCN all commands from test: %s",self.NowRunningTest.Name)
             for item in self.GenForItem:
                 if item[0] == "SendSSHCommand":
-                    ssh.cocon_configure(item[1], self.CoconInt, self.TestVar)
+                    self.CmdBuilder.replace_var_for_dict(item[1][0], self.TestVar)
+                    self.SSHInt.push_cmd_list_to_ssh(list(item[1][0].values()))
 
     def _RegManual(self, reg_objects, mode="user"):
 
@@ -644,7 +651,7 @@ class TestProcessor():
             elif item[0] == "ServiceFeature":
                 self._execServiceFeature(item[1])
             elif item[0] == "SendSSHCommand":
-                self._execCoconCmd(item[1])
+                self._execCoconCmd(item[1][0])
             elif item[0] == "Print":
                 self._execPrintCmd(item[1])
             elif item[0] == "Stop":

@@ -6,7 +6,7 @@ from collections import namedtuple
 logger = logging.getLogger("tester")
 
 
-class CommandBuilding:
+class CmdBuild:
     def build_reg_command(self, reg_obj, log_path, test_var, mode="reg"):
         # Сборка команды для регистрации
         command=""

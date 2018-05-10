@@ -7,6 +7,7 @@ import modules.fs_worker as fs
 import modules.ssh_interface as ssh
 import modules.show_call_flow as sip_call_flow
 import modules.diff_calc as diff_calc
+import modules.cmd_builder as builder
 import logging
 import re
 import os
@@ -24,7 +25,7 @@ if sys.version_info < (3, 5):
 
 def signal_handler(current_signal, frame):
     signal.signal(signal.SIGINT, signal.SIG_IGN)
-    logger.info("Receive SIGINT signal. Start test aborting")
+    logger.info("Received signal %s. Start test aborting", current_signal)
     if not 'test_processor' in globals():
         cp_test_processor = False
     else:
@@ -34,10 +35,10 @@ def signal_handler(current_signal, frame):
     else:
         cp_test_desc = test_desc
     if 'sshInt' not in globals():
-        cp_sshInt = False
+        cp_ssh_int = False
     else:
-        cp_sshInt = sshInt
-    stop_test(cp_test_processor, cp_test_desc, cp_sshInt)
+        cp_ssh_int = sshInt
+    stop_test(cp_test_processor, cp_test_desc, cp_ssh_int)
     sys.exit(1)
 
 
@@ -46,19 +47,10 @@ def stop_test(test_processor, test_desc, sshInt):
     if test_processor:
         test_processor.StopTestProcessor()
     if sshInt:
-        if sshInt.sshQueue and sshInt.myThread:
-            if sshInt.myThread.is_alive():
-                # Чистим текущие задачи из очереди
-                sshInt.flush_queue()
-                # Засовываем команды на деконфигурацию в очередь
-                if test_desc:
-                    if "PostConf" in test_desc:
-                        logger.info("Start system reconfiguration...")
-                        # Переменные для настройки соединения
-                        ssh.cocon_configure(test_desc["PostConf"],sshInt,test_var)
-                # Отрубаем thread
-                # На всякий случай убеждаемся, что ccn thread существует и живой
-                sshInt.eventForStop.set()
+        if test_desc and "PostConf" in test_desc:
+            logger.info("Start system reconfiguration...")
+            if cmd_builder.replace_var_for_dict(test_desc["PostConf"][0], test_var):
+                sshInt.push_cmd_list_to_ssh(list(test_desc["PostConf"][0].values()))
 
 # Добавляем трап на SIGINT
 signal.signal(signal.SIGINT, signal_handler)
@@ -159,6 +151,8 @@ parse = parser.Parser()
 validator = parser.Validator()
 # Создаем объект fs_worker
 fs_work = fs.fs_working()
+# Создаём билдер комманд
+cmd_builder = builder.CmdBuild()
 
 py_sipp_path = os.path.dirname(__file__)
 
@@ -198,7 +192,7 @@ except KeyError:
 logger.info("Reading JSON script...")
 try:
     # Загружаем json описание теста
-    test_desc = json.loads(jsonData,object_pairs_hook=OrderedDict)
+    test_desc = json.loads(jsonData, object_pairs_hook=OrderedDict)
 except (ValueError, KeyError, TypeError):
     logger.error("Wrong JSON format. Detail: %s", sys.exc_info()[1])
     sys.exit(1)
@@ -261,7 +255,7 @@ test_var.update(custom_settings)
 if not log_path:
     now = datetime.datetime.now()
     log_path = str(test_var["%%LOG_PATH%%"]) + "/" + test_desc["TestName"]
-    log_path +=  "/" + now.strftime("%Y_%m_%d_%H_%M_%S")
+    log_path += "/" + now.strftime("%Y_%m_%d_%H_%M_%S")
     logger.info("Creating log dir.")
     if not fs_work.create_log_dir(log_path):
         # Если не удалось создать директорию, выходим
@@ -272,38 +266,30 @@ for test in tests:
 
 # Поднимаем thread для отправки SSH command
 logger.info("Start configuration thread...")
-sshInt = ssh.SSHInterface(test_var, show_cocon_output, global_ccn_lock, log_file=log_file)
+sshInt = ssh.SSHInterface(custom_settings, gl_lock=global_ccn_lock)
 # Создаём event для остановки thread
 sshInt.eventForStop = threading.Event()
-# Поднимаем thread
-sshInt.myThread = threading.Thread(target=ssh.ccn_command_handler, args=(sshInt,))
-sshInt.myThread.start()
-# Проверяем, что он жив.
-time.sleep(0.2)
-if not sshInt.myThread.is_alive():
-    logger.error("Can't start CCN configure thread")
-    sys.exit(1)
 
 # Если требуется предварительное конфигурирование
 if "PreConf" in test_desc:
     logger.info("Start system configuration...")
     # Переменные для настройки соединения
-    if not ssh.cocon_configure(test_desc["PreConf"],sshInt,test_var):
-        sshInt.eventForStop.set()
-        sshInt.myThread.join()
+    if not cmd_builder.replace_var_for_dict(test_desc["PreConf"][0], test_var):
         sys.exit(1)
-    time.sleep(1)
+    if not sshInt.push_cmd_list_to_ssh(list(test_desc["PreConf"][0].values())):
+        sys.exit(1)
 
 test_pr_config = dict()
 test_pr_config["Tests"] = tests
 test_pr_config["ForceQuitFlag"] = force_quit
 test_pr_config["Users"] = test_users
 test_pr_config["Trunks"] = test_trunks
-test_pr_config["CoconInt"] = sshInt
+test_pr_config["SSHInt"] = sshInt
 test_pr_config["TestVar"] = test_var
 test_pr_config["ShowSipFlowFlag"] = show_sip_flow
 test_pr_config["UacDropFlag"] = uac_drop_flag
 test_pr_config["LogPath"] = log_path
+test_pr_config["CmdBuilder"] = cmd_builder
 
 test_processor = processor.TestProcessor(**test_pr_config)
 test_processor.StartTestProcessor()

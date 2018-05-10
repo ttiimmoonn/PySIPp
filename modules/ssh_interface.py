@@ -1,261 +1,157 @@
-import modules.cmd_builder as builder
 import paramiko
-import queue
 import time
 import logging
 import random
 import re
 import fcntl
 import socket
+import threading
 
 logger = logging.getLogger("tester")
 MAX_ATTEMPT = 2
 
 
-class SshConnectionExp(Exception):
+class SSHIntExp(Exception):
     pass
 
 
-class SshCmdErrorExp(Exception):
-    pass
+class SSHInterface(paramiko.SSHClient):
+    def __init__(self, settings, gl_lock=False, show_output=True):
+        paramiko.SSHClient.__init__(self)
+        self.GlobalLock = gl_lock
+        self.ShowOutput = show_output
+        self.Output = b""
+        self.BuffSize = 2048
+        self.IP = settings.get("%%SERV_IP%%", False)
+        self.Port = settings.get("%%DEV_CONFIG_PORT%%", 22)
+        self.Login = settings.get("%%DEV_USER%%", "admin")
+        self.Pass = settings.get("%%DEV_PASS%%", "password")
+        self.Thread = threading.Thread()
+        self.Result = False
+        self.LogFormat = u'%(asctime)-8s [ssh output] %(message)-8s'
 
+    def _lock_acquire(self):
+        fcntl.lockf(self.GlobalLock, fcntl.LOCK_EX)
 
-class SshCmdLockedExp(Exception):
-    pass
+    def _lock_release(self):
+        fcntl.lockf(self.GlobalLock, fcntl.LOCK_UN)
 
+    def _get_ssh_channel(self):
+        logger.info("Trying to connect %s:%d", self.IP, self.Port)
+        self.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        self.connect(hostname=self.IP,
+                     username=self.Login,
+                     password=self.Pass,
+                     port=self.Port,
+                     timeout=5,
+                     banner_timeout=5,
+                     look_for_keys=False,
+                     allow_agent=False)
+        return self.invoke_shell()
 
-class SSHInterface:
-    def __init__(self, test_var, show_cocon_output=False, global_ccn_lock=None, log_file=None):
-        self.Login = str(test_var["%%DEV_USER%%"])
-        self.Password = str(test_var["%%DEV_PASS%%"])
-        self.Ip = str(test_var["%%SERV_IP%%"])
-        self.Port = int(test_var["%%DEV_CONFIG_PORT%%"])
-        self.sshChannel = None
-        self.Status = True
-        self.sshClient = paramiko.SSHClient()
-        self.sshQueue = queue.Queue()
-        self.eventForStop = None
-        self.myThread = None
-        self.attempt = 0
-        self.log_file = log_file
-        self.ShowCoConOutput = show_cocon_output
-        self.read_buff = b""
-        self.buff_size = 2048
-        self.data = b""
-        self.global_ccn_lock = global_ccn_lock
-
-    def flush_queue(self):
-        logger.info("Flashing CCN Queue. Num of tasks: %s", self.sshQueue.qsize())
-        while not self.sshQueue.empty():
-            # Если поймали SIGINT, то чтобы не ждать исполнения всех команд
-            # просто вычитываем их.
-            self.sshQueue.get()
-            self.sshQueue.task_done()
-        return True
-
-    def _get_channel(self):
-        try:
-            self.sshClient.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            self.sshClient.connect(hostname=self.Ip,
-                                   username=self.Login,
-                                   password=self.Password,
-                                   port=self.Port,
-                                   timeout=10,
-                                   banner_timeout=10,
-                                   look_for_keys=False,
-                                   allow_agent=False)
-        except KeyError as error:
-            logger.warning("SSH connection failed. Reason: %s", error)
-            return False
-        except paramiko.ssh_exception.NoValidConnectionsError as error:
-            logger.warning("SSH connection failed. Reason: %s", error)
-            return False
-        except socket.timeout as error:
-            logger.warning("SSH connection failed. Reason: %s", error)
-            return False
-        except paramiko.ssh_exception.AuthenticationException as error:
-            logger.warning("SSH connection failed. Reason: %s", error)
-            return False
-        except paramiko.ssh_exception.SSHException as error:
-            logger.warning("SSH connection failed. Reason: %s", error)
-            return False
-
-        try:
-            self.sshChannel = self.sshClient.invoke_shell()
-        except paramiko.ssh_exception.SSHException as error:
-            logger.warning("Creation of SSH channel failed. Reason: %s", error)
-            return False
-        return True
-
-    def lock_acquire(self):
-        fcntl.lockf(self.global_ccn_lock, fcntl.LOCK_EX)
-
-    def lock_release(self):
-        fcntl.lockf(self.global_ccn_lock, fcntl.LOCK_UN)
-
-    def _handle_ssh_output(self):
-        # Clearing old data
-        self.data = b""
-        if self.ShowCoConOutput:
-            logger.info("SSH output:")
-        while(not self.sshChannel.exit_status_ready() or
-              self.sshChannel.recv_ready()):
+    @staticmethod
+    def _logging_ssh_output(buff):
+        while buff.find(b"\n") != -1:
+            line, tail = buff.split(b"\n", maxsplit=1)
             try:
-                self.read_buff = self.sshChannel.recv(self.buff_size)
-            except socket.timeout as error:
-                raise SshConnectionExp("Receiving data failed. Reason: %s" % error)
-            self.data = b"".join((self.data, self.read_buff))
-            if len(self.read_buff) > 0 and self.ShowCoConOutput:
-                if not self.log_file:
-                    print(self.read_buff.decode("utf-8", "strict"), end="")
+                logger.info(line.decode("utf-8"))
+            except UnicodeDecodeError as error:
+                logger.error("%s" % error)
+            buff = tail
+        return buff
+
+    def _receive_ssh_output(self, channel):
+        # Clearing old data
+        self.Output = b""
+        if self.ShowOutput:
+            logger.info("SSH output:")
+
+        read_buff = b""
+        while(not channel.exit_status_ready() or
+              channel.recv_ready()):
+            raw_data = channel.recv(self.BuffSize)
+            self.Output = b"".join((self.Output, raw_data))
+            read_buff = b"".join((read_buff, raw_data))
+            if len(read_buff) > 0 and self.ShowOutput:
+                read_buff = self._logging_ssh_output(read_buff)
             else:
                 time.sleep(0.01)
-        if self.log_file:
-            logger.info("%s", self.data.decode("utf-8", "strict"))
-        return True
 
-    def send_command(self, command):
-        # Exit if ssh connection is not opened.
-        if not self._get_channel():
-            raise SshConnectionExp("Connection failed")
-
-        logger.info("Trying to send next ssh commands:")
-        _ = list(map(logger.info, (command.rstrip('\nexit\n')).split('\n')))
+    def _handle_ssh_output(self):
         try:
-            self.sshChannel.sendall(command)
+            self.Output = self.Output.decode('utf-8')
+        except UnicodeDecodeError as error:
+            raise SSHIntExp("%s" % error)
+
+        if (self.Output.find("There is no such command") != -1 or
+                self.Output.find("Command error") != -1 or
+                self.Output.find("Invalid command's arguments") != -1):
+            raise SSHIntExp("Found error substring in ssh output.")
+
+        if self.Output.find("temporary locked") != -1:
+            raise SSHIntExp("SSH command temporary locked.")
+
+    def _send_ssh_command(self, cmd):
+        logger.info("Commands list:")
+        _ = list(map(logger.info, cmd.split("\n")))
+        try:
+            if self.GlobalLock:
+                logger.info("Acquire global ssh lock")
+                self._lock_acquire()
+            channel = self._get_ssh_channel()
+            channel.sendall(cmd)
+            self._receive_ssh_output(channel)
+            self._handle_ssh_output()
+        except KeyError as error:
+            logger.warning("Send SSH commands failed. Reason: %s", error)
+            return False
+        except paramiko.ssh_exception.NoValidConnectionsError as error:
+            logger.warning("Send SSH commands failed. Reason: %s", error)
+            return False
         except socket.timeout as error:
-            raise SshConnectionExp("Sending commands failed. Reason: %s" % error)
-        except socket.error as error:
-            raise SshConnectionExp("Sending commands failed. Reason: %s" % error)
-
-        if not self._handle_ssh_output():
+            logger.warning("Send SSH commands failed: %s", error)
             return False
-
-        logger.debug("Waiting exit status from ssh channel")
-        self.sshChannel.recv_exit_status()
-        # Sleeping..
-        time.sleep(0.05)
-        # Check ssh output for warnings
-        self.data = self.data.decode("utf-8", "strict")
-        if (self.data.find("There is no such command") != -1 or
-            self.data.find("Command error") != -1 or
-            self.data.find("Invalid command's arguments") != -1):
-                raise SshCmdErrorExp("Find errors substring in ccn output.")
-            # Проверяем, что в output нет следующей подстроки: temporary locked
-        if self.data.find("temporary locked") != -1:
-            raise SshCmdLockedExp("Command temporary locked.")
-        return True
-
-    def close_connection(self):
-        try:
-            self.sshChannel.close()
-            self.sshClient.close()
-        except AttributeError:
-            pass
-        self.sshChannel = None
-        self.read_buff = b""
-
-
-def ccn_command_handler(ssh_int):
-    command = ""
-    while True:
-        # Если прищёл event на завершение треда
-        # И при этом очередь пуста, то выходим
-        if ssh_int.eventForStop.isSet() and ssh_int.sshQueue.empty():
-            logger.info("Stop event is set. I'm going down...{test thread}")
-            break
-        # Если очередь пустая, то делаем паузу (чтобы не тратить ресурсы)
-        if ssh_int.sshQueue.empty() and command == "":
-            time.sleep(0.1)
-            continue
-        if not ssh_int.Status:
-            if ssh_int.sshQueue.qsize() != 0:
-                # Если состояние коннекта False, то нет смысла дальше слать команды
-                # Просто начинаем разгребать очередь
-                command = ssh_int.sshQueue.get()
-                ssh_int.sshQueue.task_done()
-            continue
-        logger.info("Trying to send ssh commands. Attempt %d {test thread}", ssh_int.attempt)
-        # Получаем новую команду из очереди.
-        if ssh_int.attempt == 0:
-            command = ssh_int.sshQueue.get()
-        try:
-            ssh_int.send_command(command)
-        except (SshCmdLockedExp, SshConnectionExp) as error:
-            logger.warning("%s", error)
-            ssh_int.attempt += 1
-            if ssh_int.attempt > MAX_ATTEMPT:
-                logger.error("Sending ssh commands failed. Reason: The number of attempts is exceeded")
-                ssh_int.Status = False
-                ssh_int.sshQueue.task_done()
-            else:
-                logger.info("Try to resend commands. Sleep before next attempt.")
-                time.sleep(random.randint(2, 5))
-        except SshCmdErrorExp as error:
-            ssh_int.sshQueue.task_done()
-            ssh_int.Status = False
-            logger.error("%s", error)
-        else:
-            ssh_int.sshQueue.task_done()
-            command = ""
-            ssh_int.attempt = 0
+        except paramiko.ssh_exception.AuthenticationException as error:
+            logger.warning("Send SSH commands failed. Reason: %s", error)
+            return False
+        except paramiko.ssh_exception.SSHException as error:
+            logger.warning("Send SSH commands failed. Reason: %s", error)
+            return False
+        except SSHIntExp as error:
+            logger.warning("Send SSH commands failed. Reason: %s", error)
+            return False
         finally:
-            ssh_int.close_connection()
-
-
-def cocon_configure(commands, ssh_int, test_var = None):
-    commands = commands[0]
-    if not commands:
+            if self.GlobalLock:
+                logger.info("Release global ssh lock")
+                self._lock_release()
+            self.close()
         return True
-    # Пытаемся захватить lock
-    if ssh_int.global_ccn_lock:
-        logger.info("Try to get global_ccn_lock")
-        ssh_int.lock_acquire()
-    cmd_build = builder.CommandBuilding()
-    commands = list(commands.values())
-    commands.append("exit\n")
-    if test_var:
-        commands = list(map(lambda x: cmd_build.replace_var(x, test_var), commands))
-        if False in commands:
-            # Отпускаем lock
-            if ssh_int.global_ccn_lock:
-                ssh_int.lock_release()
-            return False
-    # Добавляем sleep 0.5 для команд с blf и import
-    commands = [str(cmd) if not re.search(r'blf|import', cmd) else str(cmd) + "\nsleep 0.5" for cmd in commands]
-    # Собираем итоговую стороку
-    commands = '\n'.join(commands)
-    # Если команда собралась без ошибок отправляем её в thread
-    ssh_int.sshQueue.put(commands)
-    # Ждём пока thread разгребёт очередь
-    ssh_int.sshQueue.join()
-    # Отпускаем lock
-    if ssh_int.global_ccn_lock:
-        ssh_int.lock_release()
 
-    return ssh_int.Status
+    def _push_cmd_with_attempts(self, cmd):
+        self.Result = False
+        for attempt in range(MAX_ATTEMPT):
+            logger.info("Trying to send commands. Attempt: %d", attempt + 1)
+            self.Result = self._send_ssh_command(cmd)
+            if self.Result:
+                break
+            time.sleep(random.randint(2, 5))
 
+    def _push_cmd_in_thread(self, cmd):
+        if self.Thread.is_alive():
+            logger.info("Previous commands are sending now. Waiting...")
+            self.Thread.join()
+        self.Thread = threading.Thread(target=self._push_cmd_with_attempts, args=(cmd,))
+        self.Thread.start()
+        self.Thread.join()
 
-def ssh_push_string_command(command, ssh_int, test_var=False):
-    # Пытаемся захватить lock
-    if ssh_int.global_ccn_lock:
-        logger.info("Try to get global_ccn_lock")
-        ssh_int.lock_acquire()
-    cmd_string = command
-    cmd_string += "\nexit\n"
-    # Пропускаем команду через словарь
-    if test_var:
-        cmd_build = builder.CommandBuilding()
-        cmd_string = cmd_build.replace_var(cmd_string, test_var)
-        if type(cmd_string) != str:
-            return False
+    def push_cmd_list_to_ssh(self, cmd_list):
+        cmd_list.append("exit\n")
+        cmd_list = [str(cmd) if not re.search(r'blf|import', cmd)else str(cmd) + "\nsleep 0.5"
+                    for cmd in cmd_list]
+        self._push_cmd_in_thread("\n".join(cmd_list))
+        return self.Result
 
-    # Если команда собралась без ошибок отправляем её в thread
-    ssh_int.sshQueue.put(cmd_string)
-    # Ждём пока thread разгребёт очередь
-    ssh_int.sshQueue.join()
-    # Отпускаем lock
-    if ssh_int.global_ccn_lock:
-        ssh_int.lock_release()
-    # Проверяем, что все команды были отправлены
-    return ssh_int.Status
+    def push_cmd_string_to_ssh(self, cmd):
+        cmd = "\n".join((cmd, "exit\n"))
+        self._push_cmd_in_thread(cmd)
+        return self.Result

@@ -20,7 +20,6 @@ class fs_working:
     @staticmethod
     def clear_log_dir(log_path):
         for file in os.listdir(log_path):
-            print(file)
             try:
                 file = log_path + "/" + file
                 # Удаляем всё кроме основного лог файла.

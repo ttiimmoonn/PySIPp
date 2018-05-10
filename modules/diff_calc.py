@@ -70,7 +70,7 @@ class DifferCalc:
         if len(seq_a) != len(seq_b):
             raise DiffCalcExeption("Can't compare sequence with different length")
 
-        for a,b in zip(seq_a, seq_b):
+        for a, b in zip(seq_a, seq_b):
             if math.fabs(float(a)-float(b)) > max_error:
                 logger.error("Comparison is complete. Result: fail")
                 return False
