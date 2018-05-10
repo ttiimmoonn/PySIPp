@@ -13,7 +13,6 @@ import re
 import os
 import signal
 import json
-import time
 import threading
 import argparse
 from collections import OrderedDict
@@ -266,7 +265,7 @@ for test in tests:
 
 # Поднимаем thread для отправки SSH command
 logger.info("Start configuration thread...")
-sshInt = ssh.SSHInterface(custom_settings, gl_lock=global_ccn_lock)
+sshInt = ssh.SSHInterface(custom_settings, gl_lock=global_ccn_lock, show_output=show_cocon_output)
 # Создаём event для остановки thread
 sshInt.eventForStop = threading.Event()
 
