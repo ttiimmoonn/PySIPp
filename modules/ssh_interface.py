@@ -93,7 +93,7 @@ class SSHInterface(paramiko.SSHClient):
 
     def _send_ssh_command(self, cmd):
         logger.info("Commands list:")
-        _ = list(map(lambda x: logger.info("├ %s", x), cmd.strip("exit\n").split("\n")))
+        _ = list(map(lambda x: logger.info("├ %s", x), cmd.replace("\nexit\n", "").split("\n")))
         try:
             if self.GlobalLock:
                 logger.info("Acquire global ssh lock")
