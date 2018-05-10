@@ -104,6 +104,7 @@ class UserClass:
         self.QParam = 1
         self.Port = None
         self.RtpPort = None
+        self.RemotePort = None
         self.RegCommand = None
         self.UnRegCommand = None
         self.RegProcess = None
