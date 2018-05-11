@@ -96,7 +96,7 @@ class CmdBuild:
                 # Для таких случаев на уровне команды передаем параметр NoTimeOutError
                 no_timeout_err = cmd_desc.get("NoTimeOutError", False)
 
-                command= list()
+                command = list()
                 command.append("%%SIPP_PATH%% -sf %%SRC_PATH%%/{}".format(sipp_sf))
                 if ua.Type == "Trunk":
                     command.append("%%EXTER_IP%%:{}".format(ua.TrunkObject.RemotePort if ua.TrunkObject.RemotePort
@@ -105,7 +105,8 @@ class CmdBuild:
                     if ua.TrunkObject.SipTransport == "TCP":
                         command.append("-t tn -max_socket 25")
                     if ua.TrunkObject.RtpPort:
-                        command.append("-mp {}".format(ua.UserObject.RtpPort))
+                        print(ua.TrunkObject.RtpPort)
+                        command.append("-mp {}".format(ua.TrunkObject.RtpPort))
 
                 if ua.Type == "User":
                     command.append("%%EXTER_IP%%:%%EXTER_PORT%%")
@@ -119,7 +120,6 @@ class CmdBuild:
                         command.append("-mp {}".format(ua.UserObject.RtpPort))
                     if sipp_type == "uac":
                         command.append("-set CGPNDOM {}".format(ua.UserObject.SipDomain))
-
 
                 command.append("-i %%IP%%")
                 command.append(sipp_options)
