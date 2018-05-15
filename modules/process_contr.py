@@ -11,10 +11,12 @@ logger = logging.getLogger("tester")
 ExCodes = namedtuple('ExCodes', ['NotStarted', 'Killed', 'WrongExitCode', 'Success'])
 StCodes = ExCodes(1,9,2,0)
 
+
 def SubscribeToUser(user):
     pass
 
-def RegisterUser (reg_obj, mode="reg"):
+
+def RegisterUser(reg_obj, mode="reg"):
     if mode == "reg":
         # Взводим timer если нет флага onetimereg
         if not reg_obj.RegOneTime:
@@ -266,17 +268,20 @@ def CheckThreads(threads):
     logger.error("One or more threads not closed")
     return False
 
+
 def CheckUaStatus(user_agents):
     for ua in user_agents:
         if ua.StatusCode != StCodes.Success and ua.StatusCode != StCodes.Killed:
             return False
     return True
 
+
 def CheckUserRegStatus(test_users):
     for user in test_users:
         if test_users[user].ReadStatusCode() != 0:
             return False
     return True
+
 
 def ChangeUsersRegistration(reg_objs, lock, mode="reg"):
     if lock.locked():
