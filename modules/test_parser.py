@@ -215,10 +215,12 @@ class Validator:
                                 self.validate_sections(procedure, self.schemas_data[section], section)
         return True
 
+
 class Parser:
-    def parse_trunk_info(self,json_trunks):
+    @staticmethod
+    def parse_trunk_info(json_trunks):
         # словарь для хранения транков
-        trunks={}
+        trunks = dict()
         for trunk in json_trunks:
             new_trunk = testClass.TrunkClass()
             new_trunk.Status = "New"
@@ -278,9 +280,10 @@ class Parser:
             trunks[new_trunk.TrunkId] = new_trunk
         return trunks
 
-    def parse_user_info(self, json_users):
+    @staticmethod
+    def parse_user_info(json_users):
         # Создаём словарь для хранения юзеров
-        users = {}
+        users = dict()
         # Перебераем всех юзеров, описанных в секции Users
         for user in json_users:
             # Создаём нового пользователя
@@ -342,7 +345,8 @@ class Parser:
             users[new_user.UserId] = new_user
         return users
 
-    def parse_test_info(self, json_tests):
+    @staticmethod
+    def parse_test_info(json_tests):
         # Создаём список для тестов
         tests = []
         for count,test in enumerate(json_tests):
@@ -363,7 +367,8 @@ class Parser:
             tests.append(new_test)
         return tests
 
-    def parse_user_agent(self, test, ua_desc):
+    @staticmethod
+    def parse_user_agent(test, ua_desc):
         # Пытаемся найти UserAgent в описании теста
         for ua in ua_desc:
             # Создаём нового UserAgent
@@ -375,21 +380,25 @@ class Parser:
             new_ua.Type = ua["Type"]
             # В зависимости от типа UA забираем свойство UserId(User) или TrunkID(Trunk)
             if new_ua.Type == "User":
-               new_ua.UserId = ua["UserId"]
+                new_ua.UserId = ua["UserId"]
             else:
                 new_ua.TrunkId = ua["TrunkId"]
             # Обработка опциональных свойств
             try:
                 new_ua.WriteStat = ua["WriteStat"]
-            except:
+            except KeyError:
                 pass
             try:
                 new_ua.Cyclic = ua["Cyclic"]
-            except:
+            except KeyError:
                 pass
             try:
                 new_ua.BackGround = ua["BackGround"]
-            except:
+            except KeyError:
+                pass
+            try:
+                new_ua.RtCheck = ua["RtCheck"]
+            except KeyError:
                 pass
             # Обработка команд для UA (обязательное свойство)
             for command in ua["Commands"]:
@@ -403,7 +412,8 @@ class Parser:
                 test.UserAgent.append(new_ua)
         return True
 
-    def parse_test_var(self, test_desc):
+    @staticmethod
+    def parse_test_var(test_desc):
         # Парсим пользовательские переменные
         test_var = {}
         # Забираем переменные, описанные юзером
@@ -442,44 +452,45 @@ class Parser:
 
         return test_var
 
-    def parse_sys_conf(self, sys_json, py_sipp_path):
-        if not "%%SIPP_PATH%%" in sys_json:
+    @staticmethod
+    def parse_sys_conf(sys_json, py_sipp_path):
+        if "%%SIPP_PATH%%" not in sys_json:
             logger.error("No %%SIPP_PATH variable in system config")
             return False
-        if not "%%SRC_PATH%%" in sys_json:
+        if "%%SRC_PATH%%" not in sys_json:
             logger.error("No %%SRC_PATH variable in system config")
             return False
-        if not "%%TEMP_PATH%%" in sys_json:
+        if "%%TEMP_PATH%%" not in sys_json:
             logger.error("No %%TEMP_PATH variable in system config")
             return False
-        if not "%%LOG_PATH%%" in sys_json:
+        if "%%LOG_PATH%%" not in sys_json:
             logger.error("No %%LOG_PATH variable in system config")
             return False
-        if not "%%REG_XML%%" in sys_json:
+        if "%%REG_XML%%" not in sys_json:
             sys_json["%%REG_XML%%"] = py_sipp_path + "/xml/reg_user.xml"
-        if not "%%IP%%" in sys_json:
+        if "%%IP%%" not in sys_json:
             logger.error("No %%IP variable in system config")
             return False
-        if not "%%SERV_IP%%" in sys_json:
+        if "%%SERV_IP%%" not in sys_json:
             logger.error("No %%SERV_IP variable in system config")
             return False
-        if not "%%EXTER_IP%%" in sys_json:
+        if "%%EXTER_IP%%" not in sys_json:
             logger.error("No %%EXTER_IP variable in system config")
             return False
-        if not "%%EXTER_PORT%%" in sys_json:
+        if "%%EXTER_PORT%%" not in sys_json:
             logger.error("No %%EXTER_PORT variable in system config")
             return False
-        if not "%%DEV_USER%%" in sys_json:
+        if "%%DEV_USER%%" not in sys_json:
             logger.error("No %%DEV_USER variable in system config")
             return False
-        if not "%%DEV_PASS%%" in sys_json:
+        if "%%DEV_PASS%%" not in sys_json:
             logger.error("No %%DEV_PASS variable in system config")
             return False
-        if not "%%DEV_DOM%%" in sys_json:
+        if "%%DEV_DOM%%" not in sys_json:
             logger.error("No %%DEV_DOM variable in system config")
             return False
-        if not "%%SF_XML%%" in sys_json:
+        if "%%SF_XML%%" not in sys_json:
             sys_json["%%SF_XML%%"] = py_sipp_path + "/xml/send_sf.xml"
-        if not "%%DEV_CONFIG_PORT%%" in sys_json:
+        if "%%DEV_CONFIG_PORT%%" not in sys_json:
             sys_json["%%DEV_CONFIG_PORT%%"] = 22
         return sys_json

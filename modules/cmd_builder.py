@@ -142,7 +142,8 @@ class CmdBuild:
                 if sipp_type == "uac":
                     command.append("-recv_timeout {}".format(timeout))
 
-                command.append("-rtcheck loose -nostdin")
+                command.append("-rtcheck {}".format(ua.RtCheck))
+                command.append("-nostdin")
 
                 if ua.Type == "User":
                     log_prefix = "TEST_{}_NUMBER_{}_".format(test.TestId, ua.UserObject.Number)

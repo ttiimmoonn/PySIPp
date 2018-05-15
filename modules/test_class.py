@@ -36,6 +36,7 @@ class TestClass:
         self.CompliteUA += self.WaitBackGroundUA
         self.WaitBackGroundUA = []
 
+
 class UserAgentClass:
     def __init__(self):
         self.Commands = []
@@ -46,6 +47,7 @@ class UserAgentClass:
         self.StatusCode = None
         self.Name = None
         self.Type = None
+        self.RtCheck = "loose"
         self.WriteStat = False
         self.TimeStampFile = None
         self.UserId = None
@@ -86,7 +88,8 @@ class UserAgentClass:
                 self.StatusCode = statusCode
             finally:
                 self.UALock.release()         
-        
+
+
 class UserClass:
     def __init__(self):
         self.Timer = None
@@ -153,7 +156,8 @@ class UserClass:
             finally:
                 self.UserLock.release()
 
-class TrunkClass():
+
+class TrunkClass:
     def __init__(self):
         self.Status = None
         self.Timer = None
@@ -179,7 +183,7 @@ class TrunkClass():
         self.Expires = 90
         self.ContactIP = None
         self.ContactPort = None
-        self.QParam = None
+        self.QParam = 1
         self.RegOneTime = None
         self.RemotePort = None
         self.RegContactIP = None

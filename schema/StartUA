@@ -9,6 +9,7 @@
                        "type" : "object",
                        "properties" : {
                               "Type" : {"type" : "string", "enum" : ["User", "Trunk"]},
+                              "RtCheck" : {"type" : "string", "enum" : ["full", "loose"]},
                               "UserId" : {"type" : "integer" , "minimum" : 0, "exclusiveMinimum" : false},
                               "TrunkId" : {"type" : "integer" , "minimum" : 0, "exclusiveMinimum" : false},
                               "WriteStat" : {"type" : "boolean"},
