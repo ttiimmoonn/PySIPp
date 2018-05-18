@@ -196,7 +196,7 @@ class TestProcessor:
             return True
 
     @staticmethod
-    def _sleep(timeout = 32):
+    def _sleep(timeout=32):
         logger.info("Sleep on %ss", str(round(float(timeout), 1)))
         time.sleep(float(timeout))
 
@@ -380,6 +380,7 @@ class TestProcessor:
     def _execCoconCmd(self, cmd_list):
         logger.info("Send SSH commands...")
         if not self.CmdBuilder.replace_var_for_dict(cmd_list, self.TestVar):
+            self.NowRunningTest.Status = "Failed"
             return False
         if not self.SSHInt.push_cmd_list_to_ssh(list(cmd_list.values())):
             logger.error("Executing ccn cmd failed.")
@@ -513,7 +514,9 @@ class TestProcessor:
             logger.info("Trying send to CCN all commands from test: %s",self.NowRunningTest.Name)
             for item in self.GenForItem:
                 if item[0] == "SendSSHCommand":
-                    self.CmdBuilder.replace_var_for_dict(item[1][0], self.TestVar)
+                    if not self.CmdBuilder.replace_var_for_dict(item[1][0], self.TestVar):
+                        self.NowRunningTest.Status = "Failed"
+                        return False
                     self.SSHInt.push_cmd_list_to_ssh(list(item[1][0].values()))
 
     def _RegManual(self, reg_objects, mode="user"):
