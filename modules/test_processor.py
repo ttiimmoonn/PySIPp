@@ -379,10 +379,10 @@ class TestProcessor:
 
     def _execCoconCmd(self, cmd_list):
         logger.info("Send SSH commands...")
-        if not self.CmdBuilder.replace_var_for_dict(cmd_list, self.TestVar):
+        if not self.CmdBuilder.replace_var_for_list(cmd_list, self.TestVar):
             self.NowRunningTest.Status = "Failed"
             return False
-        if not self.SSHInt.push_cmd_list_to_ssh(list(cmd_list.values())):
+        if not self.SSHInt.push_cmd_list_to_ssh(list(cmd_list)):
             logger.error("Executing ccn cmd failed.")
             self.NowRunningTest.Status = "Failed"
             return False
@@ -514,7 +514,7 @@ class TestProcessor:
             logger.info("Trying send to CCN all commands from test: %s",self.NowRunningTest.Name)
             for item in self.GenForItem:
                 if item[0] == "SendSSHCommand":
-                    if not self.CmdBuilder.replace_var_for_dict(item[1][0], self.TestVar):
+                    if not self.CmdBuilder.replace_var_for_list(item[1], self.TestVar):
                         self.NowRunningTest.Status = "Failed"
                         return False
                     self.SSHInt.push_cmd_list_to_ssh(list(item[1][0].values()))

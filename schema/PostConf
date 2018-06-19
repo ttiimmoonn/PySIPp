@@ -3,10 +3,7 @@
   "title" : "PostConf schema",
   "type" : "array",
   "items" : {
-             "type" : "object",
-             "patternProperties" : {
-                  "^command[\\d]+$" : {"type" : "string", "minLength" : 1}
-             },
+             "type": "string",
              "additionalProperties": false 
   }
 }

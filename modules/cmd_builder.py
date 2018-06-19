@@ -186,6 +186,15 @@ class CmdBuild:
                 return False
         return True
 
+    def replace_var_for_list(self, l, varlst):
+        for count, item in enumerate(l):
+            result = self.replace_var(item, varlst)
+            if type(result) == str:
+                l[count] = result
+            else:
+                return False
+        return True
+
     def replace_var(self, string, var_list):
         for counter in list(range(10)):
             # Ищем все переменные в исходной строке

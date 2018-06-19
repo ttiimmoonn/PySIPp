@@ -49,8 +49,8 @@ def stop_test(test_processor, test_desc, sshInt):
         if test_desc and test_desc.get("PostConf", False):
             if test_desc["PostConf"][0]:
                 logger.info("Start system reconfiguration...")
-                if cmd_builder.replace_var_for_dict(test_desc["PostConf"][0], test_var):
-                    sshInt.push_cmd_list_to_ssh(list(test_desc["PostConf"][0].values()))
+                if cmd_builder.replace_var_for_list(test_desc["PostConf"], test_var):
+                    sshInt.push_cmd_list_to_ssh(list(test_desc["PostConf"]))
 
 # Добавляем трап на SIGINT
 signal.signal(signal.SIGINT, signal_handler)
@@ -275,9 +275,9 @@ if test_desc.get("PreConf", False):
     logger.info("Start system configuration...")
     # Переменные для настройки соединения
     if test_desc["PreConf"][0]:
-        if not cmd_builder.replace_var_for_dict(test_desc["PreConf"][0], test_var):
+        if not cmd_builder.replace_var_for_list(test_desc["PreConf"], test_var):
             sys.exit(1)
-        if not sshInt.push_cmd_list_to_ssh(list(test_desc["PreConf"][0].values())):
+        if not sshInt.push_cmd_list_to_ssh(list(test_desc["PreConf"])):
             sys.exit(1)
 
 test_pr_config = dict()

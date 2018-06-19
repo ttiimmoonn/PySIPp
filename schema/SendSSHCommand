@@ -5,13 +5,10 @@
   "properties" : {
       "SendSSHCommand" : {
           "type" : "array",
-          "items" : {
-              "type" : "object",
-              "patternProperties" : {
-                  "^command[\\d]+$" : {"type" : "string", "minLength" : 1}
-              },
-              "additionalProperties": false 
-          }
+		  "items" : {
+		             "type": "string",
+		             "additionalProperties": false 
+		  }
       }
   }
 }
