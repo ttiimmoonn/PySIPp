@@ -654,7 +654,7 @@ class TestProcessor:
             elif item[0] == "ServiceFeature":
                 self._execServiceFeature(item[1])
             elif item[0] == "SendSSHCommand":
-                self._execCoconCmd(item[1][0])
+                self._execCoconCmd(item[1])
             elif item[0] == "Print":
                 self._execPrintCmd(item[1])
             elif item[0] == "Stop":
