@@ -517,7 +517,7 @@ class TestProcessor:
                     if not self.CmdBuilder.replace_var_for_list(item[1], self.TestVar):
                         self.NowRunningTest.Status = "Failed"
                         return False
-                    self.SSHInt.push_cmd_list_to_ssh(list(item[1][0].values()))
+                    self.SSHInt.push_cmd_list_to_ssh(list(item[1]))
 
     def _RegManual(self, reg_objects, mode="user"):
 
