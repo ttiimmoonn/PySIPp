@@ -195,14 +195,30 @@ class CmdBuild:
                 return False
         return True
 
+    @staticmethod
+    def _replace_range(string):
+        # Ищём все диапазоны следующего вида {%%1.Param%% - %%3.Param%%}
+        # И меняем на {%%1.Param%%,%%2.Param%%,%%3.Param%%}
+        pattern = re.compile(r'{\s?%%([0-9]+)\.([^%]+)%%\s?-\s?%%([0-9]+)\.[^%]+%%\s?}')
+        str_ranges = re.findall(pattern, string)
+        if not str_ranges:
+            return string
+        for range_params in str_ranges:
+            start, pr, end = range_params
+            new_range_str = "{" + ",".join(["%%{}.{}%%".format(x, pr) for x in range(int(start), int(end) + 1)]) + "}"
+            string = re.sub(pattern, new_range_str, string, count=1)
+        return string
+
     def replace_var(self, string, var_list):
+        # Заменяем диапазоны в командах
+        string = self._replace_range(string)
         for counter in list(range(10)):
             # Ищем все переменные в исходной строке
-            command_vars = re.findall(r'%%.*?%%',string)
+            command_vars = re.findall(r'%%.*?%%', string)
             for eachVar in command_vars:
                 # Если кто запросил текущее время +/- временной сдвиг в формате %%NowTime[+/-][delta]%%,
                 # то отправляем данную переменную в функцию сборки времени.
-                if re.match(r'%%NowTime([+,-]?)([0-9]{0,4})(;.*)?%%',eachVar):
+                if re.match(r'%%NowTime([+,-]?)([0-9]{0,4})(;.*)?%%', eachVar):
                     shift_time=self.get_time_with_shift(eachVar)
                     if shift_time:
                         string = string.replace(str(eachVar), str(shift_time), 1)
