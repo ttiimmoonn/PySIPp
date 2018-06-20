@@ -196,6 +196,23 @@ class CmdBuild:
         return True
 
     @staticmethod
+    def _remove_range_duplicates(string):
+        # Удаляем дубликаты только для цифровых диапазонов
+        pattern = re.compile(r'{(([0-9]+,)+[0-9]+)}')
+        str_ranges = re.findall(pattern, string)
+        if not str_ranges:
+            return string
+        for cur_range in str_ranges:
+            range_list, _ = cur_range
+            range_list = range_list.split(",")
+            # Получаем только уникальные значения
+            range_list = set(range_list)
+            # Пересобираем строку с новым диапазоном
+            new_range_str = "{" + ",".join(range_list) + "}"
+            string = re.sub(pattern, new_range_str, string, count=1)
+        return string
+
+    @staticmethod
     def _replace_range(string):
         # Ищём все диапазоны следующего вида {%%1.Param%% - %%3.Param%%}
         # И меняем на {%%1.Param%%,%%2.Param%%,%%3.Param%%}
@@ -244,6 +261,7 @@ class CmdBuild:
                 else:
                     continue
         string = self.replace_len_function(string)
+        string = self._remove_range_duplicates(string)
         return string
 
     @staticmethod
