@@ -206,7 +206,7 @@ class CmdBuild:
             range_list, _ = cur_range
             range_list = range_list.split(",")
             # Получаем только уникальные значения
-            range_list = set(range_list)
+            range_list = sorted(set(range_list))
             # Пересобираем строку с новым диапазоном
             new_range_str = "{" + ",".join(range_list) + "}"
             string = re.sub(pattern, new_range_str, string, count=1)
