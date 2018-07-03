@@ -5,6 +5,7 @@ import logging
 from collections import namedtuple
 logger = logging.getLogger("tester")
 
+SUPPORT_ENCODING = ["cp1251", "latin-1"]
 
 class CmdBuild:
     def build_reg_command(self, reg_obj, log_path, test_var, mode="reg"):
@@ -250,7 +251,7 @@ class CmdBuild:
                 # Ищем значение в словаре
                 else:
                     try:
-                        string = string.replace(str(eachVar),str(var_list[eachVar]))
+                        string = string.replace(str(eachVar), str(var_list[eachVar]))
                     except KeyError:
                         logger.error("Command contain unexpected variable: %s", eachVar)
                         return False
@@ -260,8 +261,25 @@ class CmdBuild:
                     return False
                 else:
                     continue
-        string = self.replace_len_function(string)
-        string = self._remove_range_duplicates(string)
+        if string:
+            string = self.replace_len_function(string)
+        if string:
+            string = self._remove_range_duplicates(string)
+        if string:
+            string = self.replace_encode_function(string)
+        return string
+
+    @staticmethod
+    def replace_encode_function(string):
+        pattern = re.compile(r'encode\("([^"]+)"[\s]*,[\s]*"([^"]+)"\)')
+        match = re.search(pattern, string)
+        while match:
+            raw_str, encoder = match.groups()
+            if encoder not in SUPPORT_ENCODING:
+                logger.error("Encoding to %s not supported for encode function.", encoder)
+                return False
+            string = re.sub(pattern, "@BINARY:{}:{}".format(raw_str, encoder), string, count=1)
+            match = re.search(pattern, string)
         return string
 
     @staticmethod

@@ -1,11 +1,11 @@
 from collections import namedtuple
-import subprocess
 import time
 import threading
 from datetime import datetime
 import subprocess
 import shlex
 import logging
+import re
 logger = logging.getLogger("tester")
 
 ExCodes = namedtuple('ExCodes', ['NotStarted', 'Killed', 'WrongExitCode', 'Success'])
@@ -122,12 +122,17 @@ def preexec_process():
 
 
 def start_ua(command):
-# Запуск подпроцесса регистрации
     try:
         args = shlex.split(str(command))
     except ValueError:
         logger.error("Can't split command: %s",command)
         return False
+
+    for count, arg in enumerate(args):
+        match = re.match(r'@BINARY:(.+):([^$]+)', arg)
+        if match:
+            data, coder = match.groups()
+            args[count] = data.encode(coder)
     try:
         # Пытаемся создать новый SIPp процесс.
         ua_process = subprocess.Popen(args, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, preexec_fn = preexec_process)
@@ -136,6 +141,7 @@ def start_ua(command):
         return False
     # Если процесс запустился, то возвращаем его.
     return ua_process
+
 
 def start_ua_thread(ua, event_for_stop):
     while event_for_stop.isSet():
