@@ -106,7 +106,6 @@ class CmdBuild:
                     if ua.TrunkObject.SipTransport == "TCP":
                         command.append("-t tn -max_socket 25")
                     if ua.TrunkObject.RtpPort:
-                        print(ua.TrunkObject.RtpPort)
                         command.append("-mp {}".format(ua.TrunkObject.RtpPort))
 
                 if ua.Type == "User":
