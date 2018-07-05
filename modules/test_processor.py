@@ -1,8 +1,7 @@
-import modules.diff_calc as diff_calc
+import modules.msg_time_meter as diff_calc
 import modules.test_class as test_class
 import modules.test_parser as parser
-import modules.ssh_interface as ssh
-import modules.cmd_builder as builder
+from modules.msg_time_meter import TimeDiffMeasureExp
 import modules.process_contr as proc
 import modules.cdr as cdr
 import ftplib
@@ -405,15 +404,12 @@ class TestProcessor:
     def _convert_ua2list(convert_str):
         ua_list = []
         if re.match("^[0-9]{1,2}$|^([0-9]{1,2},)+[0-9]{1,2}$", convert_str):
-            # Обнаружен старый формат, даём warn и конвертим его в новый.
-            logger.debug("You are using the old format for the parameter UA in CheckDifference. Please fix it!")
             # Конвертируем старый формат 1,2,3 в новый user:1,user:2,user:3.
             ua_list = list(map(lambda x: x, convert_str.split(",")))
             ua_list = list(map(lambda x: "user:" + str(x), ua_list))
         elif re.match("^(user|trunk):[0-9]{1,2}$|^((user|trunk):[0-9]{1,2},)+(user|trunk):[0-9]{1,2}", convert_str):
             ua_list = convert_str.split(",")
         return ua_list
-
 
     def _exec_check_difference(self, method_body):
         # Парсим short_msg_log sipp, чтобы рассичитать дифы между сообщениями
@@ -465,35 +461,34 @@ class TestProcessor:
                 return False
 
     def _exec_check_msg_retransmission(self, method_body):
-        test_diff = diff_calc.DifferCalc(self.NowRunningTest)
-        if test_diff.Status == "Failed":
-            self.NowRunningTest.Status = "Failed"
+        try:
+            test_diff = diff_calc.TimeDiffMeasure(self.NowRunningTest.CompliteUA)
+        except TimeDiffMeasureExp as error:
+            logger.error("CheckDifference failed. Reason: %s" % error)
+            self.NowRunningTest = "Failed"
             return False
 
         for method_item in method_body:
             # Convert method item to object
             method_item = Dict2Obj(method_item)
             method_item.UA = self._convert_ua2list(method_item.UA)
-            method_item.Msg = list(map(lambda x: Dict2Obj(x), method_item.Msg))
-            for msg in method_item.Msg:
-                msg.MsgType = msg.MsgType.lower()
-                msg.Method = msg.Method.upper()
+            method_item.Msg = method_item.Msg[0]
             try:
-                test_diff.compare_timer_seq(method_item)
-            except diff_calc.DiffCalcExeption as error:
+                result = test_diff.check_timer(method_item)
+            except TimeDiffMeasureExp as error:
                 logger.error("CheckDifference failed. Reason: %s" % error)
                 self.NowRunningTest.Status = "Failed"
                 return False
 
-            if test_diff.Status == "Failed":
+            if not result:
                 self.NowRunningTest.Status = "Failed"
                 return False
         return True
 
-    def _ChkBackgroundUA(self):
+    def _ChkBackgroundUA(self, timer=5):
         if len(self.NowRunningTest.WaitBackGroundUA) > 0:
-            logger.info("Waiting for closing threads which started in background mode...")
-            if not proc.CheckThreads(self.NowRunningTest.BackGroundThreads):
+            logger.info("Waiting for closing threads which started in background mode. Timer = %ds.", timer)
+            if not proc.CheckThreads(self.NowRunningTest.BackGroundThreads, timer=timer):
                 logger.error("One of Bg UA's thread not closed.")
                 self.NowRunningTest.ThreadEvent.clear()
                 # Переносим отработавшие UA в завершенные
@@ -631,8 +626,8 @@ class TestProcessor:
                 logger.info("Test: %s complite.",test.Name)
             logger.info("Statistics for test: %s:",test.Name)
             logger.info("---| Status:          %s", str(test.Status))
-            logger.info("---| CompliteUA:      %d", len(test.CompliteUA))
-            logger.info("---| CompliteBgUA:    %d", len(test.BackGroundUA))
+            logger.info("---| CompleteUA:      %d", len(test.CompliteUA))
+            logger.info("---| CompleteBgUA:    %d", len(test.BackGroundUA))
             logger.info("---| StartTime:       %s", str(datetime.fromtimestamp(self.NowRunningTest.StartTime).strftime('%H:%M:%S %Y-%m-%d')))
             logger.info("---| StopTime:        %s", str(datetime.fromtimestamp(self.NowRunningTest.StopTime).strftime('%H:%M:%S %Y-%m-%d')))
             logger.info("---| TestDuration:    %ss", str(test.getTestDuration()))
@@ -643,44 +638,46 @@ class TestProcessor:
 
     def _RunTestProcedure(self, test):
         self.GenForItem = self._get_test_item_gen(test.TestProcedure)
-        for item in self.GenForItem:
+        for method, method_desc in self.GenForItem:
             if not test.ThreadEvent.isSet():
                 logger.error("Some process thread set event for stop. Drop test procedure...")
                 break
-            logger.info("Exec method \"%s\"",item[0])
-            if item[0] == "StartUA":
+            logger.info("Exec method \"%s\"", method)
+            if method == "StartUA":
                 # Передаём параметры startUa в метод _execStartUA
-                self._execStartUA(item[1])
-            elif item[0] == "ServiceFeature":
-                self._execServiceFeature(item[1])
-            elif item[0] == "SendSSHCommand":
-                self._execCoconCmd(item[1])
-            elif item[0] == "Print":
-                self._execPrintCmd(item[1])
-            elif item[0] == "Stop":
+                self._execStartUA(method_desc)
+            elif method == "ServiceFeature":
+                self._execServiceFeature(method_desc)
+            elif method == "SendSSHCommand":
+                self._execCoconCmd(method_desc)
+            elif method == "Print":
+                self._execPrintCmd(method_desc)
+            elif method == "Stop":
                 self._execStopCmd()
-            elif item[0] == "Sleep":
-                self._sleep(item[1])
-            elif item[0] == "CheckDifference":
-                self._exec_check_difference(item[1])
-            elif item[0] == "CheckRetransmission":
-                self._exec_check_msg_retransmission(item[1])
-            elif item[0] == "ManualReg":
-                if "Users" in item[1]:
-                    self._RegManual(item[1]["Users"],"user")
-                elif "Trunks" in item[1]:
-                    self._RegManual(item[1]["Trunks"],"trunk")
-            elif item[0] == "DropManualReg":
-                if "Users" in item[1]:
-                    self._DropManualReg(item[1]["Users"],"user")
-                elif "Trunks" in item[1]:
-                    self._DropManualReg(item[1]["Trunks"],"trunk")
-            elif item[0] == "CompareCDR":
-                self._cdr_compare(item[1])
-            elif item[0] == "SetVar":
-                self._set_variables(**item[1])
+            elif method == "WaitBackGroundUA":
+                self._ChkBackgroundUA(timer=method_desc.get("timeout", 5))
+            elif method == "Sleep":
+                self._sleep(method_desc)
+            elif method == "CheckDifference":
+                self._exec_check_difference(method_desc)
+            elif method == "CheckRetransmission":
+                self._exec_check_msg_retransmission(method_desc)
+            elif method == "ManualReg":
+                if "Users" in method_desc:
+                    self._RegManual(method_desc["Users"], "user")
+                elif "Trunks" in method_desc:
+                    self._RegManual(method_desc["Trunks"], "trunk")
+            elif method == "DropManualReg":
+                if "Users" in method_desc:
+                    self._DropManualReg(method_desc["Users"], "user")
+                elif "Trunks" in method_desc:
+                    self._DropManualReg(method_desc["Trunks"], "trunk")
+            elif method == "CompareCDR":
+                self._cdr_compare(method_desc)
+            elif method == "SetVar":
+                self._set_variables(**method_desc)
             else:
-                logger.error("Unknown metod: %s in test procedure. Test aborting.", item[0])
+                logger.error("Unknown metod: %s in test procedure. Test aborting.", method)
                 self.NowRunningTest.Status = "Failed"
                 break
             if self.NowRunningTest.Status == "Failed":

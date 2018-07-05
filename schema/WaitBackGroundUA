@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "WaitBackGroudUA schema",
+  "type": "object",
+  "properties": {
+    "WaitBackGroudUA": {
+      "type": "object",
+      "properties": {
+        "timeout": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3600
+        }
+      },
+      "required": [
+        "timeout"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

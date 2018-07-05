@@ -20,7 +20,7 @@ class Validator:
         # Кортеж тестовых процедур
         self.simple_procedure_sections = ("Sleep", "Print", "Stop",
                                           "ServiceFeature", "ManualReg",
-                                          "DropManualReg", "SendSSHCommand", "CompareCDR", "SetVar")
+                                          "DropManualReg", "SendSSHCommand", "CompareCDR", "SetVar", "WaitBackGroundUA")
 
     # Метод записи информации схем в словарь
     def schemas_dict_forming(self, py_sipp_path):

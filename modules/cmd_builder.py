@@ -261,7 +261,18 @@ class CmdBuild:
                 else:
                     continue
         string = self.replace_len_function(string)
+        string = self.replace_encode_function(string)
         string = self._remove_range_duplicates(string)
+        return string
+
+    @staticmethod
+    def replace_encode_function(string):
+        pattern = re.compile(r'encode\(([^,]+)\s?,\s?([^)]+)\)')
+        match = re.search(pattern, string)
+        while match:
+            raw_str, coder = match.groups()
+            string = re.sub(pattern, "@BINARY:{}:{}".format(raw_str, coder), string, count=1)
+            match = re.search(pattern, string)
         return string
 
     @staticmethod
