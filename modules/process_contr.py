@@ -132,7 +132,11 @@ def start_ua(command):
         match = re.match(r'@BINARY:(.+):([^$]+)', arg)
         if match:
             data, coder = match.groups()
-            args[count] = data.encode(coder)
+            try:
+                args[count] = data.encode(coder)
+            except UnicodeEncodeError as error:
+                logger.error("Encoding \"%s\" to %s failed. Error: %s", data, coder, error)
+                return False
     try:
         # Пытаемся создать новый SIPp процесс.
         ua_process = subprocess.Popen(args, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, preexec_fn = preexec_process)
