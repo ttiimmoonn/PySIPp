@@ -120,6 +120,10 @@ class CmdBuild:
                         command.append("-mp {}".format(ua.UserObject.RtpPort))
                     if sipp_type == "uac":
                         command.append("-set CGPNDOM {}".format(ua.UserObject.SipDomain))
+                elif ua.Type == "Trunk":
+                    if sipp_auth:
+                        command.append("-s {}".format(ua.TrunkObject.Login))
+                        command.append("-ap {}".format(ua.TrunkObject.Password))
 
                 command.append("-i %%IP%%")
                 command.append(sipp_options)
@@ -150,7 +154,6 @@ class CmdBuild:
                 elif ua.Type == "Trunk":
                     log_prefix = "TEST_{}_TRUNK_{}_PORT_{}_".format(test.TestId, ua.TrunkObject.TrunkName.upper(),
                                                                     ua.TrunkObject.Port)
-
 
                 # Если был передан флаг для записи timestamp, то добавляем соотвествующие ключи
                 if ua.WriteStat:
