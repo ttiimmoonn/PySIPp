@@ -84,6 +84,7 @@ class CmdBuild:
         for ua in test.UserAgent + test.BackGroundUA:
             # Пытаемся достать параметры команды
             for cmd_desc in ua.RawJsonCommands:
+                media_path = test_var.get("%%MEDIA_PATH%%")
                 sipp_sf = cmd_desc["SourceFile"]
                 sipp_options = cmd_desc["Options"]
                 sipp_type = cmd_desc["SippType"]
@@ -127,6 +128,9 @@ class CmdBuild:
 
                 command.append("-i %%IP%%")
                 command.append(sipp_options)
+
+                if media_path:
+                    command.append("-key media_path {}".format(media_path))
 
                 # Выставляем Call-ID и CSeq, если требуется.
                 try:
