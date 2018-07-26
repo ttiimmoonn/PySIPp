@@ -57,6 +57,7 @@ class CmdBuild:
 
     def build_service_feature_command(self, test, user, code, test_var):
         # Building service feature command
+        media_path = test_var.get("%%MEDIA_PATH%%")
         command = list()
         command.append("%%SIPP_PATH%% -sf %%SF_XML%%")
         command.append("%%EXTER_IP%%:%%EXTER_PORT%%")
@@ -67,6 +68,8 @@ class CmdBuild:
         command.append("-m 1 -timeout 20s -recv_timeout 20s")
         if user.SipTransport == "TCP":
             command.append("-t tn -max_socket 25")
+        if media_path:
+            command.append("-key media_path {}".format(media_path))
         log_prefix = "TEST_%s_NUMBER_%s_SF_%s_" % (test.TestId, user.Number, code)
         command.append("-message_overwrite false -trace_msg")
         command.append("-message_file {}/{}MESSAGE".format(test.LogPath, log_prefix))
