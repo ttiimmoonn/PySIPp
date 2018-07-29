@@ -1,7 +1,7 @@
 import re
 from enum import Enum
 # Trace sip message
-REQ_EXP = re.compile(r'([\w]+)\s(sip:([^@]+)@([^\s]+))\sSIP/2\.0')
+REQ_EXP = re.compile(r'([\w]+)\s(sip:([^@]+)?@?([^\s]+))\sSIP/2\.0')
 RESP_EXP = re.compile(r'SIP/2\.0\s([\d]{3})\s([\w]+)')
 CSEQ_EXP = re.compile(r'([\d]+)\s([A-Z]+)')
 MSG_FORMAT = ["Date", "Time", "Timestamp", "Direction", "CallID", "CSeq", "StartLine", "Branch", "MsgHash"]

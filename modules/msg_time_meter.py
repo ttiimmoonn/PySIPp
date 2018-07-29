@@ -2,12 +2,12 @@ from modules.trace_parser import ShortTraceParser
 from modules.trace_parser import TraceParseExp
 from modules.trace_parser import MSG_TYPES
 from modules.sip_tools import SIP_TIMERS, T1
-import modules.fs_worker as fs
 from collections import OrderedDict
-import logging
 from pprint import pformat
+from itertools import zip_longest as lzip
+import modules.fs_worker as fs
+import logging
 import math
-from itertools import zip_longest
 
 logger = logging.getLogger("tester")
 logger.setLevel(logging.DEBUG)
@@ -18,13 +18,9 @@ class TimeDiffMeasureExp(Exception):
 
 
 class TimeDiffMeasure:
-    def __init__(self, ua_list):
+    def __init__(self):
         self.UserWithTraces = dict()
         self.TrunkWithTraces = dict()
-        list(map(self._parse_short_message_log, ua_list))
-        logger.debug("Parsing of trace files complete.")
-        logger.debug("Users with traces: %s", [ua.UserObject.Number for ua in self.UserWithTraces.values()])
-        logger.debug("Trunk with traces: %s", [ua.TrunkObject.TrunkName for ua in self.TrunkWithTraces.values()])
 
     def _parse_short_message_log(self, ua):
         if ua.UserObject:
@@ -88,7 +84,7 @@ class TimeDiffMeasure:
         else:
             _ = list(map(logger.info, pformat(some_list).split('\n')))
 
-    def _get_time_seq_for_retransmission(self, tr_list):
+    def _get_time_seq_for_transaction(self, tr_list):
         """Get time sequence for message retransmission"""
         # Convert list of message obj to list of timestamps
         result = [(branch, [[m.Timestamp for m in m_list] for m_list in r_list]) for branch, r_list in tr_list]
@@ -97,7 +93,7 @@ class TimeDiffMeasure:
                   for branch, r_list in result if r_list]
         return result
 
-    def _get_time_dur_for_retransmission(self, tr_list):
+    def _get_time_dur_for_transaction(self, tr_list):
         """Get duration of message retransmission"""
         # Convert list of message obj to list of timestamps
         result = [(branch, [[m.Timestamp for m in m_list] for m_list in r_list]) for branch, r_list in tr_list]
@@ -111,7 +107,7 @@ class TimeDiffMeasure:
         # Get retransmissions for calls
         call_list = [(call.CallID, call.get_msg_retransmission(**kwargs)) for call in ua.ShortTrParser.Calls]
         # Get diff between retransmission messages
-        call_list = [(call_id, self._get_time_seq_for_retransmission(tr_list)) for call_id, tr_list in call_list]
+        call_list = [(call_id, self._get_time_seq_for_transaction(tr_list)) for call_id, tr_list in call_list]
         result = (ua_info, call_list)
         return result
 
@@ -120,7 +116,16 @@ class TimeDiffMeasure:
         # Get retransmissions for calls
         call_list = [(call.CallID, call.get_msg_retransmission(**kwargs)) for call in ua.ShortTrParser.Calls]
         # Get diff between retransmission messages
-        call_list = [(call_id, self._get_time_dur_for_retransmission(tr_list)) for call_id, tr_list in call_list]
+        call_list = [(call_id, self._get_time_dur_for_transaction(tr_list)) for call_id, tr_list in call_list]
+        result = (ua_info, call_list)
+        return result
+
+    def _get_time_for_first_msg_in_call(self, ua_info, **kwargs):
+        ua = self._get_ua_object(ua_info)
+        call_list = [(call.CallID, call.get_first_message_in_call(**kwargs)) for call in ua.ShortTrParser.Calls]
+        call_list = [(call_id, [(br, msg.Timestamp) for br, msg in tr_list])
+                     for call_id, tr_list in call_list if tr_list]
+        call_list = [(call_id, {t for _, t in tr_list}) for call_id, tr_list in call_list]
         result = (ua_info, call_list)
         return result
 
@@ -130,8 +135,8 @@ class TimeDiffMeasure:
         msg["Method"] = str(msg.get("Method")).upper()
 
     @staticmethod
-    def _seq_compare(seq_a, seq_b, max_error=0.1):
-        logger.info("Sequences for comparing.")
+    def _compare_seq(seq_a, seq_b, max_error=0.1):
+        logger.info("Start of comparing of two sequences.")
         logger.info("├ First sequence: %s", list(map(lambda x: round(x, 1), seq_a)))
         logger.info("├ Second sequence: %s", list(map(lambda x: round(x, 1), seq_b)))
         logger.info("├ Max error: %s", str(max_error))
@@ -147,8 +152,8 @@ class TimeDiffMeasure:
         return True
 
     @staticmethod
-    def _value_compare(val1, val2, max_error=0.1):
-        logger.info("Values for comparing.")
+    def _compare_value(val1, val2, max_error=0.1):
+        logger.info("Start of comparing of two values.")
         logger.info("├ First value: %s", val1)
         logger.info("├ Second value: %s", val2)
         logger.info("├ Max error: %s", str(max_error))
@@ -159,6 +164,19 @@ class TimeDiffMeasure:
             logger.info("Comparison has been completed with result: success")
             return True
 
+    @staticmethod
+    def _compare_seq_item_with_val(seq, val, max_error=0.1):
+        logger.info("Start of comparing of sequence items with value.")
+        logger.info("├ Sequence: %s", list(map(lambda x: round(x, 1), seq)))
+        logger.info("├ Require value: %s", val)
+        logger.info("├ Max error: %s", str(max_error))
+
+        if True in list(map(lambda x: math.fabs(float(x)-float(val)) > max_error, seq)):
+            logger.error("Comparison has been completed with result: fail")
+            return False
+        logger.info("Comparison has been completed with result: success")
+        return True
+
     def _compare_time_sequence_for_ua(self, req_seq, ua_seq):
         """This function compare time sequences for all calls from ua_seq with req_seq"""
         ua_name, ua_calls_seq = ua_seq
@@ -168,7 +186,7 @@ class TimeDiffMeasure:
                 raise TimeDiffMeasureExp("The call: %s without time sequence." % call_id)
             for branch, timer_seq in tr_list:
                 logger.info("The call for comparison: %s, %s", call_id, branch.replace("branch=", ""))
-                result = list(map(lambda x: self._seq_compare(x, req_seq), timer_seq))
+                result = list(map(lambda x: self._compare_seq(x, req_seq), timer_seq))
                 if False in result:
                     return False
         return True
@@ -185,18 +203,27 @@ class TimeDiffMeasure:
                 raise TimeDiffMeasureExp("The call: %s without time sequence." % call_id)
             for branch, timer_seq in tr_list:
                 logger.info("The call for comparison: %s, %s", call_id, branch.replace("branch=", ""))
-                result = list(map(lambda x: self._value_compare(x + add, req_val), timer_seq))
+                result = list(map(lambda x: self._compare_value(x + add, req_val), timer_seq))
                 if False in result:
                     return False
         return True
 
-    def check_timer(self, t_obj):
-        timer = SIP_TIMERS.get(t_obj.Timer)
+    def _parse_trace_file_for_ua(self, ua):
+        try:
+            if not ua.ShortTrParser:
+                self._parse_short_message_log(ua)
+        except TraceParseExp as error:
+            raise TimeDiffMeasureExp("Parse trace file failed. Error: %s" % error)
+        logger.debug("Parsing of trace files completed.")
+
+    def check_timer(self, t_obj, ua_list):
         self._convert_msg_description(t_obj.Msg)
-        logger.info("Check timer params:")
+        logger.info("Start checking of time difference for timer:")
         logger.info("├ Timer: %s", t_obj.Timer)
         logger.info("├ CompareUA: %s", t_obj.UA)
         logger.info("├ Message: type %s, method %s, code %s", *t_obj.Msg.values())
+        timer = SIP_TIMERS.get(t_obj.Timer)
+        _ = list(map(self._parse_trace_file_for_ua, ua_list))
         if not timer:
             raise TimeDiffMeasureExp("Timer %s not supported" % t_obj.Timer)
         if type(timer) == list:
@@ -209,6 +236,86 @@ class TimeDiffMeasure:
             return False
         else:
             return True
+
+    def _check_difference_for_call(self, compare_list, val):
+        call_id, t_list = compare_list
+        logger.debug("Comparing between next calls:")
+        self._pprint_list(call_id, logging.DEBUG)
+        t_list = [list(map(float, t)) for t in t_list]
+        t_list = list(map(self._get_diff_for_time_seq, t_list))
+        result = list(map(lambda x: self._compare_seq_item_with_val(x, val), t_list))
+        return result
+
+    def _check_time_difference_between_ua(self, d_obj):
+        if d_obj.CompareMode == "between_calls":
+            for msg in d_obj.Msg:
+                logger.debug("Start comparing for msg: type %s, method %s, code %s", *msg.values())
+                # Get list of UA which contains next tuple:
+                # (ua_info, [(call_id1,{timestamp1}), (call_id2,{timestamp2})])
+                # example: ('user:0', [('BA:1ebf0', {'1530871260.402419'}), ('BA:2eb0', {'1530871270.403639'})],
+                #          ('user:1', [('BA:1ebf1', {'1530871261.402419'}), ('BA:2eb1', {'1530871271.403639'})],
+                #          ('user:2', [('BA:1ebf2', {'1530871262.402419'}), ('BA:2eb2', {'1530871272.403639'})])
+                list_for_compare = list(map(lambda x: self._get_time_for_first_msg_in_call(x, **msg), d_obj.UA))
+                # Aggregating elements for each ua and splitting it to ua_list and call_list
+                user_list, call_list = zip(*list_for_compare)
+                logger.debug("Comparing between next UA: %s", ", ".join(user_list))
+                # Aggregating elements for each call.
+                # (First call from ua1 to first call from ua2,..,uaN)
+                # (Second call from ua1 to second call from ua2,..,uaN)
+                # example: [(('BA:1ebf0, {'1530871260.402419'}),
+                #            ('BA:1ebf1', {'1530871261.402419'}),
+                #            ('BA:1ebf2', {'1530871262.402419'})),
+                #           (('BA:2eb0', {'1530871270.403639'}),
+                #            ('BA:2eb1', {'1530871271.403639'}),
+                #            ('BA:2eb2', {'1530871272.403639'}))]
+                call_list = list(zip(*call_list))
+                # Splitting call_id and timestamps for each_call
+                # example:
+                # [(('BA:1ebf0', 'BA:1ebf1', 'BA:1ebf2'), <zipped timestamps>),
+                #  (('BA:2eb0', 'BA:2eb1', 'BA:2eb2'), <zipped timestamps>)]
+                call_list = [(call_id, zip(*timestamp)) for call_id, timestamp in
+                             list(map(lambda x: zip(*x), call_list))]
+                # check difference
+                result = list(map(lambda x: self._check_difference_for_call(x, d_obj.Difference), call_list))
+                if False in result:
+                    return False
+        elif d_obj.CompareMode == "between_msg":
+            if len(d_obj.Msg) != len(d_obj.UA):
+                raise TimeDiffMeasureExp("Count of Msg must be equal count of UA for between_msg compare mode")
+            args_for_compare = list(zip(d_obj.Msg, d_obj.UA))
+        else:
+            raise TimeDiffMeasureExp("Mode %s not supported" % str(d_obj.CompareMode))
+        return True
+
+    def _check_time_difference_inner_ua(self, d_obj):
+        return self
+
+    def check_time_difference(self, d_obj, ua_list):
+        logger.info("Check Diff Params:")
+        logger.info("├ Mode: %s", d_obj.Mode)
+        logger.info("├ CompareMode: %s", d_obj.CompareMode)
+        logger.info("├ CompareUA: %s", d_obj.UA)
+        logger.info("├ CompareCalls: %s", d_obj.Calls)
+        logger.info("├ Require diff: %s", str(d_obj.Difference))
+        logger.info("├ Messages:")
+        _ = list(map(self._convert_msg_description, d_obj.Msg))
+        for count, msg in enumerate(d_obj.Msg):
+            logger.info("├ Message %d: type %s, method %s, code %s", count, *msg.values())
+        pass
+        _ = list(map(self._parse_trace_file_for_ua, ua_list))
+        logger.debug("Trying to check time differences in %s mode.", d_obj.Mode)
+        if d_obj.Mode == "between_ua":
+            result = self._check_time_difference_between_ua(d_obj)
+        elif d_obj.Mode == "inner_ua":
+            result = self._check_time_difference_inner_ua(d_obj)
+        else:
+            raise TimeDiffMeasureExp("Unknown mode: %s" % d_obj.Mode)
+        return result
+
+
+
+
+
 
 
 
@@ -230,7 +337,7 @@ class DifferCalc:
         self.get_inv_retrans_seq()
         self.get_non_inv_retrans_seq()
         # Парсим short_msg log
-        _ = list(map(self.parse_short_trace_msg, test.CompliteUA + test.WaitBackGroundUA))
+        _ = list(map(self.parse_short_trace_msg, test.CompleteUA + test.WaitBackGroundUA))
 
     def _get_ua_obj(self, ua_info):
         ua_type, ua_id = ua_info.split(":")

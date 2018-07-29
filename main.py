@@ -77,9 +77,9 @@ def get_test_info(test):
     print("TestStatus:      ", test.Status)
     print("TestDesc:        ", test.Description)
     print("TestUA:          ", test.UserAgent)
-    print("TestCompleteUA   ", test.CompliteUA)
+    print("TestCompleteUA   ", test.CompleteUA)
     print("")
-    for ua in test.CompliteUA:
+    for ua in test.CompleteUA:
         print("     UaName:         ", ua.Name)
         print("     UaStatus:       ", ua.Status)
         print("     UaStatusCode:   ", ua.StatusCode)
@@ -315,7 +315,7 @@ for index, test in enumerate(tests):
         index = test_numbers[index]
     if test.Status == "Failed":
         logger.info(" ---| Test %d: %s - fail.", index, test.Name)
-    elif test.Status == "Complite":
+    elif test.Status == "Complete":
         logger.info(" ---| Test %d: %s - succ.", index, test.Name)
     elif test.Status == "New":
         logger.info(" ---| Test %d: %s - not running.", index, test.Name)

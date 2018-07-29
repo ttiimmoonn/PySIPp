@@ -1,4 +1,4 @@
-import modules.msg_time_meter as diff_calc
+import modules.msg_time_meter as time_meter
 import modules.test_class as test_class
 import modules.test_parser as parser
 from modules.msg_time_meter import TimeDiffMeasureExp
@@ -412,12 +412,8 @@ class TestProcessor:
         return ua_list
 
     def _exec_check_difference(self, method_body):
-        # Парсим short_msg_log sipp, чтобы рассичитать дифы между сообщениями
-        test_diff = diff_calc.DifferCalc(self.NowRunningTest)
-        # Если не удалось пропарсить лог, то выходим.
-        if test_diff.Status == "Failed":
-            self.NowRunningTest.Status = "Failed"
-            return False
+        # Создаём объект для измерения временных интервалов.
+        time_meter_obj = time_meter.TimeDiffMeasure()
         for method_item in method_body:
             method_item = Dict2Obj(method_item)
             method_item.Difference = self.CmdBuilder.replace_var(str(method_item.Difference), self.TestVar)
@@ -429,13 +425,13 @@ class TestProcessor:
                     method_item.Difference = int(method_item.Difference)
                     method_item.Difference = float(method_item.Difference / 1000)
                 except ValueError:
-                    # Если не удалось привести req_diff к int, то выходим.
+                    # Если не удалось привести req_diff к числу, то выходим.
                     logger.error("Can't convert Difference to int. Value: %s", str(req_diff))
                     self.NowRunningTest.Status = "Failed"
                     return False
             # Try to get call mask
             try:
-                method_item.Calls = list(map(int, method_item.Calls.split(",")))
+                method_item.Calls = list(map(int, str(method_item.Calls).split(",")))
                 method_item.Calls = list(map(lambda x: x-1, method_item.Calls))
             except AttributeError:
                 setattr(method_item, "Calls", False)
@@ -443,40 +439,31 @@ class TestProcessor:
             try:
                 getattr(method_item, "CompareMode")
             except AttributeError:
-                setattr(method_item, "CompareMode", "perMsg")
+                setattr(method_item, "CompareMode", "between_msg")
 
             method_item.UA = self._convert_ua2list(method_item.UA)
-            method_item.Msg = list(map(lambda x: Dict2Obj(x), method_item.Msg))
-            for msg in method_item.Msg:
-                msg.MsgType = msg.MsgType.lower()
-                msg.Method = msg.Method.upper()
             try:
-                test_diff.compare_msg_diff(method_item)
-            except diff_calc.DiffCalcExeption as error:
-                logger.error("CheckDifference failed. Reason: %s" % error)
+                result = time_meter_obj.check_time_difference(method_item, self.NowRunningTest.CompleteUA)
+            except time_meter.TimeDiffMeasureExp as error:
+                logger.error("CheckDifference failed. Error: %s" % error)
                 self.NowRunningTest.Status = "Failed"
                 return False
-            if test_diff.Status == "Failed":
+            if not result:
                 self.NowRunningTest.Status = "Failed"
                 return False
+            return True
 
     def _exec_check_msg_retransmission(self, method_body):
-        try:
-            test_diff = diff_calc.TimeDiffMeasure(self.NowRunningTest.CompliteUA)
-        except TimeDiffMeasureExp as error:
-            logger.error("CheckDifference failed. Reason: %s" % error)
-            self.NowRunningTest = "Failed"
-            return False
-
+        time_meter_obj = time_meter.TimeDiffMeasure()
         for method_item in method_body:
             # Convert method item to object
             method_item = Dict2Obj(method_item)
             method_item.UA = self._convert_ua2list(method_item.UA)
             method_item.Msg = method_item.Msg[0]
             try:
-                result = test_diff.check_timer(method_item)
+                result = time_meter_obj.check_timer(method_item, self.NowRunningTest.CompleteUA)
             except TimeDiffMeasureExp as error:
-                logger.error("CheckDifference failed. Reason: %s" % error)
+                logger.error("CheckDifference failed. Error: %s" % error)
                 self.NowRunningTest.Status = "Failed"
                 return False
 
@@ -615,7 +602,7 @@ class TestProcessor:
             self.NowRunningTest = test
             self.NowRunningTest.Status = "Running"
             self.NowRunningTest.StartTime = time.time()
-            self._RunTestProcedure(test)
+            self._run_test_procedure(test)
             self.NowRunningTest.StopTime = time.time()
             if self.NowRunningTest.Status == "Failed":
                 logger.error("Test: %s failed.",test.Name)
@@ -623,11 +610,11 @@ class TestProcessor:
                 if self.ForceQuitFlag:
                     break
             else:
-                logger.info("Test: %s complite.",test.Name)
+                logger.info("Test: %s complete.",test.Name)
             logger.info("Statistics for test: %s:",test.Name)
             logger.info("---| Status:          %s", str(test.Status))
-            logger.info("---| CompleteUA:      %d", len(test.CompliteUA))
-            logger.info("---| CompleteBgUA:    %d", len(test.BackGroundUA))
+            logger.info("---| CompleteUA:      %d", len(test.CompleteUA))
+            logger.info("---| BgUA:            %d", len(test.BackGroundUA))
             logger.info("---| StartTime:       %s", str(datetime.fromtimestamp(self.NowRunningTest.StartTime).strftime('%H:%M:%S %Y-%m-%d')))
             logger.info("---| StopTime:        %s", str(datetime.fromtimestamp(self.NowRunningTest.StopTime).strftime('%H:%M:%S %Y-%m-%d')))
             logger.info("---| TestDuration:    %ss", str(test.getTestDuration()))
@@ -636,7 +623,7 @@ class TestProcessor:
         logger.info("Set next variables: %s", variables)
         self.TestVar.update(variables)
 
-    def _RunTestProcedure(self, test):
+    def _run_test_procedure(self, test):
         self.GenForItem = self._get_test_item_gen(test.TestProcedure)
         for method, method_desc in self.GenForItem:
             if not test.ThreadEvent.isSet():
@@ -685,4 +672,4 @@ class TestProcessor:
                 break
         self._ChkBackgroundUA()
         if self.NowRunningTest.Status != "Failed":
-            self.NowRunningTest.Status = "Complite"
+            self.NowRunningTest.Status = "Complete"

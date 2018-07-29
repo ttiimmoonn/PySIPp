@@ -53,15 +53,15 @@ class SipCall:
     def get_first_message_in_tr(self, **kwargs):
         tr_list = self._find_transactions_by_msg_params(**kwargs)
         t_list = zip([x.Branch for x in tr_list], list(map(lambda x: x.get_first_msg(**kwargs), tr_list)))
-        t_list = {k: v for k, v in t_list if v}
-        print(t_list)
+        return list(t_list)
 
     def get_first_message_in_call(self, **kwargs):
         for msg in self.Messages:
             if msg.Method != kwargs.get("Method"):
                 continue
             elif msg.MsgType == kwargs.get("MsgType") and msg.RespCode == kwargs.get("Code"):
-                return msg
+                result = [(msg.Branch, msg)]
+                return result
 
 
 class SipTransaction:

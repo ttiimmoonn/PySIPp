@@ -3,11 +3,12 @@ import modules.process_contr as proc
 import uuid
 import modules.fs_worker as fs
 
+
 class TestClass:
     def __init__(self):
         self.TestId = None
         self.UserAgent = []
-        self.CompliteUA = []
+        self.CompleteUA = []
         self.BackGroundUA = []
         self.BackGroundThreads = []
         self.WaitBackGroundUA = []
@@ -25,7 +26,7 @@ class TestClass:
         return round(self.StopTime - self.StartTime,1)
 
     def ReplaceUaToComplite(self):
-        self.CompliteUA += self.UserAgent
+        self.CompleteUA += self.UserAgent
         self.UserAgent = []
 
     def ReplaceBgUaToWait(self):
@@ -33,7 +34,7 @@ class TestClass:
         self.BackGroundUA = []
 
     def CompliteBgUA(self):
-        self.CompliteUA += self.WaitBackGroundUA
+        self.CompleteUA += self.WaitBackGroundUA
         self.WaitBackGroundUA = []
 
 
