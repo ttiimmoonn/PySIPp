@@ -5,7 +5,7 @@ from datetime import datetime
 import subprocess
 import shlex
 import logging
-from modules.cmd_builder import CmdBuild
+import re
 logger = logging.getLogger("tester")
 
 ExCodes = namedtuple('ExCodes', ['NotStarted', 'Killed', 'WrongExitCode', 'Success'])
