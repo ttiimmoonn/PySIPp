@@ -428,7 +428,7 @@ class TestProcessor:
             difference = list(map(lambda x: x/1000, difference))
         else:
             if type(difference) is str:
-                difference = self.CmdBuilder.replace_var(difference)
+                difference = self.CmdBuilder.replace_var(difference, self.TestVar)
             if type(difference) is bool:
                 raise TestProcessorExp("Replacing vars in difference failed. Difference: %s" % str(difference))
             try:
@@ -490,7 +490,7 @@ class TestProcessor:
             try:
                 result = time_meter_obj.check_timer(method_item, self.NowRunningTest.CompleteUA)
             except TimeDiffMeterExp as error:
-                logger.error("CheckDifference failed. Error: %s" % error)
+                logger.error("CheckRetransmission failed. Error: %s" % error)
                 self.NowRunningTest.Status = "Failed"
                 return False
 
