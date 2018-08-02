@@ -254,7 +254,7 @@ class TimeDiffMeter:
                 return [call_list[i] for i in call_filter]
             except IndexError:
                 raise TimeDiffMeterExp("Filtering by call list failed. Call filter: [%s]" %
-                                         ", ".join(list(map(str, call_filter))))
+                                       ", ".join(list(map(str, call_filter))))
         else:
             return call_list
 
