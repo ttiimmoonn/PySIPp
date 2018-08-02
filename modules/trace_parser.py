@@ -60,8 +60,8 @@ class SipCall:
             if msg.Method != kwargs.get("Method"):
                 continue
             elif msg.MsgType == kwargs.get("MsgType") and msg.RespCode == kwargs.get("Code"):
-                result = [(msg.Branch, msg)]
-                return result
+                return msg
+        return None
 
 
 class SipTransaction:

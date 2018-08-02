@@ -195,8 +195,8 @@ class CmdBuild:
 
     def replace_var_for_list(self, l, varlst):
         for count, item in enumerate(l):
-            result = self.replace_var(item, varlst)
-            if type(result) == str:
+            result = self.replace_var(item, varlst) if type(item) == str else item
+            if type(result) is not bool:
                 l[count] = result
             else:
                 return False

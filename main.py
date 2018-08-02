@@ -6,7 +6,7 @@ import modules.test_processor as processor
 import modules.fs_worker as fs
 import modules.ssh_interface as ssh
 import modules.show_call_flow as sip_call_flow
-import modules.msg_time_meter as diff_calc
+import modules.diff_meter as diff_calc
 import modules.cmd_builder as builder
 import logging
 import re

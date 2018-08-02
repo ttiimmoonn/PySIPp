@@ -1,7 +1,7 @@
-import modules.msg_time_meter as time_meter
+import modules.diff_meter as time_meter
 import modules.test_class as test_class
 import modules.test_parser as parser
-from modules.msg_time_meter import TimeDiffMeasureExp
+from modules.diff_meter import TimeDiffMeterExp
 import modules.process_contr as proc
 import modules.cdr as cdr
 import ftplib
@@ -21,6 +21,10 @@ class Dict2Obj:
         """Constructor"""
         for key in dictionary:
             setattr(self, key, dictionary[key])
+
+
+class TestProcessorExp(Exception):
+    pass
 
 
 class TestProcessor:
@@ -411,50 +415,69 @@ class TestProcessor:
             ua_list = convert_str.split(",")
         return ua_list
 
+    def _convert_difference(self, difference):
+        if type(difference) is list:
+            if not self.CmdBuilder.replace_var_for_list(difference, self.TestVar):
+                raise TestProcessorExp("Replacing vars in difference list failed. List: %s" %
+                                       ",".join(list(map(str, difference))))
+            try:
+                difference = list(map(float, difference))
+            except ValueError:
+                raise TestProcessorExp("Converting list of differences to float failed. List: %s" %
+                                       ",".join(list(map(str, difference))))
+            difference = list(map(lambda x: x/1000, difference))
+        else:
+            if type(difference) is str:
+                difference = self.CmdBuilder.replace_var(difference)
+            if type(difference) is bool:
+                raise TestProcessorExp("Replacing vars in difference failed. Difference: %s" % str(difference))
+            try:
+                difference = float(difference)
+            except ValueError:
+                raise TestProcessorExp("Converting difference %s to float failed." % str(difference))
+            difference /= 1000
+        return difference
+
     def _exec_check_difference(self, method_body):
         # Создаём объект для измерения временных интервалов.
-        time_meter_obj = time_meter.TimeDiffMeasure()
+        time_meter_obj = time_meter.TimeDiffMeter()
         for method_item in method_body:
             method_item = Dict2Obj(method_item)
-            method_item.Difference = self.CmdBuilder.replace_var(str(method_item.Difference), self.TestVar)
-            if type(method_item.Difference) == bool:
+            try:
+                method_item.Difference = self._convert_difference(method_item.Difference)
+            except TestProcessorExp as error:
+                logger.error("%s", error)
                 self.NowRunningTest.Status = "Failed"
                 return False
-            else:
-                try:
-                    method_item.Difference = int(method_item.Difference)
-                    method_item.Difference = float(method_item.Difference / 1000)
-                except ValueError:
-                    # Если не удалось привести req_diff к числу, то выходим.
-                    logger.error("Can't convert Difference to int. Value: %s", str(req_diff))
-                    self.NowRunningTest.Status = "Failed"
-                    return False
             # Try to get call mask
             try:
-                method_item.Calls = list(map(int, str(method_item.Calls).split(",")))
                 method_item.Calls = list(map(lambda x: x-1, method_item.Calls))
             except AttributeError:
                 setattr(method_item, "Calls", False)
-            # Try to get CompareMode
+            # Try to get SearchMode
             try:
-                getattr(method_item, "CompareMode")
+                getattr(method_item, "SearchMode")
             except AttributeError:
-                setattr(method_item, "CompareMode", "between_msg")
+                setattr(method_item, "SearchMode", "between_calls")
+            try:
+                getattr(method_item, "MaxError")
+            except AttributeError:
+                setattr(method_item, "MaxError", 0.1)
 
             method_item.UA = self._convert_ua2list(method_item.UA)
             try:
                 result = time_meter_obj.check_time_difference(method_item, self.NowRunningTest.CompleteUA)
-            except time_meter.TimeDiffMeasureExp as error:
+            except time_meter.TimeDiffMeterExp as error:
                 logger.error("CheckDifference failed. Error: %s" % error)
                 self.NowRunningTest.Status = "Failed"
                 return False
             if not result:
                 self.NowRunningTest.Status = "Failed"
                 return False
-            return True
+        return True
 
     def _exec_check_msg_retransmission(self, method_body):
-        time_meter_obj = time_meter.TimeDiffMeasure()
+        time_meter_obj = time_meter.TimeDiffMeter()
         for method_item in method_body:
             # Convert method item to object
             method_item = Dict2Obj(method_item)
@@ -462,7 +485,7 @@ class TestProcessor:
             method_item.Msg = method_item.Msg[0]
             try:
                 result = time_meter_obj.check_timer(method_item, self.NowRunningTest.CompleteUA)
-            except TimeDiffMeasureExp as error:
+            except TimeDiffMeterExp as error:
                 logger.error("CheckDifference failed. Error: %s" % error)
                 self.NowRunningTest.Status = "Failed"
                 return False

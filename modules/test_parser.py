@@ -93,7 +93,7 @@ class Validator:
                     logger.error("Error description: \033[1;31mDifference must be number or var (var pattern = ^%%[a-zA-Z-0-9_]+%%$)\033[1;m")
                     sys.exit(1)
             elif type(diff["Difference"]) != float and type(diff["Difference"]) != int:
-                loger.error("Validation error in section CheckDifference:")
+                logger.error("Validation error in section CheckDifference:")
                 self.pretty_print(section, [], error_key="Difference")
                 logger.info("Error description: \033[1;31mDifference must be number or var (var pattern = ^%%[a-zA-Z-0-9_]+%%$)\033[1;m")
                 sys.exit(1)
@@ -194,7 +194,7 @@ class Validator:
                                 self.validate_msg_code(procedure["CheckRetransmission"][0]["Msg"][0], procedure["CheckRetransmission"][0])
                         if "CheckDifference" in procedure:
                             self.validate_sections(procedure["CheckDifference"], self.schemas_data["CheckDifference"], "CheckDifference")
-                            self.validate_difference(procedure["CheckDifference"][0], procedure["CheckDifference"][0])
+                            #self.validate_difference(procedure["CheckDifference"][0], procedure["CheckDifference"][0])
                             if not "Msg" in procedure["CheckDifference"][0]:
                                 logger.error("Validation error in section CheckDifference: \033[1;31mMsg is a required property\033[1;m")
                                 sys.exit(1)

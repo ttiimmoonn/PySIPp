@@ -5,18 +5,43 @@
   "items": {
     "type": "object",
     "properties": {
-      "Mode": {
-        "type": "string",
-        "enum": [
-          "between_ua",
-          "inner_ua"
+      "Difference": {
+        "oneOf": [
+          {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^%%.*%%$"
+                }
+              ]
+            }
+          },
+          {
+            "type": "string",
+            "pattern": "^%%.*%%$"
+          },
+          {
+            "type": "number"
+          }
         ]
       },
       "CompareMode": {
         "type": "string",
         "enum": [
-          "perUa",
-          "perMsg"
+          "between_ua",
+          "inside_ua"
+        ]
+      },
+      "SearchMode": {
+        "type": "string",
+        "enum": [
+          "between_calls",
+          "inside_call"
         ]
       },
       "UA": {
@@ -32,17 +57,20 @@
         ]
       },
       "Calls": {
-        "oneOf": [
-          {
-            "type": "string",
-            "pattern": "^[0-9]{1,2}$|^([0-9]{1,2},)+[0-9]{1,2}$"
-          }
-        ]
+        "type": "array",
+        "items": {
+          "type": "number"
+        }
+      },
+      "MaxError": {
+        "type": "number"
       }
     },
     "required": [
-      "Mode",
-      "UA"
+      "CompareMode",
+      "SearchMode",
+      "UA",
+      "Difference"
     ]
   }
 }
