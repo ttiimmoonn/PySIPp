@@ -1,11 +1,12 @@
 {
   "$schema" : "http://json-schema.org/draft-04/schema#",
   "title" : "Msg schema",
+  "id": "MsgSchema",
   "type" : "array",
   "items" : {
        "type" : "object",
        "properties" : {
-       		  "MsgType" : {"type" : "string", "enum" : ["request", "response"]},
+       		"MsgType" : {"type" : "string", "enum" : ["request", "response"]},
             "Method" : {"type" : "string", "minLength": 1}
        },
        "required" : ["MsgType", "Method"]

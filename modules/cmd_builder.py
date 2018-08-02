@@ -198,8 +198,8 @@ class CmdBuild:
 
     def replace_var_for_list(self, l, varlst):
         for count, item in enumerate(l):
-            result = self.replace_var(item, varlst)
-            if type(result) == str:
+            result = self.replace_var(item, varlst) if type(item) == str else item
+            if type(result) is not bool:
                 l[count] = result
             else:
                 return False
@@ -288,6 +288,16 @@ class CmdBuild:
                 logger.error("Encoding to %s not supported for encode function.", encoder)
                 return False
             string = re.sub(pattern, "@BINARY:{}:{}".format(raw_str, encoder), string, count=1)
+            match = re.search(pattern, string)
+        return string
+
+    @staticmethod
+    def replace_encode_function(string):
+        pattern = re.compile(r'encode\(([^,]+)\s?,\s?([^)]+)\)')
+        match = re.search(pattern, string)
+        while match:
+            raw_str, coder = match.groups()
+            string = re.sub(pattern, "@BINARY:{}:{}".format(raw_str, coder), string, count=1)
             match = re.search(pattern, string)
         return string
 

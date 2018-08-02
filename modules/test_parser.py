@@ -20,7 +20,7 @@ class Validator:
         # Кортеж тестовых процедур
         self.simple_procedure_sections = ("Sleep", "Print", "Stop",
                                           "ServiceFeature", "ManualReg",
-                                          "DropManualReg", "SendSSHCommand", "CompareCDR", "SetVar")
+                                          "DropManualReg", "SendSSHCommand", "CompareCDR", "SetVar", "WaitBackGroundUA")
 
     # Метод записи информации схем в словарь
     def schemas_dict_forming(self, py_sipp_path):
@@ -93,7 +93,7 @@ class Validator:
                     logger.error("Error description: \033[1;31mDifference must be number or var (var pattern = ^%%[a-zA-Z-0-9_]+%%$)\033[1;m")
                     sys.exit(1)
             elif type(diff["Difference"]) != float and type(diff["Difference"]) != int:
-                loger.error("Validation error in section CheckDifference:")
+                logger.error("Validation error in section CheckDifference:")
                 self.pretty_print(section, [], error_key="Difference")
                 logger.info("Error description: \033[1;31mDifference must be number or var (var pattern = ^%%[a-zA-Z-0-9_]+%%$)\033[1;m")
                 sys.exit(1)
@@ -186,15 +186,9 @@ class Validator:
                     for procedure in test["TestProcedure"]:
                         if "CheckRetransmission" in procedure:
                             self.validate_sections(procedure["CheckRetransmission"], self.schemas_data["CheckRetransmission"],"CheckRetransmission")
-                            if not "Msg" in procedure["CheckRetransmission"][0]:
-                                logger.error("Validation error in section CheckRetransmission: \033[1;31mMsg is a required property\033[1;m")
-                                sys.exit(1)
-                            else:
-                                self.validate_sections(procedure["CheckRetransmission"][0]["Msg"], self.schemas_data["Msg"], "CheckRetransmission")
-                                self.validate_msg_code(procedure["CheckRetransmission"][0]["Msg"][0], procedure["CheckRetransmission"][0])
                         if "CheckDifference" in procedure:
                             self.validate_sections(procedure["CheckDifference"], self.schemas_data["CheckDifference"], "CheckDifference")
-                            self.validate_difference(procedure["CheckDifference"][0], procedure["CheckDifference"][0])
+                            #self.validate_difference(procedure["CheckDifference"][0], procedure["CheckDifference"][0])
                             if not "Msg" in procedure["CheckDifference"][0]:
                                 logger.error("Validation error in section CheckDifference: \033[1;31mMsg is a required property\033[1;m")
                                 sys.exit(1)

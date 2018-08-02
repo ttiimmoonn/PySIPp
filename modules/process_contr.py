@@ -5,7 +5,7 @@ from datetime import datetime
 import subprocess
 import shlex
 import logging
-import re
+from modules.cmd_builder import CmdBuild
 logger = logging.getLogger("tester")
 
 ExCodes = namedtuple('ExCodes', ['NotStarted', 'Killed', 'WrongExitCode', 'Success'])
@@ -123,9 +123,9 @@ def preexec_process():
 
 def start_ua(command):
     try:
-        args = shlex.split(str(command))
+        args = shlex.split(command)
     except ValueError:
-        logger.error("Can't split command: %s",command)
+        logger.error("Can't split command: %s", command)
         return False
 
     for count, arg in enumerate(args):
@@ -262,14 +262,14 @@ def start_process_controller(test):
         time.sleep(0.01)
     return threads
 
-def CheckThreads(threads):
-    #Взводим таймер на 5 сек
-    for Timer in list(range(5)):
-        #Флаг для посдсчёта активных тредов
+def CheckThreads(threads, timer=5):
+    # Взводим таймер
+    for t in list(range(timer)):
+        # Флаг для посдсчёта активных тредов
         thread_alive_flag = 0
         for thread in threads:
             if thread.is_alive():
-                #Если в массиве есть живой thread инкрементируем флаг
+                # Если в массиве есть живой thread инкрементируем флаг
                 thread_alive_flag += 1
         if thread_alive_flag == 0:
             return True

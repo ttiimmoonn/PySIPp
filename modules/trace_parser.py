@@ -1,226 +1,151 @@
-import logging
 import re
-from collections import OrderedDict
+import logging
+from modules.sip_tools import RESP_EXP, REQ_EXP, CSEQ_EXP, MSG_TYPES, MSG_FORMAT
 
-logger = logging.getLogger("tester")
+logger = logging.getLogger('tester')
 
 
-class call:
-    def __init__(self):
-        self.call_id = None
-        self.messages = []
-        self.transactions = []
-        self.last_timestamp = None
+class TraceParseExp(Exception):
+    pass
 
-    def find_transaction(self, msg):
-        for tr in self.transactions:
-            if tr.branch == msg.branch and tr.cseq == msg.cseq:
+
+class SipCall:
+    def __init__(self, sip_msg):
+        logger.debug("Find new call: %s", sip_msg.CallID)
+        self.Messages = []
+        self.Transactions = []
+        self.CallID = sip_msg.CallID
+        self.append_message(sip_msg)
+
+    def _get_transaction_for_msg(self, sip_msg):
+        for tr in self.Transactions:
+            if tr.Branch == sip_msg.Branch:
                 return tr
+
+    def append_message(self, sip_msg):
+        self.Messages.append(sip_msg)
+        # Append message to transaction
+        tr = self._get_transaction_for_msg(sip_msg)
+        if not tr and sip_msg.MsgType == MSG_TYPES.RESPONSE:
+            raise TraceParseExp("No transaction for sip response.")
+        elif not tr:
+            self.Transactions.append(SipTransaction(sip_msg))
+        else:
+            tr.append_message(sip_msg)
+
+    @staticmethod
+    def _filter_transaction_by_msg(tr, **kwargs):
+        for msg in tr.Messages:
+            if msg.MsgType == kwargs.get("MsgType") and msg.RespCode == kwargs.get("Code"):
+                return True
         return False
 
-    def put_msg_to_transaction(self, msg):
-        tr = self.find_transaction(msg)
-        if tr:
-            tr.add_msg(msg)
-        else:
-            new_tr = transaction()
-            self.transactions.append(new_tr)
-            new_tr.messages.append(msg)
-            new_tr.fill_tr_info(msg)
+    def _find_transactions_by_msg_params(self, **kwargs):
+        tr_list = [x for x in self.Transactions if kwargs.get("Method") in x.Methods]
+        tr_list = list(filter(lambda x: self._filter_transaction_by_msg(x, **kwargs), tr_list))
+        return tr_list
 
-    def add_msg(self,**kwargs):
-        new_msg = message()
-        if not new_msg.fill_msg_info(**kwargs):
-            return False
-        else:
-            self.put_msg_to_transaction(new_msg)
-            self.messages.append(new_msg)
-            if not self.last_timestamp:
-                self.last_timestamp = new_msg.timestamp
-                new_msg.diff_msg_time = 0
-            else:
-                new_msg.diff_msg_time = float(new_msg.timestamp) - float(self.last_timestamp)
-                self.last_timestamp = new_msg.timestamp
-            return True
+    def get_msg_retransmission(self, **kwargs):
+        tr_list = self._find_transactions_by_msg_params(**kwargs)
+        r_list = zip([x.Branch for x in tr_list], list(map(lambda x: x.get_msg_retransmission(**kwargs), tr_list)))
+        return list(r_list)
 
-    def show_tr_msg(self):
-        for tr in self.transactions:
-            tr.show_tr_msg()
+    def get_first_message_in_tr(self, **kwargs):
+        tr_list = self._find_transactions_by_msg_params(**kwargs)
+        t_list = zip([x.Branch for x in tr_list], list(map(lambda x: x.get_first_msg(**kwargs), tr_list)))
+        return list(t_list)
 
-    def get_retrans_time_seq(self,**kwargs):
-        result_seq = []
-        for tr in self.transactions:
-            #Если в транзакции нет искомого метода,
-            #уходим на следующую итерацию
-            if not kwargs["method"] in tr.methods:
+    def get_first_message_in_call(self, **kwargs):
+        for msg in self.Messages:
+            if msg.Method != kwargs.get("Method"):
                 continue
-            #Пытаемся задектировать перепосылки в tr
-            retrans_msg = tr.find_retrans(**kwargs)
-            if not tr.retrans_flag:
-                #Ecли ничего не нашли, то продолжаем поиск
-                continue
-            for msg in retrans_msg:
-                result_seq.append(msg.timestamp)
-        #Сбрасываем flag
-        tr.retrans_flag = False
-        return result_seq
-
-    def get_retrans_duration(self,**kwargs):
-        result = []
-        retrans_msg = self.get_retrans_time_seq(**kwargs)
-        if not retrans_msg:
-            return False
-        result.append(float(retrans_msg[len(retrans_msg) -1 ]) - float(retrans_msg[0]))
-        return result
-
-    def get_first_msg_timestamp(self,**kwargs):
-        for tr in self.transactions:
-            if not kwargs["method"] in tr.methods:
-                continue
-            for msg in tr.messages:
-                if kwargs["msg_type"] == msg.msg_type and msg.method == kwargs["method"] and msg.resp_code == kwargs["resp_code"]:
-                    return msg.timestamp
-        return False
+            elif msg.MsgType == kwargs.get("MsgType") and msg.RespCode == kwargs.get("Code"):
+                return msg
+        return None
 
 
-class transaction:
-    def __init__(self):
-        self.branch = None
-        self.messages = []
-        self.methods = []
-        self.cseq = None
-        self.retrans_flag = False
+class SipTransaction:
+    def __init__(self, sip_msg):
+        logger.debug("Find new transaction %s", sip_msg.Branch)
+        self.Messages = []
+        self.Methods = []
+        self.Methods.append(sip_msg.Method)
+        self.Branch = sip_msg.Branch
+        self.append_message(sip_msg)
 
-    def fill_tr_info(self,msg):
-        self.branch = msg.branch
-        self.cseq = msg.cseq
-        if not msg.method in self.methods:
-            self.methods.append(msg.method)
+    def append_message(self, sip_msg):
+        logger.debug("Add message: %s to transaction: %s", sip_msg.get_msg_info(),
+                     self.Branch.replace("branch=", ""))
+        if sip_msg.Method not in self.Methods:
+            self.Methods.append(sip_msg.Method)
+        self.Messages.append(sip_msg)
 
-    def add_msg(self,msg):
-        self.messages.append(msg)
-        if not msg.method in self.methods:
-            self.methods.append(msg.method)
+    def get_msg_retransmission(self, **kwargs):
+        # Filtering msg by params
+        msg_list = [x for x in self. Messages if x.RespCode == kwargs.get("Code") and
+                    x.MsgType == kwargs.get("MsgType")]
+        # Group msg by hash
+        hash_list = set(x.MsgHash for x in msg_list)
+        msg_list = [[x for x in msg_list if x.MsgHash == h] for h in hash_list]
+        # Find retransmissions
+        msg_list = [x for x in msg_list if len(x) > 1]
+        # Sorting messages by timestamp
+        _ = list(map(lambda x: x.sort(key=lambda o: o.Timestamp), msg_list))
+        return msg_list
 
-    def find_retrans(self,**kwargs):
-        find_hash = []
-        for msg in self.messages:
-            if msg.msg_type == kwargs["msg_type"] and msg.method == kwargs["method"] and msg.resp_code == kwargs["resp_code"]:
-                find_hash.append(msg.msg_hash)
-        #если длина исходного массива равна длине множества
-        #уникальных hash, то значит в транзакции не было перепосылок
-        if len(find_hash) == len(set(find_hash)):
-            return False
-        else:
-            self.retrans_flag = True
-        retrans_hash = self.find_msg_hash(**kwargs)
-        if not retrans_hash:
-            return False
-        return self.get_msg_by_hash(retrans_hash)
-
-
-    def find_msg_hash(self,**kwargs):
-        for msg in self.messages:
-            if msg.msg_type == kwargs["msg_type"] and msg.method == kwargs["method"] and msg.resp_code == kwargs["resp_code"]:
-                return msg.msg_hash
-        return False
-
-    def get_msg_by_hash(self,msg_hash):
-        msg_seq = []
-        for msg in self.messages:
-            if msg.msg_hash == msg_hash:
-                msg_seq.append(msg)
-        return msg_seq
+    def get_first_msg(self, **kwargs):
+        for msg in self.Messages:
+            if msg.MsgType == kwargs.get("MsgType") and msg.RespCode == kwargs.get("Code"):
+                return msg
 
 
-    def show_tr_msg(self):
-        logger.debug("Trasaction %s, methods: %s. ",self.branch, " ".join(self.methods))
-        for msg in self.messages:
-            msg.show_msg_info()
+class SipMessage:
+    def __init__(self, **kwargs):
+        if None in kwargs.values():
+            raise TraceParseExp("Bad arguments for SipMessage class.")
+        self.URI = None
+        self.RespDesc = None
+        self.RespCode = None
+        self.Branch = kwargs.get("Branch")
+        self.Date = kwargs.get("Date")
+        self.Time = kwargs.get("Time")
+        self.CallID = kwargs.get("CallID")
+        self.Timestamp = kwargs.get("Timestamp")
+        self.MsgHash = kwargs.get("MsgHash")
+        self.Direction = kwargs.get("Direction")
+        self.CSeq, self.Method = re.search(CSEQ_EXP, kwargs.get("CSeq")).groups()
+
+        self.MsgType, start_line = self._get_message_type(kwargs.get("StartLine"))
+        if self.MsgType == MSG_TYPES.REQUEST:
+            _, self.URI, _, _ = start_line.groups()
+        elif self.MsgType == MSG_TYPES.RESPONSE:
+            self.RespCode, self.RespDesc = start_line.groups()
+            self.RespCode = int(self.RespCode)
+
+    def _get_message_type(self, start_line):
+        result = self._is_request(start_line)
+        if result:
+            return MSG_TYPES.REQUEST, result
+        result = self._is_response(start_line)
+        if result:
+            return MSG_TYPES.RESPONSE, result
+        raise TraceParseExp("Unknown type of message. Start line: %s", str(start_line))
+
+    def get_msg_info(self):
+        return "{}, method: {}, code: {}".format(self.MsgType, self.Method, self.RespCode)
+
+    @staticmethod
+    def _is_request(start_line):
+        return re.match(REQ_EXP, start_line)
+
+    @staticmethod
+    def _is_response(start_line):
+        return re.match(RESP_EXP, start_line)
 
 
-class message:
-    def __init__(self):
-        self.branch = None
-        self.date = None
-        self.time = None
-        self.method = None
-        self.uri = None
-        self.cseq = None
-        self.msg_type = None
-        self.direction = None
-        self.timestamp = None
-        self.resp_code = None
-        self.resp_desc = None
-        self.msg_hash = None
-        self.diff_msg_time = None
-        self.req_r  = r'([A-Z]*)\s(sip:.*)\sSIP\/2.0'
-        self.res_r  = r'SIP\/2\.0\s([0-9]{3})\s(.*)'
-        self.cseq_r = r'([\d]*)\s([A-Z]*)'
-
-    def show_msg_info(self):
-        print()
-        logger.info("Msg msg_type: %s",str(self.msg_type))
-        logger.info("Msg dir: %s",str(self.direction))
-        logger.info("Msg date: %s",str(self.date))
-        logger.info("Msg time: %s",str(self.time))
-        logger.info("Msg uri: %s",str(self.uri))
-        logger.info("Msg method: %s",str(self.method))
-        logger.info("Msg cseq: %s",str(self.cseq))
-        logger.info("Msg timestamp: %s",str(self.timestamp))
-        logger.info("Response code: %s",str(self.resp_code))
-        logger.info("Response desc: %s",str(self.resp_desc))
-        logger.info("diff_msg_time: %f",self.diff_msg_time)
-        # logger.debug("diff_msg_time_in_tr: %f",self.diff_msg_time_in_tr)
-        logger.info("msg_hash: %s",self.msg_hash)
-        print()
-
-    def is_request(self, start_line):
-        if re.search(self.req_r, start_line):
-            return True
-
-    def is_response(self, start_line):
-        if re.search(self.res_r, start_line):
-            return True
-
-    def fill_msg_info(self,**kwargs):
-        try:
-            self.date = kwargs["date"]
-            self.time = kwargs["time"]
-            self.timestamp = kwargs["timestamp"]
-            self.direction = kwargs["direction"]
-            self.branch = kwargs["branch"]
-            self.msg_hash = kwargs["msg_hash"]
-        except KeyError:
-            logger.error("Req call param not found.")
-            return False
-        if self.is_request(kwargs["start_line"]):
-            msg_search = re.search(self.req_r, kwargs["start_line"])
-            self.msg_type = "request"
-            self.uri = msg_search.group(2)
-        elif self.is_response(kwargs["start_line"]):
-            msg_search = re.search(self.res_r, kwargs["start_line"])
-            self.msg_type = "response"
-            self.resp_code = int(msg_search.group(1))
-            self.resp_desc = msg_search.group(2)
-        else:
-            logger.error("Unknown type of message. Can't parse start_line: %s",str(kwargs["start_line"]))
-            return False
-
-        msg_search = re.search(self.cseq_r, kwargs["cseq"])
-        if msg_search:
-            self.cseq   = msg_search.group(1)
-            self.method = msg_search.group(2)
-        else:
-            logger.error("Unknown cseq header format. Can't parse cseq from: %s",str(kwargs["cseq"]))
-            return False
-        return True
-
-
-class short_trace_parser():
+class ShortTraceParser:
     def __init__(self, trace_fd):
-        self.Status = None
-        self.calls = []
+        self.Calls = []
         self.trace_fd = trace_fd
 
     def find_call(self, call_id):
@@ -229,42 +154,21 @@ class short_trace_parser():
                 return call
         return False
 
-    def get_call_dict(self,*args):
-        try:
-            date, time, timestamp, direction,call_id,cseq, start_line, branch, msg_hash = args
-        except:
-            logger.error("Can't split short_msg line: \n%s", " ".join(args))
-            self.Status = "Failed"
-            return False
-        return {"date" : date, "time" : time, "timestamp" : timestamp,
-                "direction": direction, "call_id" : call_id, "cseq" : cseq,
-                "start_line" : start_line , "branch" : branch, "msg_hash" : msg_hash}
+    @staticmethod
+    def _get_msg_dict(msg_desc):
+        return {k: v for k, v in zip(MSG_FORMAT, msg_desc)}
 
-    def parse_trace_msg(self):
-        # Начинаем читать shorttrace log построчно
-        self.Status = "Processing"
+    def _get_call_for_msg(self, msg):
+        for call in self.Calls:
+            if call.CallID == msg.CallID:
+                return call
+
+    def parse(self):
         for line in self.trace_fd:
-            line = line.rstrip('\n')
-            call_dict = self.get_call_dict(*line.split("\t"))
-            if call_dict:
-                # Пытаемся найти вызов по call_id
-                parse_call = self.find_call(call_dict["call_id"])
-                if parse_call:
-                    # Если нашли, то добавляем сообщение в существующий вызов
-                    if not parse_call.add_msg(**call_dict):
-                        self.Status = "Failed"
-                        break
-
-                else:
-                    # Если не нашли, то создаём новый вызов и добаляем туда сообщение
-                    new_call = call()
-                    self.calls.append(new_call)
-                    logger.debug("--| Found new call Call-ID: %s.",call_dict["call_id"])
-                    new_call.call_id = call_dict["call_id"]
-                    if not new_call.add_msg(**call_dict):
-                        self.Status = "Failed"
-                        break
-            else:
-                self.Status = "Failed"
-                break
-        if self.Status != "Failed": self.Status = "Success"
+            line = line.rstrip()
+            sip_msg = SipMessage(**self._get_msg_dict(line.split('\t')))
+            sip_call = self._get_call_for_msg(sip_msg)
+            if not sip_call and sip_msg.MsgType == MSG_TYPES.REQUEST:
+                self.Calls.append(SipCall(sip_msg))
+            elif sip_call:
+                sip_call.append_message(sip_msg)
