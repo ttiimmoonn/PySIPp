@@ -1,6 +1,18 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "CheckRetransmission schema",
+
+  "definitions": {
+    "Msg": {
+       "type" : "object",
+       "properties" : {
+       		"MsgType" : {"type" : "string", "enum" : ["request", "response"]},
+            "Method" : {"type" : "string", "minLength": 1}
+       },
+       "required" : ["MsgType", "Method"]
+    }
+  },
+
   "type": "array",
   "items": {
     "type": "object",
@@ -27,11 +39,15 @@
             "pattern": "^(user|trunk):[0-9]{1,2}$|^((user|trunk):[0-9]{1,2},)+(user|trunk):[0-9]{1,2}$"
           }
         ]
+      },
+      "Msg": {
+        "$ref" : "#/definitions/Msg"
       }
     },
     "required": [
       "Timer",
-      "UA"
+      "UA",
+      "Msg"
     ]
   }
 }

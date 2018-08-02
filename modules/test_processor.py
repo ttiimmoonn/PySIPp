@@ -482,7 +482,11 @@ class TestProcessor:
             # Convert method item to object
             method_item = Dict2Obj(method_item)
             method_item.UA = self._convert_ua2list(method_item.UA)
-            method_item.Msg = method_item.Msg[0]
+            # Try to get call mask
+            try:
+                method_item.Calls = list(map(lambda x: x-1, method_item.Calls))
+            except AttributeError:
+                setattr(method_item, "Calls", False)
             try:
                 result = time_meter_obj.check_timer(method_item, self.NowRunningTest.CompleteUA)
             except TimeDiffMeterExp as error:

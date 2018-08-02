@@ -217,16 +217,21 @@ class TimeDiffMeter:
         logger.info("Start checking of time difference for timer:")
         logger.info("├ Timer: %s", t_obj.Timer)
         logger.info("├ CompareUA: %s", t_obj.UA)
+        logger.info("├ Calls: %s", t_obj.Calls)
         logger.info("├ Message: type %s, method %s, code %s", *t_obj.Msg.values())
         timer = SIP_TIMERS.get(t_obj.Timer)
         _ = list(map(self._parse_trace_file_for_ua, ua_list))
         if not timer:
             raise TimeDiffMeterExp("Timer %s not supported" % t_obj.Timer)
-        if type(timer) == list:
+        if type(timer) is list:
             list_for_compare = list(map(lambda x: self._get_retransmission_seq_for_ua(x, **t_obj.Msg), t_obj.UA))
+            list_for_compare = [(ua_info, self._filter_call_list(call_list, t_obj.Calls))
+                                for ua_info, call_list in list_for_compare]
             result = list(map(lambda x: self._compare_time_sequence_for_ua(timer, x), list_for_compare))
         else:
             list_for_compare = list(map(lambda x: self._get_retransmission_dur_for_ua(x, **t_obj.Msg), t_obj.UA))
+            list_for_compare = [(ua_info, self._filter_call_list(call_list, t_obj.Calls))
+                                for ua_info, call_list in list_for_compare]
             result = list(map(lambda x: self._compare_time_value_for_ua(timer, x, add=T1), list_for_compare))
         if False in result:
             return False
@@ -348,7 +353,7 @@ class TimeDiffMeter:
         logger.info("├ CompareMode: %s", d_obj.CompareMode)
         logger.info("├ SearchMode: %s", d_obj.SearchMode)
         logger.info("├ CompareUA: %s", d_obj.UA)
-        logger.info("├ CompareCalls: %s", d_obj.Calls)
+        logger.info("├ Calls: %s", d_obj.Calls)
         logger.info("├ Require diff: %s", str(d_obj.Difference))
         logger.info("├ Messages:")
         _ = list(map(self._convert_msg_description, d_obj.Msg))

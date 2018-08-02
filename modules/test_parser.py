@@ -186,12 +186,6 @@ class Validator:
                     for procedure in test["TestProcedure"]:
                         if "CheckRetransmission" in procedure:
                             self.validate_sections(procedure["CheckRetransmission"], self.schemas_data["CheckRetransmission"],"CheckRetransmission")
-                            if not "Msg" in procedure["CheckRetransmission"][0]:
-                                logger.error("Validation error in section CheckRetransmission: \033[1;31mMsg is a required property\033[1;m")
-                                sys.exit(1)
-                            else:
-                                self.validate_sections(procedure["CheckRetransmission"][0]["Msg"], self.schemas_data["Msg"], "CheckRetransmission")
-                                self.validate_msg_code(procedure["CheckRetransmission"][0]["Msg"][0], procedure["CheckRetransmission"][0])
                         if "CheckDifference" in procedure:
                             self.validate_sections(procedure["CheckDifference"], self.schemas_data["CheckDifference"], "CheckDifference")
                             #self.validate_difference(procedure["CheckDifference"][0], procedure["CheckDifference"][0])
