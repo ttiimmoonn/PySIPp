@@ -31,15 +31,17 @@ class TimeDiffMeter:
         if not ua.TimeStampFile:
             logger.debug("%s without trace file.", log_postfix)
             return
-        try:
-            with open(ua.TimeStampFile, 'r', encoding='utf-8') as f:
-                logger.debug("Try to parse short_trace file for %s", log_postfix)
-                ua.ShortTrParser = ShortTraceParser(f)
-                ua.ShortTrParser.parse()
-        except(FileNotFoundError, PermissionError) as e:
-            raise TimeDiffMeterExp("The trace file %s hasn't been open. Exception: %s" % (ua.TimeStampFile, e))
-        except TraceParseExp as error:
-            raise TimeDiffMeterExp("Parse failed. Reason: %s" % error)
+        # Parse sip trace file if ShortTrParser not set.
+        if not ua.ShortTrParser:
+            try:
+                with open(ua.TimeStampFile, 'r', encoding='utf-8') as f:
+                    logger.debug("Try to parse short_trace file for %s", log_postfix)
+                    ua.ShortTrParser = ShortTraceParser(f)
+                    ua.ShortTrParser.parse()
+            except(FileNotFoundError, PermissionError) as e:
+                raise TimeDiffMeterExp("The trace file %s hasn't been open. Exception: %s" % (ua.TimeStampFile, e))
+            except TraceParseExp as error:
+                raise TimeDiffMeterExp("Parse failed. Reason: %s" % error)
 
         if ua.UserObject:
             self.UserWithTraces[ua.UserId] = ua
@@ -206,8 +208,7 @@ class TimeDiffMeter:
 
     def _parse_trace_file_for_ua(self, ua):
         try:
-            if not ua.ShortTrParser:
-                self._parse_short_message_log(ua)
+            self._parse_short_message_log(ua)
         except TraceParseExp as error:
             raise TimeDiffMeterExp("Parse trace file failed. Error: %s" % error)
         logger.debug("Parsing of trace files completed.")
