@@ -7,7 +7,7 @@ import modules.fs_worker as fs
 import modules.ssh_interface as ssh
 import modules.show_call_flow as sip_call_flow
 import modules.diff_meter as diff_calc
-import modules.cmd_builder as builder
+from modules.cmd_builder import CmdBuild, CmdBuildExp
 import logging
 import re
 import os
@@ -44,13 +44,17 @@ def signal_handler(current_signal, frame):
 def stop_test(test_processor, test_desc, sshInt):
     logger.debug("Stop test thread...")
     if test_processor:
-        test_processor.StopTestProcessor()
+        test_processor.stop()
     if sshInt:
         if test_desc and test_desc.get("PostConf", False):
             if test_desc["PostConf"][0]:
                 logger.info("Start system reconfiguration...")
-                if cmd_builder.replace_var_for_list(test_desc["PostConf"], test_var):
-                    sshInt.push_cmd_list_to_ssh(list(test_desc["PostConf"]))
+                try:
+                    cmd_builder.replace_var_for_list(test_desc["PostConf"], test_var)
+                except CmdBuildExp as error:
+                    logger.error(error)
+                    return
+                sshInt.push_cmd_list_to_ssh(list(test_desc["PostConf"]))
 
 # Добавляем трап на SIGINT
 signal.signal(signal.SIGINT, signal_handler)
@@ -152,7 +156,7 @@ validator = parser.Validator()
 # Создаем объект fs_worker
 fs_work = fs.fs_working()
 # Создаём билдер комманд
-cmd_builder = builder.CmdBuild()
+cmd_builder = CmdBuild()
 
 py_sipp_path = os.path.dirname(__file__)
 
@@ -275,7 +279,10 @@ if test_desc.get("PreConf", False):
     logger.info("Start system configuration...")
     # Переменные для настройки соединения
     if test_desc["PreConf"][0]:
-        if not cmd_builder.replace_var_for_list(test_desc["PreConf"], test_var):
+        try:
+            cmd_builder.replace_var_for_list(test_desc["PreConf"], test_var)
+        except CmdBuildExp as error:
+            logger.error(error)
             sys.exit(1)
         if not sshInt.push_cmd_list_to_ssh(list(test_desc["PreConf"])):
             sys.exit(1)
@@ -293,7 +300,7 @@ test_pr_config["LogPath"] = log_path
 test_pr_config["CmdBuilder"] = cmd_builder
 
 test_processor = processor.TestProcessor(**test_pr_config)
-test_processor.StartTestProcessor()
+test_processor.start()
 
 # Запускаем стоп тест
 stop_test(test_processor, test_desc, sshInt)
