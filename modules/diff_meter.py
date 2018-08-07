@@ -286,8 +286,6 @@ class TimeDiffMeter:
         return result
 
     def _check_time_difference_between_ua(self, d_obj):
-        if len(d_obj.UA) <= 1:
-            logger.error("Count of UA must be greater than 1 for between_ua mode")
         result = list()
         if d_obj.SearchMode == "between_calls":
             for msg in d_obj.Msg:
