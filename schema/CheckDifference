@@ -59,7 +59,9 @@
       "Calls": {
         "type": "array",
         "items": {
-          "type": "number"
+          "type": "number",
+          "minimum" : 0,
+          "exclusiveMinimum" : true
         }
       },
       "MaxError": {
