@@ -8,7 +8,7 @@ import logging
 import math
 
 logger = logging.getLogger("tester")
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 
 class TimeDiffMeterExp(Exception):
@@ -26,7 +26,8 @@ class TimeDiffMeter:
         elif ua.TrunkObject:
             log_postfix = "TrunkObject with Port: %s" % str(ua.TrunkObject.Port)
         else:
-            raise TimeDiffMeterExp("Type of UA is not determined.")
+            logger.error("Type of UA is not determined.")
+            raise TimeDiffMeterExp("ParseError")
         # If ua without trace file, then return
         if not ua.TimeStampFile:
             logger.debug("%s without trace file.", log_postfix)
@@ -39,9 +40,11 @@ class TimeDiffMeter:
                     ua.ShortTrParser = ShortTraceParser(f)
                     ua.ShortTrParser.parse()
             except(FileNotFoundError, PermissionError) as e:
-                raise TimeDiffMeterExp("The trace file %s hasn't been open. Exception: %s" % (ua.TimeStampFile, e))
+                logger.error("The trace file %s hasn't been open. Exception: %s", ua.TimeStampFile, e)
+                raise TimeDiffMeterExp("ParseError")
             except TraceParseExp as error:
-                raise TimeDiffMeterExp("Parse failed. Reason: %s" % error)
+                logger.error("Parse failed. Reason: %s", error)
+                raise TimeDiffMeterExp("ParseError")
 
         if ua.UserObject:
             self.UserWithTraces[ua.UserId] = ua
@@ -57,18 +60,22 @@ class TimeDiffMeter:
             elif ua_type == "trunk":
                 return self.TrunkWithTraces[ua_id]
             else:
-                raise TimeDiffMeterExp("Wrong ua description: %s" % ua_info)
+                logger.error("Wrong ua description: %s", ua_info)
+                raise TimeDiffMeterExp("CompareError")
         except KeyError:
-            raise TimeDiffMeterExp("UA %s without trace file." % ua_info)
+            logger.error("UA %s without trace file.", ua_info)
+            raise TimeDiffMeterExp("CompareError")
 
     def _get_diff_for_time_seq(self, time_seq):
         logger.debug("Try to get time difference for next sequence:")
         self._pprint_list(time_seq, lvl=logging.DEBUG)
         # Raise exception if len of seq < 2
         if len(time_seq) < 2:
-            raise TimeDiffMeterExp("Timestamp sequence has wrong length: %d. Min length is 2" % len(time_seq))
+            logger.error("Timestamp sequence has wrong length: %d. Min length is 2", len(time_seq))
+            raise TimeDiffMeterExp("CompareError")
         if None in time_seq:
-            raise TimeDiffMeterExp("Timestamp sequence has wrong item: None")
+            logger.error("Timestamp sequence has wrong item: None")
+            raise TimeDiffMeterExp("CompareError")
         # Convert to float
         seq = list(map(float, time_seq))
         # Calculating difference
@@ -81,8 +88,10 @@ class TimeDiffMeter:
     def _pprint_list(some_list, lvl=logging.INFO):
         if lvl == logging.DEBUG:
             _ = list(map(logger.debug, pformat(some_list).split('\n')))
-        else:
+        elif lvl == logging.INFO:
             _ = list(map(logger.info, pformat(some_list).split('\n')))
+        elif lvl == logging.ERROR:
+            _ = list(map(logger.error, pformat(some_list).split('\n')))
 
     def _get_time_seq_for_transaction(self, tr_list):
         """Get time sequence for message retransmission"""
@@ -121,6 +130,7 @@ class TimeDiffMeter:
         return result
 
     def _get_time_for_first_msg_in_call(self, ua_info, **kwargs):
+        logger.info("Search in: \"%s\", msg: (type: %s, method: %s, code: %s)", ua_info, *kwargs.values())
         ua = self._get_ua_object(ua_info)
         call_list = [(call.CallID, call.get_first_message_in_call(**kwargs)) for call in ua.ShortTrParser.Calls]
         call_list = [(call_id, msg.Timestamp if msg else None) for call_id, msg in call_list]
@@ -140,7 +150,8 @@ class TimeDiffMeter:
         logger.info("├ Max error: %s", str(max_error))
 
         if len(seq_a) != len(seq_b):
-            raise TimeDiffMeterExp("Can't compare sequences with different length")
+            logger.error("Can't compare sequences with different length")
+            raise TimeDiffMeterExp("CompareError")
 
         for a, b in zip(seq_a, seq_b):
             if math.fabs(float(a)-float(b)) > max_error:
@@ -181,7 +192,8 @@ class TimeDiffMeter:
         logger.info("Start comparison of time sequences for: %s", ua_name)
         for call_id, tr_list in ua_calls_seq:
             if not tr_list:
-                raise TimeDiffMeterExp("The call: %s without time sequence." % call_id)
+                logger.error("The call: %s without time sequence.", call_id)
+                raise TimeDiffMeterExp("CompareError")
             for branch, timer_seq in tr_list:
                 logger.info("The call for comparison: %s, %s", call_id, branch.replace("branch=", ""))
                 result = list(map(lambda x: self._compare_seq(x, req_seq), timer_seq))
@@ -198,7 +210,8 @@ class TimeDiffMeter:
         logger.info("Start comparison of values for: %s", ua_name)
         for call_id, tr_list in ua_time_seq:
             if not tr_list:
-                raise TimeDiffMeterExp("The call: %s without time sequence." % call_id)
+                logger.error("The call: %s without time sequence.", call_id)
+                raise TimeDiffMeterExp("CompareError")
             for branch, timer_seq in tr_list:
                 logger.info("The call for comparison: %s, %s", call_id, branch.replace("branch=", ""))
                 result = list(map(lambda x: self._compare_value(x + add, req_val), timer_seq))
@@ -210,7 +223,8 @@ class TimeDiffMeter:
         try:
             self._parse_short_message_log(ua)
         except TraceParseExp as error:
-            raise TimeDiffMeterExp("Parse trace file failed. Error: %s" % error)
+            logger.error("Parse trace file failed. Error: %s", error)
+            raise TimeDiffMeterExp("ParseError")
         logger.debug("Parsing of trace files completed.")
 
     def check_timer(self, t_obj, ua_list):
@@ -223,7 +237,8 @@ class TimeDiffMeter:
         timer = SIP_TIMERS.get(t_obj.Timer)
         _ = list(map(self._parse_trace_file_for_ua, ua_list))
         if not timer:
-            raise TimeDiffMeterExp("Timer %s not supported" % t_obj.Timer)
+            logger.error("Timer %s not supported", t_obj.Timer)
+            raise TimeDiffMeterExp("CompareError")
         if type(timer) is list:
             list_for_compare = list(map(lambda x: self._get_retransmission_seq_for_ua(x, **t_obj.Msg), t_obj.UA))
             list_for_compare = [(ua_info, self._filter_call_list(call_list, t_obj.Calls))
@@ -241,12 +256,13 @@ class TimeDiffMeter:
 
     def _check_difference_for_call_list(self, call_list, val, max_error=0.1):
         call_id, t_list = call_list
-        logger.debug("Start comparison for calls:")
-        self._pprint_list(call_id, logging.DEBUG)
+        logger.info("Start comparison for calls:")
+        self._pprint_list(call_id, logging.INFO)
         try:
             t_list = list(map(float, t_list))
         except TypeError:
-            raise TimeDiffMeterExp("Can't convert items in list [%s] to float" % ", ".join(list(map(str, t_list))))
+            logger.error("Can't convert items in list [%s] to float", ", ".join(list(map(str, t_list))))
+            raise TimeDiffMeterExp("CompareError")
         t_list = self._get_diff_for_time_seq(t_list)
         if type(val) is list:
             return self._compare_seq(t_list, val, max_error=max_error)
@@ -259,12 +275,20 @@ class TimeDiffMeter:
             try:
                 return [call_list[i] for i in call_filter]
             except IndexError:
-                raise TimeDiffMeterExp("Filtering by call list failed. Call filter: [%s]" %
-                                       ", ".join(list(map(str, call_filter))))
+                logger.error("Filtering by call list failed. Call filter: [%s]", ", ".join(list(map(str, call_filter))))
+                raise TimeDiffMeterExp("CompareError")
         else:
             return call_list
 
-    def _start_comparison_between_ua(self, call_list, d_obj):
+    def _check_calls_list_len(self, calls_list):
+        check_len = set(list(map(len, calls_list)))
+        if len(check_len) != 1:
+            logger.error("Can't compare list of timestamps with different lengths:")
+            _ = list(map(lambda x: self._pprint_list(x, logging.ERROR), calls_list))
+            raise TimeDiffMeterExp("CompareError")
+
+    def _start_comparison_between_ua(self, calls_list, d_obj):
+        self._check_calls_list_len(calls_list)
         # Aggregating elements for each call.
         # (First call from ua1 to first call from ua2,..,uaN)
         # (Second call from ua1 to second call from ua2,..,uaN)
@@ -274,78 +298,106 @@ class TimeDiffMeter:
         #           (('BA:2eb0', '1530871270.403639'),
         #            ('BA:2eb1', '1530871271.403639'),
         #            ('BA:2eb2', '1530871272.403639'))]
-        call_list = list(zpl(*call_list))
+        calls_list = list(zpl(*calls_list, fillvalue=(None, None)))
         # Splitting call_id and timestamps for each_call
         # example:
         # [(('BA:1ebf0', 'BA:1ebf1', 'BA:1ebf2'), <zipped timestamps>),
         #  (('BA:2eb0', 'BA:2eb1', 'BA:2eb2'), <zipped timestamps>)]
-        call_list = [(call_id, timestamp) for call_id, timestamp in
-                     list(map(lambda x: list(zpl(*x)), call_list))]
-        call_list = self._filter_call_list(call_list, d_obj.Calls)
-        result = list(map(lambda x: self._check_difference_for_call_list(x, d_obj.Difference, d_obj.MaxError), call_list))
+        calls_list = [(call_id, timestamp) for call_id, timestamp in
+                      list(map(lambda x: list(zpl(*x)), calls_list))]
+        result = list(map(lambda x: self._check_difference_for_call_list(x, d_obj.Difference, d_obj.MaxError),
+                          calls_list))
         return result
+
+    @staticmethod
+    def _check_list_for_compare(list_for_compare, msg):
+        ua, call_list = list_for_compare
+        check_list = [timestamp for _, timestamp in call_list]
+        if None in check_list:
+            logger.error("List of timestamps [%s] for UA: \"%s\" doesn't contain timestamp for msg: \
+(type: %s, method: %s, code: %s) in required calls", ", ".join(list(map(str, check_list))), ua, *msg.values())
+            raise TimeDiffMeterExp("CompareError")
 
     def _check_time_difference_between_ua(self, d_obj):
         if len(d_obj.UA) <= 1:
-            raise TimeDiffMeterExp("Count of UA must be greater than 1 for between_ua mode")
+            logger.error("Count of UA must be greater than 1 for between_ua mode")
+            raise TimeDiffMeterExp("CompareError")
         result = list()
         if d_obj.SearchMode == "between_calls":
             for msg in d_obj.Msg:
-                logger.debug("Start comparing for msg: type %s, method %s, code %s", *msg.values())
                 # Get list of UA which contains next tuple:
                 # (ua_info, [(call_id1,{timestamp1}), (call_id2,{timestamp2})])
                 # example: ('user:0', [('BA:1ebf0', {'1530871260.402419'}), ('BA:2eb0', {'1530871270.403639'})],
                 #          ('user:1', [('BA:1ebf1', {'1530871261.402419'}), ('BA:2eb1', {'1530871271.403639'})],
                 #          ('user:2', [('BA:1ebf2', {'1530871262.402419'}), ('BA:2eb2', {'1530871272.403639'})])
-                list_for_compare = list(map(lambda x: self._get_time_for_first_msg_in_call(x, **msg), d_obj.UA))
+                list_for_compare = [(ua, self._filter_call_list(calls_list, d_obj.Calls)) for ua, calls_list in
+                                    list(map(lambda x: self._get_time_for_first_msg_in_call(x, **msg), d_obj.UA))]
+                # Check timestamps in list_for_compare
+                _ = list(map(lambda x: self._check_list_for_compare(x, msg), list_for_compare))
                 # Aggregating elements for each ua and splitting it to ua_list and call_list
                 user_list, call_list = zpl(*list_for_compare)
                 logger.debug("Comparing between next UA: %s", ", ".join(user_list))
                 result = self._start_comparison_between_ua(call_list, d_obj)
         elif d_obj.SearchMode == "inside_call":
             if len(d_obj.Msg) != len(d_obj.UA):
-                raise TimeDiffMeterExp("Count of Msg must be equal count of UA for inside_call compare mode")
+                logger.error("Count of Msg must be equal count of UA for inside_call compare mode")
+                raise TimeDiffMeterExp("CompareError")
             args_for_compare = list(zpl(d_obj.Msg, d_obj.UA))
             list_for_compare = list()
-            logger.info("Start comparing for:")
+            logger.info("Start message search:")
             for arg in args_for_compare:
                 msg, ua = arg
-                logger.info("UA: %s, Msg: type %s, method %s, code %s", ua, *msg.values())
-                list_for_compare.append(self._get_time_for_first_msg_in_call(ua, **msg))
+                list_for_compare.extend((ua, self._filter_call_list(call_list, d_obj.Calls)) for ua, call_list in
+                                        [self._get_time_for_first_msg_in_call(ua, **msg)])
+                # Check timestamps for last iteration
+                self._check_list_for_compare(list_for_compare[-1], msg)
             _, call_list = zpl(*list_for_compare)
             result = self._start_comparison_between_ua(call_list, d_obj)
         else:
-            raise TimeDiffMeterExp("Mode %s not supported" % str(d_obj.CompareMode))
+            logger.error("Mode %s not supported", str(d_obj.CompareMode))
+            raise TimeDiffMeterExp("CompareError")
         if not result or False in result:
             return False
         else:
             return True
 
-    def _start_comparison_inside_ua(self, calls_list, d_obj):
+    def _start_comparison_inside_ua(self, ua_list, d_obj):
+        ua, calls_list = ua_list
+        self._check_calls_list_len(calls_list)
         call_id, t_list = zpl(*calls_list)
         call_id = set(call_id)
+        print(self._check_difference_for_call_list((call_id, t_list), d_obj.Difference, d_obj.MaxError))
         return self._check_difference_for_call_list((call_id, t_list), d_obj.Difference, d_obj.MaxError)
 
     def _check_time_difference_inside_ua(self, d_obj):
         result = list()
         if d_obj.SearchMode == "between_calls":
             for msg in d_obj.Msg:
-                logger.debug("Start comparing for msg: type %s, method %s, code %s", *msg.values())
-                list_for_compare = [self._filter_call_list(calls_list, d_obj.Calls) for _, calls_list in
+                list_for_compare = [(ua, self._filter_call_list(calls_list, d_obj.Calls)) for ua, calls_list in
                                     list(map(lambda x: self._get_time_for_first_msg_in_call(x, **msg), d_obj.UA))]
+                _ = list(map(lambda x: self._check_list_for_compare(x, msg), list_for_compare))
                 result.extend(list(map(lambda x: self._start_comparison_inside_ua(x, d_obj), list_for_compare)))
                 if False in result:
                     break
         elif d_obj.SearchMode == "inside_call":
+            if len(d_obj.Msg) <= 1:
+                logger.error("Count of messages must be greater than 1 for inside_call search mode.")
+                raise TimeDiffMeterExp("CompareError")
             for ua in d_obj.UA:
-                list_for_compare = [self._filter_call_list(calls_list, d_obj.Calls) for _, calls_list in
+                list_for_compare = [(ua, self._filter_call_list(calls_list, d_obj.Calls)) for ua, calls_list in
                                     list(map(lambda x: self._get_time_for_first_msg_in_call(ua, **x), d_obj.Msg))]
-                list_for_compare = list(zpl(*list_for_compare))
-                result.extend(list(map(lambda x: self._start_comparison_inside_ua(x, d_obj), list_for_compare)))
+                _ = list(map(lambda x: self._check_list_for_compare(*x), zpl(list_for_compare, d_obj.Msg)))
+
+                list_for_compare = list(zpl(*[calls_list for _, calls_list in list_for_compare]))
+                result.extend([self._start_comparison_inside_ua(x, d_obj) for x in
+                              [(ua, calls_list) for calls_list in list_for_compare]])
+                print(result)
                 if False in result:
                     break
         else:
-            raise TimeDiffMeterExp("Mode %s not supported" % str(d_obj.CompareMode))
+            logger.error("Mode %s not supported", str(d_obj.CompareMode))
+            raise TimeDiffMeterExp("CompareError")
+
         if not result or False in result:
             return False
         else:
@@ -370,6 +422,7 @@ class TimeDiffMeter:
         elif d_obj.CompareMode == "inside_ua":
             result = self._check_time_difference_inside_ua(d_obj)
         else:
-            raise TimeDiffMeterExp("Unknown mode: %s" % d_obj.CompareMode)
+            logger.error("Unknown mode: %s", d_obj.CompareMode)
+            raise TimeDiffMeterExp("CompareError")
         return result
 
