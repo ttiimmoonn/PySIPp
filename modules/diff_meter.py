@@ -112,6 +112,8 @@ class TimeDiffMeter:
         return result
 
     def _get_retransmission_seq_for_ua(self, ua_info, **kwargs):
+        logger.info("Search retransmissions in: \"%s\", msg: (type: %s, method: %s, code: %s)",
+                    ua_info, *kwargs.values())
         ua = self._get_ua_object(ua_info)
         # Get retransmissions for calls
         call_list = [(call.CallID, call.get_msg_retransmission(**kwargs)) for call in ua.ShortTrParser.Calls]
@@ -121,6 +123,8 @@ class TimeDiffMeter:
         return result
 
     def _get_retransmission_dur_for_ua(self, ua_info, **kwargs):
+        logger.info("Search retransmissions in: \"%s\", msg: (type: %s, method: %s, code: %s)",
+                    ua_info, *kwargs.values())
         ua = self._get_ua_object(ua_info)
         # Get retransmissions for calls
         call_list = [(call.CallID, call.get_msg_retransmission(**kwargs)) for call in ua.ShortTrParser.Calls]
