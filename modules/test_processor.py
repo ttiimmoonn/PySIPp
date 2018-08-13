@@ -1,7 +1,7 @@
-import modules.diff_meter as time_meter
 import modules.test_class as test_class
 import modules.test_parser as parser
-from modules.diff_meter import TimeDiffMeterExp
+from modules.diff_meter import TimeDiffMeterExp, TimeDiffMeter
+from modules.cmd_builder import CmdBuildExp
 import modules.process_contr as proc
 import modules.cdr as cdr
 import ftplib
@@ -66,8 +66,7 @@ class TestProcessor:
         self.RegThread = None
         self.CmdBuilder = kwargs["CmdBuilder"]
 
-
-    def StopTestProcessor(self):
+    def stop(self):
         self.Status = "Stopping test_processor"
         logger.debug("Drop all SIPp processes...")
         # Дропаем процессы
@@ -79,26 +78,26 @@ class TestProcessor:
 
         # Разрегистрируем транки
         if self.RegLock and len(self.AutoRegUsers) > 0:
-            self._StopUserRegistration(self.AutoRegTrunks)
+            self._stop_user_registration(self.AutoRegTrunks)
         # Разрегистрируем юзеров
         if self.RegLock and len(self.AutoRegUsers) > 0:
-            self._StopUserRegistration(self.AutoRegUsers)
+            self._stop_user_registration(self.AutoRegUsers)
 
         # Для корректного завершения теста нужно выслать все ccn_cmd, которые он не послал.
-        self._SendAllCcnCmd()
+        self._send_all_ssh_commands()
 
         # Даём время на сворачивание thread
         self._sleep(0.2)
         return True
 
-    def _StopUserRegistration(self, reg_objects):
+    def _stop_user_registration(self, reg_objects):
         logger.info("Drop registration...")
-        if not self._buildRegCommands(reg_objects,mode="unreg"):
+        if not self._build_reg_command(reg_objects, mode="unreg"):
             return False
-        unreg_thread = threading.Thread(target=proc.ChangeUsersRegistration, args=(reg_objects,self.RegLock,"unreg",))
-        unreg_thread.start()
+        thread = threading.Thread(target=proc.ChangeUsersRegistration, args=(reg_objects,self.RegLock,"unreg",))
+        thread.start()
         # Даём завершиться thread'у разрегистрации
-        unreg_thread.join()
+        thread.join()
         # Обновляем параметры регистрации
         for obj in reg_objects.values():
             obj.RegCSeq = 1
@@ -111,9 +110,9 @@ class TestProcessor:
             return False
         return True
 
-    def _StartUserRegistration(self, reg_objects):
+    def _start_user_registration(self, reg_objects):
         self.Status = "Start Registration..."
-        if not self._buildRegCommands(reg_objects):
+        if not self._build_reg_command(reg_objects):
             return False
         # Врубаем регистрацию для всех объектов
         logger.info("Starting of registration...")
@@ -125,23 +124,23 @@ class TestProcessor:
             return False
         return True
 
-    def _buildRegCommands(self, reg_objects, mode="reg"):
+    def _build_reg_command(self, reg_objects, mode="reg"):
         if len(reg_objects) > 0:
             # Собираем команды для регистрации абонентов
-            if mode =="reg":
+            if mode == "reg":
                 logger.info("Build commands for starting registration...")
             else:
                 logger.info("Build commands for stopping registration...")
 
             for obj in reg_objects.values():
-                command = self.CmdBuilder.build_reg_command(obj, self.LogPath, self.TestVar, mode=mode)
-                if command:
-                    if mode == "reg":
-                        obj.RegCommand = command 
-                    else:
-                        obj.UnRegCommand = command 
+                try:
+                    command = self.CmdBuilder.build_reg_command(obj, self.LogPath, self.TestVar, mode=mode)
+                except CmdBuildExp as error:
+                    raise TestProcessorExp(error)
+                if mode == "reg":
+                    obj.RegCommand = command
                 else:
-                    return False
+                    obj.UnRegCommand = command
         return True
 
     @staticmethod
@@ -179,23 +178,24 @@ class TestProcessor:
                     return False
         return True
 
-
-    def _buildSippCmd(self):
+    def _build_sipp_command(self):
         logger.info("Build SIPp commands for UA...")
-        if not self.CmdBuilder.build_sipp_command(self.NowRunningTest, self.TestVar,
-                                                  self.UacDropFlag, self.ShowSipFlowFlag):
-            return False
-        else:
-            return True
+        try:
+            self.CmdBuilder.build_sipp_command(self.NowRunningTest, self.TestVar,
+                                               self.UacDropFlag, self.ShowSipFlowFlag)
+        except CmdBuildExp as error:
+            raise TestProcessorExp(error)
+        return True
 
-    def _buildSippCmdSF(self, serv_feature_ua, sf_code):
+    def _build_sipp_sf_command(self, sf_ua, sf_code):
         # Собираем команду для активации сервис фичи
-        cmd_desc = self.CmdBuilder.build_service_feature_command(self.NowRunningTest,serv_feature_ua.UserObject,
-                                                                 sf_code, self.TestVar)
-        if not cmd_desc:
-            return False
+        try:
+            cmd_desc = self.CmdBuilder.build_service_feature_command(self.NowRunningTest, sf_ua.UserObject,
+                                                                     sf_code, self.TestVar)
+        except CmdBuildExp as error:
+            raise TestProcessorExp(error)
         else:
-            serv_feature_ua.Commands.append(cmd_desc)
+            sf_ua.Commands.append(cmd_desc)
             return True
 
     @staticmethod
@@ -203,7 +203,7 @@ class TestProcessor:
         logger.info("Sleep on %ss", str(round(float(timeout), 1)))
         time.sleep(float(timeout))
 
-    def _execSippProcess(self):
+    def _start_sipp_processes(self):
         self.NowRunningThreads = proc.start_process_controller(self.NowRunningTest)
         if len(self.NowRunningTest.UserAgent) > 0:
             logger.info("Waiting for closing threads...")
@@ -233,7 +233,10 @@ class TestProcessor:
         cdr_conf = {}
         compare_result = []
         cdr_group = method_body.get("CDRGroup", "default")
-        cdr_group = self.CmdBuilder.replace_var(cdr_group, self.TestVar)
+        try:
+            cdr_group = self.CmdBuilder.replace_var(cdr_group, self.TestVar)
+        except CmdBuildExp as error:
+            raise TestProcessorExp(error)
         # Make ftp config
         cdr_conf["host"] = self.TestVar["%%SERV_IP%%"]
         cdr_conf["user"] = "cdr"
@@ -242,7 +245,10 @@ class TestProcessor:
         # Make cdr finalize
         logger.info("Finalize cdr for group %s", cdr_group)
         finalize_command = "/domain/%%DEV_DOM%%/cdr/make_finalize_cdr " + cdr_group
-        finalize_command = self.CmdBuilder.replace_var(finalize_command, self.TestVar)
+        try:
+            finalize_command = self.CmdBuilder.replace_var(finalize_command, self.TestVar)
+        except CmdBuildExp as error:
+            raise TestProcessorExp(error)
         if type(finalize_command) != str:
             return False
         if not self.SSHInt.push_cmd_string_to_ssh(finalize_command):
@@ -273,9 +279,10 @@ class TestProcessor:
 
         # Replace vars in cdr params
         cdr_params = method_body.get("CDRParams", {})
-        if not self.CmdBuilder.replace_var_for_dict(cdr_params, self.TestVar):
-            self.NowRunningTest.Status = "Failed"
-            return False
+        try:
+            self.CmdBuilder.replace_var_for_dict(cdr_params, self.TestVar)
+        except CmdBuildExp as error:
+            raise TestProcessorExp(error)
         for cdr_dict in cdr_obj.parse_cdr_file(cdr_path, cdr_filename):
             # cdr_params must be a subset of cdr_dict. Check it!
             if not set(cdr_params).issubset(set(cdr_dict)):
@@ -300,7 +307,7 @@ class TestProcessor:
             self.NowRunningTest.Status = "Failed"
             return False
 
-    def _execStartUA(self, ua_desc):
+    def _exec_start_ua(self, ua_desc):
         logger.info("Parse UA from test.")
         parse = parser.Parser()
         if not parse.parse_user_agent(self.NowRunningTest, ua_desc):
@@ -316,7 +323,7 @@ class TestProcessor:
             return False
 
         # Собираем команды для UA.
-        if not self._buildSippCmd():
+        if not self._build_sipp_command():
             self.NowRunningTest.Status = "Failed"
             logger.error("Build SIPp commands failed.")
             return False
@@ -337,17 +344,21 @@ class TestProcessor:
             self.NowRunningTest.UserAgent = [ua for ua in self.NowRunningTest.UserAgent if ua.Commands]
             self.NowRunningTest.BackGroundUA = [ua for ua in self.NowRunningTest.BackGroundUA if ua.Commands]
 
-        if not self._execSippProcess():
+        if not self._start_sipp_processes():
             self.NowRunningTest.Status = "Failed"
             return False
         return True
 
-    def _execServiceFeature(self, sf_desc):
+    def _exec_service_feature(self, sf_desc):
         # Проверка на уникальность uid в serviceFeature cmd
         already_used_uid = []
-        for serv_feature in sf_desc:
-            sf_code = self.CmdBuilder.replace_var(serv_feature['code'], self.TestVar)
-            sf_uid = serv_feature['userId']
+        for sf in sf_desc:
+            try:
+                sf_code = self.CmdBuilder.replace_var(sf['code'], self.TestVar)
+            except CmdBuildExp as error:
+                raise TestProcessorExp(error)
+
+            sf_uid = sf['userId']
 
             if not sf_code:
                 self.NowRunningTest.Status = "Failed"
@@ -368,23 +379,29 @@ class TestProcessor:
                 self.NowRunningTest.Status = "Failed"
                 return False
 
-            serv_feature_ua = test_class.UserAgentClass()
-            serv_feature_ua = serv_feature_ua.GetServiceFetureUA(sf_code,user)
-            if not self._buildSippCmdSF(serv_feature_ua,sf_code):
+            sf_ua = test_class.UserAgentClass()
+            sf_ua = sf_ua.GetServiceFetureUA(sf_code,user)
+            if not self._build_sipp_sf_command(sf_ua, sf_code):
                 self.NowRunningTest.Status = "Failed"
                 return False
 
-            self.NowRunningTest.UserAgent.append(serv_feature_ua)
+            self.NowRunningTest.UserAgent.append(sf_ua)
 
-        if not self._execSippProcess():
+        if not self._start_sipp_processes():
             self.NowRunningTest.Status = "Failed"
             return False
 
-    def _execCoconCmd(self, cmd_list):
+    def _exec_set_variables(self, **variables):
+        logger.info("Set next variables: %s", variables)
+        self.TestVar.update(variables)
+
+    def _exec_ssh_command(self, cmd_list):
         logger.info("Send SSH commands...")
-        if not self.CmdBuilder.replace_var_for_list(cmd_list, self.TestVar):
-            self.NowRunningTest.Status = "Failed"
-            return False
+        try:
+            self.CmdBuilder.replace_var_for_list(cmd_list, self.TestVar)
+        except CmdBuildExp as error:
+            raise TestProcessorExp(error)
+
         if not self.SSHInt.push_cmd_list_to_ssh(list(cmd_list)):
             logger.error("Executing ccn cmd failed.")
             self.NowRunningTest.Status = "Failed"
@@ -392,11 +409,11 @@ class TestProcessor:
         return True
 
     @staticmethod
-    def _execPrintCmd(message):
+    def _exec_print_cmd(message):
         logging.info("\033[32m[TEST_INFO] %s \033[1;m",message)
 
     @staticmethod
-    def _execStopCmd(self):
+    def _exec_stop_cmd(self):
         sys.stdin.flush()
         input("\033[1;31m[TEST_INFO] Test stopped. Please press any key to continue...\033[1;m")
 
@@ -417,9 +434,11 @@ class TestProcessor:
 
     def _convert_difference(self, difference):
         if type(difference) is list:
-            if not self.CmdBuilder.replace_var_for_list(difference, self.TestVar):
-                raise TestProcessorExp("Replacing vars in difference list failed. List: %s" %
-                                       ",".join(list(map(str, difference))))
+            try:
+                self.CmdBuilder.replace_var_for_list(difference, self.TestVar)
+            except CmdBuildExp as error:
+                raise TestProcessorExp(error)
+
             try:
                 difference = list(map(float, difference))
             except ValueError:
@@ -428,9 +447,10 @@ class TestProcessor:
             difference = list(map(lambda x: x/1000, difference))
         else:
             if type(difference) is str:
-                difference = self.CmdBuilder.replace_var(difference, self.TestVar)
-            if type(difference) is bool:
-                raise TestProcessorExp("Replacing vars in difference failed. Difference: %s" % str(difference))
+                try:
+                    difference = self.CmdBuilder.replace_var(difference, self.TestVar)
+                except CmdBuildExp as error:
+                    raise TestProcessorExp(error)
             try:
                 difference = float(difference)
             except ValueError:
@@ -440,15 +460,10 @@ class TestProcessor:
 
     def _exec_check_difference(self, method_body):
         # Создаём объект для измерения временных интервалов.
-        time_meter_obj = time_meter.TimeDiffMeter()
+        time_meter_obj = TimeDiffMeter()
         for method_item in method_body:
             method_item = Dict2Obj(method_item)
-            try:
-                method_item.Difference = self._convert_difference(method_item.Difference)
-            except TestProcessorExp as error:
-                logger.error("%s", error)
-                self.NowRunningTest.Status = "Failed"
-                return False
+            method_item.Difference = self._convert_difference(method_item.Difference)
             # Try to get call mask
             try:
                 method_item.Calls = list(map(lambda x: x-1, method_item.Calls))
@@ -467,7 +482,7 @@ class TestProcessor:
             method_item.UA = self._convert_ua2list(method_item.UA)
             try:
                 result = time_meter_obj.check_time_difference(method_item, self.NowRunningTest.CompleteUA)
-            except time_meter.TimeDiffMeterExp as error:
+            except TimeDiffMeterExp as error:
                 logger.error("CheckDifference failed. Error: %s" % error)
                 self.NowRunningTest.Status = "Failed"
                 return False
@@ -477,7 +492,7 @@ class TestProcessor:
         return True
 
     def _exec_check_msg_retransmission(self, method_body):
-        time_meter_obj = time_meter.TimeDiffMeter()
+        time_meter_obj = TimeDiffMeter()
         for method_item in method_body:
             # Convert method item to object
             method_item = Dict2Obj(method_item)
@@ -499,7 +514,7 @@ class TestProcessor:
                 return False
         return True
 
-    def _ChkBackgroundUA(self, timer=5):
+    def _chk_background_ua(self, timer=5):
         if len(self.NowRunningTest.WaitBackGroundUA) > 0:
             logger.info("Waiting for closing threads which started in background mode. Timer = %ds.", timer)
             if not proc.CheckThreads(self.NowRunningTest.BackGroundThreads, timer=timer):
@@ -518,17 +533,19 @@ class TestProcessor:
             else:
                 self.NowRunningTest.CompliteBgUA()
 
-    def _SendAllCcnCmd(self):
+    def _send_all_ssh_commands(self):
         if self.NowRunningTest:
-            logger.info("Trying send to CCN all commands from test: %s",self.NowRunningTest.Name)
+            logger.info("Trying send to CCN all commands from test: %s", self.NowRunningTest.Name)
             for item in self.GenForItem:
                 if item[0] == "SendSSHCommand":
-                    if not self.CmdBuilder.replace_var_for_list(item[1], self.TestVar):
-                        self.NowRunningTest.Status = "Failed"
-                        return False
+                    try:
+                        self.CmdBuilder.replace_var_for_list(item[1], self.TestVar)
+                    except CmdBuildExp as error:
+                        logger.error("Send ssh command failed. Error: %s" % error)
+                        return
                     self.SSHInt.push_cmd_list_to_ssh(list(item[1]))
 
-    def _RegManual(self, reg_objects, mode="user"):
+    def _reg_manual(self, reg_objects, mode="user"):
 
         for obj_id in reg_objects.keys():
             # Проверяем, что запрашиваемый юезер существует
@@ -575,8 +592,8 @@ class TestProcessor:
                 obj.RegOneTime = True
 
         # Запускаем процесс регистрации
-        if not self._StartUserRegistration(reg_dict):
-            self.NowRunningTest.Status="Failed"
+        if not self._start_user_registration(reg_dict):
+            self.NowRunningTest.Status = "Failed"
         # Собираем в drop_users тех юзеров, которые запросили разрегистрацию
         drop_dict = False
         if mode == "user":
@@ -584,10 +601,10 @@ class TestProcessor:
         elif mode == "trunk":
             drop_dict = {trunk_id: trunk for trunk_id, trunk in reg_dict.items() if reg_objects[str(trunk_id)]["need_drop"]==True}
         if drop_dict:
-            if not self._StopUserRegistration(drop_dict):
-                self.NowRunningTest.Status="Failed"
+            if not self._stop_user_registration(drop_dict):
+                self.NowRunningTest.Status = "Failed"
 
-    def _DropManualReg(self, obj_id_list,mode):
+    def _drop_manual_reg(self, obj_id_list, mode):
         drop_dict={}
         for obj_id in obj_id_list:
             if mode == "user":
@@ -604,19 +621,18 @@ class TestProcessor:
                     return False
                 else:
                     drop_dict[int(obj_id)]=self.ManualRegTrunks[int(obj_id)]
-        if not self._StopUserRegistration(drop_dict):
-            self.NowRunningTest.Status="Failed"
+        if not self._stop_user_registration(drop_dict):
+            self.NowRunningTest.Status = "Failed"
             return False
 
-
-    def StartTestProcessor(self):
-        if not self._StartUserRegistration(self.AutoRegTrunks):
+    def start(self):
+        if not self._start_user_registration(self.AutoRegTrunks):
             self.Status = "Registration Failed"
             self.failed_flag = True
             return False
         else:
             self.Status = "Trunk Registration Complite"
-        if not self._StartUserRegistration(self.AutoRegUsers):
+        if not self._start_user_registration(self.AutoRegUsers):
             self.Status = "Registration Failed"
             self.failed_flag = True
             return False
@@ -646,10 +662,6 @@ class TestProcessor:
             logger.info("---| StopTime:        %s", str(datetime.fromtimestamp(self.NowRunningTest.StopTime).strftime('%H:%M:%S %Y-%m-%d')))
             logger.info("---| TestDuration:    %ss", str(test.getTestDuration()))
 
-    def _set_variables(self, **variables):
-        logger.info("Set next variables: %s", variables)
-        self.TestVar.update(variables)
-
     def _run_test_procedure(self, test):
         self.GenForItem = self._get_test_item_gen(test.TestProcedure)
         for method, method_desc in self.GenForItem:
@@ -657,46 +669,50 @@ class TestProcessor:
                 logger.error("Some process thread set event for stop. Drop test procedure...")
                 break
             logger.info("Exec method \"%s\"", method)
-            if method == "StartUA":
-                # Передаём параметры startUa в метод _execStartUA
-                self._execStartUA(method_desc)
-            elif method == "ServiceFeature":
-                self._execServiceFeature(method_desc)
-            elif method == "SendSSHCommand":
-                self._execCoconCmd(method_desc)
-            elif method == "Print":
-                self._execPrintCmd(method_desc)
-            elif method == "Stop":
-                self._execStopCmd()
-            elif method == "WaitBackGroundUA":
-                self._ChkBackgroundUA(timer=method_desc.get("timeout", 5))
-            elif method == "Sleep":
-                self._sleep(method_desc)
-            elif method == "CheckDifference":
-                self._exec_check_difference(method_desc)
-            elif method == "CheckRetransmission":
-                self._exec_check_msg_retransmission(method_desc)
-            elif method == "ManualReg":
-                if "Users" in method_desc:
-                    self._RegManual(method_desc["Users"], "user")
-                elif "Trunks" in method_desc:
-                    self._RegManual(method_desc["Trunks"], "trunk")
-            elif method == "DropManualReg":
-                if "Users" in method_desc:
-                    self._DropManualReg(method_desc["Users"], "user")
-                elif "Trunks" in method_desc:
-                    self._DropManualReg(method_desc["Trunks"], "trunk")
-            elif method == "CompareCDR":
-                self._cdr_compare(method_desc)
-            elif method == "SetVar":
-                self._set_variables(**method_desc)
-            else:
-                logger.error("Unknown metod: %s in test procedure. Test aborting.", method)
+            try:
+                if method == "StartUA":
+                    # Передаём параметры startUa в метод _execStartUA
+                    self._exec_start_ua(method_desc)
+                elif method == "ServiceFeature":
+                    self._exec_service_feature(method_desc)
+                elif method == "SendSSHCommand":
+                    self._exec_ssh_command(method_desc)
+                elif method == "Print":
+                    self._exec_print_cmd(method_desc)
+                elif method == "Stop":
+                    self._exec_stop_cmd()
+                elif method == "WaitBackGroundUA":
+                    self._chk_background_ua(timer=method_desc.get("timeout", 5))
+                elif method == "Sleep":
+                    self._sleep(method_desc)
+                elif method == "CheckDifference":
+                    self._exec_check_difference(method_desc)
+                elif method == "CheckRetransmission":
+                    self._exec_check_msg_retransmission(method_desc)
+                elif method == "ManualReg":
+                    if "Users" in method_desc:
+                        self._reg_manual(method_desc["Users"], "user")
+                    elif "Trunks" in method_desc:
+                        self._reg_manual(method_desc["Trunks"], "trunk")
+                elif method == "DropManualReg":
+                    if "Users" in method_desc:
+                        self._drop_manual_reg(method_desc["Users"], "user")
+                    elif "Trunks" in method_desc:
+                        self._drop_manual_reg(method_desc["Trunks"], "trunk")
+                elif method == "CompareCDR":
+                    self._cdr_compare(method_desc)
+                elif method == "SetVar":
+                    self._exec_set_variables(**method_desc)
+                else:
+                    raise TestProcessorExp("Unknown method: %s in test procedure. Test aborting." % method)
+                if self.NowRunningTest.Status == "Failed":
+                    self._send_all_ssh_commands()
+                    break
+            except TestProcessorExp as error:
                 self.NowRunningTest.Status = "Failed"
+                logger.error("Execution of %s failed. Error: %s", method, error)
+                self._send_all_ssh_commands()
                 break
-            if self.NowRunningTest.Status == "Failed":
-                self._SendAllCcnCmd()
-                break
-        self._ChkBackgroundUA()
+        self._chk_background_ua()
         if self.NowRunningTest.Status != "Failed":
             self.NowRunningTest.Status = "Complete"

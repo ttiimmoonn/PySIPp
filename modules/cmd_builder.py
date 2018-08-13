@@ -7,6 +7,11 @@ logger = logging.getLogger("tester")
 
 SUPPORT_ENCODING = ["cp1251", "latin-1"]
 
+
+class CmdBuildExp(Exception):
+    pass
+
+
 class CmdBuild:
     def build_reg_command(self, reg_obj, log_path, test_var, mode="reg"):
         # Building reg command
@@ -24,7 +29,9 @@ class CmdBuild:
             command.append(" -set NUMBER {}".format(reg_obj.TrunkName))
             log_prefix = "REG_TRUNK_" + reg_obj.TrunkName + "_"
         else:
-            return False
+            logger.error("Unknown type of reg obj: %s", str(type(reg_obj)))
+            raise CmdBuildExp("CmdBuildError")
+
         command.append("-set USER_IP {}".format(reg_obj.RegContactIP if reg_obj.RegContactIP else "%%IP%%"))
         command.append("-set PORT {}".format(reg_obj.RegContactPort if reg_obj.RegContactPort else reg_obj.Port))
         if reg_obj.BindPort:
@@ -51,10 +58,7 @@ class CmdBuild:
         command.append("-cid_str {} -base_cseq {}".format(reg_obj.RegCallId, reg_obj.RegCSeq))
         command_str = " ".join(command)
         command_str = self.replace_var(command_str, test_var)
-        if command_str:
-            return command_str
-        else:
-            return False
+        return command_str
 
     def build_service_feature_command(self, test, user, code, test_var):
         # Building service feature command
@@ -77,11 +81,8 @@ class CmdBuild:
         command.append("-error_overwrite false -trace_err -error_file {}/{}ERROR".format(test.LogPath, log_prefix))
         command_str = " ".join(command)
         command_str = self.replace_var(command_str, test_var)
-        if command:
-            CmdInfo = namedtuple('CmdInfo', ['cmd_str', 'req_ex_code'])
-            return CmdInfo(command_str, 0)
-        else:
-            return False
+        CmdInfo = namedtuple('CmdInfo', ['cmd_str', 'req_ex_code'])
+        return CmdInfo(command_str, 0)
 
     def build_sipp_command(self, test, test_var, uac_drop_flag=False, show_sip_flow=False):
         for ua in test.UserAgent + test.BackGroundUA:
@@ -180,30 +181,17 @@ class CmdBuild:
 
                 command_str = " ".join(command)
                 command_str = self.replace_var(command_str, test_var)
-                if command_str:
-                    CmdInfo = namedtuple('CmdInfo', ['cmd_str', 'req_ex_code'])
-                    ua.Commands.append(CmdInfo(command_str, cmd_desc.get("ReqExCode", 0)))
-                else:
-                    return False
+                CmdInfo = namedtuple('CmdInfo', ['cmd_str', 'req_ex_code'])
+                ua.Commands.append(CmdInfo(command_str, cmd_desc.get("ReqExCode", 0)))
         return test
 
     def replace_var_for_dict(self, dictionary, varlst):
         for k, v in dictionary.items():
-            result = self.replace_var(v, varlst)
-            if type(result) == str:
-                dictionary[k] = result
-            else:
-                return False
-        return True
+            dictionary[k] = self.replace_var(v, varlst)
 
     def replace_var_for_list(self, l, varlst):
         for count, item in enumerate(l):
-            result = self.replace_var(item, varlst) if type(item) == str else item
-            if type(result) is not bool:
-                l[count] = result
-            else:
-                return False
-        return True
+            l[count] = self.replace_var(item, varlst) if type(item) == str else item
 
     @staticmethod
     def _remove_range_duplicates(string):
@@ -242,67 +230,40 @@ class CmdBuild:
         for counter in list(range(10)):
             # Ищем все переменные в исходной строке
             command_vars = re.findall(r'%%.*?%%', string)
-            for eachVar in command_vars:
-                # Если кто запросил текущее время +/- временной сдвиг в формате %%NowTime[+/-][delta]%%,
-                # то отправляем данную переменную в функцию сборки времени.
-                if re.match(r'%%NowTime([+,-]?)([0-9]{0,4})(;.*)?%%', eachVar):
-                    shift_time=self.get_time_with_shift(eachVar)
-                    if shift_time:
-                        string = string.replace(str(eachVar), str(shift_time), 1)
-                    else:
-                        return False
-                elif re.match(r'\%\%NowWeekDay([+,-]?)([1-6]{1})?\%\%', eachVar):
-                    shift_weekday = self.get_weekday_with_shift(eachVar)
-                    if shift_weekday:
-                        string = string.replace(str(eachVar), str(shift_weekday), 1)
-                    else:
-                        return False
-                # Ищем значение в словаре
-                else:
-                    try:
-                        string = string.replace(str(eachVar), str(var_list[eachVar]))
-                    except KeyError:
-                        logger.error("Command contain unexpected variable: %s", eachVar)
-                        return False
+            for var in command_vars:
+                try:
+                    string = string.replace(str(var), str(var_list[var]))
+                except KeyError:
+                    logger.error("Command contain unexpected variable: %s", str(var))
+                    raise CmdBuildExp("CmdBuildError")
             if string.find("%%") != -1:
                 if counter == 9:
-                    logger.error("Command contain a special character '%%' after replacing key values. Command: %s",string)
-                    return False
+                    logger.error("Command contain a special character '%%' after replacing variables. Cmd: %s", string)
+                    raise CmdBuildExp("CmdBuildError")
                 else:
                     continue
-        if string:
-            string = self.replace_len_function(string)
-        if string:
-            string = self._remove_range_duplicates(string)
-        if string:
-            string = self.replace_encode_function(string)
+        string = self._replace_time_shift_function(string)
+        string = self._replace_weekday_shift_function(string)
+        string = self._replace_len_function(string)
+        string = self._remove_range_duplicates(string)
+        string = self._replace_encode_function(string)
         return string
 
     @staticmethod
-    def replace_encode_function(string):
+    def _replace_encode_function(string):
         pattern = re.compile(r'encode\("([^"]+)"[\s]*,[\s]*"([^"]+)"\)')
         match = re.search(pattern, string)
         while match:
             raw_str, encoder = match.groups()
             if encoder not in SUPPORT_ENCODING:
-                logger.error("Encoding to %s not supported for encode function.", encoder)
-                return False
+                logger.error("Encoding to %s not supported for encode function.", str(encoder))
+                raise CmdBuildExp("CmdBuildError")
             string = re.sub(pattern, "@BINARY:{}:{}".format(raw_str, encoder), string, count=1)
             match = re.search(pattern, string)
         return string
 
     @staticmethod
-    def replace_encode_function(string):
-        pattern = re.compile(r'encode\(([^,]+)\s?,\s?([^)]+)\)')
-        match = re.search(pattern, string)
-        while match:
-            raw_str, coder = match.groups()
-            string = re.sub(pattern, "@BINARY:{}:{}".format(raw_str, coder), string, count=1)
-            match = re.search(pattern, string)
-        return string
-
-    @staticmethod
-    def replace_len_function(string):
+    def _replace_len_function(string):
         pattern = re.compile(r'len\((.*)\)')
         match = re.search(pattern, string)
         while match:
@@ -311,67 +272,76 @@ class CmdBuild:
         return string
 
     @staticmethod
-    def get_weekday_with_shift(weekday_string):
-        result = re.match(r'%%NowWeekDay([+,-]?)([1-6]{0,4})%%',weekday_string)
-        try:
-            shift = int(result.group(2))
-        except IndexError:
-            logger.error("Can't get time shift : \" no such group \"")
-            return False
-        except ValueError:
-            shift = 0
-        try:
-            sign = str(result.group(1))
-        except IndexError:
-            logger.error("Can't get sign of shift : \" no such group \"")
-            return False
-        except ValueError:
-            sign = "+"
-        now_day = int(datetime.today().isoweekday())
-        if shift:
-            if sign == "+":
-                now_day += shift
-                if now_day > 7:
-                    now_day -= 7
-            elif sign == "-":
-                now_day -= shift
-                if now_day < 1:
-                    now_day = 7 + now_day
-        return now_day
+    def _replace_weekday_shift_function(string):
+        reg_exp = re.compile(r'%%NowWeekDay([+,-]?)([1-6]{0,4})%%')
+        match = re.search(reg_exp, string)
+        while match:
+            try:
+                shift = int(match.group(2))
+            except IndexError:
+                logger.error("Can't get weekday shift from: %s", str(string))
+                raise CmdBuildExp("CmdBuildError")
+            except ValueError:
+                shift = 0
+            try:
+                sign = str(match.group(1))
+            except IndexError:
+                logger.error("Can't get sign of weekday shift from: %s", str(string))
+                raise CmdBuildExp("CmdBuildError")
+            except ValueError:
+                sign = "+"
+            now_day = int(datetime.today().isoweekday())
+            if shift:
+                if sign == "+":
+                    now_day += shift
+                    if now_day > 7:
+                        now_day -= 7
+                elif sign == "-":
+                    now_day -= shift
+                    if now_day < 1:
+                        now_day += 7
+            string = string.replace(match.group(0), str(now_day), 1)
+            match = re.search(reg_exp, string)
+        return string
 
     @staticmethod
-    def get_time_with_shift(time_string):
-        result = re.match(r'%%NowTime([+,-]?)([0-9]{0,4})(;.*)?%%',time_string)
-        try:
-            shift = int(result.group(2))
-        except IndexError:
-            logger.error("Can't get time shift : \" no such group \"")
-            return False
-        except ValueError:
-            shift = 0
-        try:
-            sign = str(result.group(1))
-        except IndexError:
-            logger.error("Can't get sign of shift : \" no such group \"")
-            return False
-        except ValueError:
-            sign = "+"
-        # Если передали формат, то забираем его, иначе присваиваем дефолтный формат
-        format_time = None
-        try:
-            format_time = result.group(3).replace(";", "")
-        except IndexError:
-            logger.error("Can't get time format : \" no such group \"")
-        except (AttributeError, ValueError):
-            format_time = "%H%M"
-        if not format_time:
-            format_time = "%H%M"
+    def _replace_time_shift_function(string):
+        reg_exp = re.compile(r'%%NowTime\s?([+,-]?)\s?([0-9]{0,4});?(.*?)?%%')
+        match = re.search(reg_exp, string)
+        while match:
+            try:
+                shift = int(match.group(2))
+            except IndexError:
+                logger.error("Can't get time shift from: %s", str(string))
+                raise CmdBuildExp("CmdBuildError")
+            except ValueError:
+                shift = 0
+            try:
+                sign = str(match.group(1))
+            except IndexError:
+                logger.error("Can't get sign of time shift from: %s", str(string))
+                raise CmdBuildExp("CmdBuildError")
+            except ValueError:
+                sign = "+"
+            # Если передали формат, то забираем его, иначе присваиваем дефолтный формат
+            format_time = None
+            try:
+                format_time = match.group(3)
+            except IndexError:
+                logger.error("Can't get time format : \" no such group \"")
+            except (AttributeError, ValueError):
+                format_time = "%H%M"
+            if not format_time:
+                format_time = "%H%M"
 
-        now_time = time.time()
-        if shift:
-            if sign == "+":
-                now_time += shift
-            elif sign == "-":
-                now_time -= shift
-        # Возвращаем время
-        return datetime.fromtimestamp(now_time).strftime(format_time)
+            now_time = time.time()
+            if shift:
+                if sign == "+":
+                    now_time += shift
+                elif sign == "-":
+                    now_time -= shift
+            # Возвращаем время
+            time_w_shift = datetime.fromtimestamp(now_time).strftime(format_time)
+            string = string.replace(match.group(0), time_w_shift, 1)
+            match = re.search(reg_exp, string)
+        return string

@@ -9,11 +9,7 @@ import re
 logger = logging.getLogger("tester")
 
 ExCodes = namedtuple('ExCodes', ['NotStarted', 'Killed', 'WrongExitCode', 'Success'])
-StCodes = ExCodes(1,9,2,0)
-
-
-def SubscribeToUser(user):
-    pass
+StCodes = ExCodes(1, 9, 2, 0)
 
 
 def RegisterUser(reg_obj, mode="reg"):
@@ -25,9 +21,11 @@ def RegisterUser(reg_obj, mode="reg"):
         process = start_ua(reg_obj.RegCommand)
         if not process:
             if type(reg_obj).__name__ == "UserClass":
-                logger.error(" ---| User %s not registred. Detail: Can't start process {SIPp not found}",reg_obj.Number)
+                logger.error(" ---| User %s not registered. Detail: Can't start process {SIPp not found}",
+                             reg_obj.Number)
             elif type(reg_obj).__name__ == "TrunkClass":
-                logger.error(" ---| Trunk %s not registred. Detail: Can't start process {SIPp not found}",reg_obj.TrunkName)
+                logger.error(" ---| Trunk %s not registered. Detail: Can't start process {SIPp not found}",
+                             reg_obj.TrunkName)
             reg_obj.Status = "Registration process not started."
             # Выставляем Status код равный 1
             reg_obj.SetStatusCode(1)
