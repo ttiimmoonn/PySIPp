@@ -34,18 +34,12 @@ class TimeDiffMeter:
             return
         # Parse sip trace file if ShortTrParser not set.
         if not ua.ShortTrParser:
+            ua.ShortTrParser = ShortTraceParser()
             try:
-                with open(ua.TimeStampFile, 'r', encoding='utf-8') as f:
-                    logger.debug("Try to parse short_trace file for %s", log_postfix)
-                    ua.ShortTrParser = ShortTraceParser(f)
-                    ua.ShortTrParser.parse()
-            except(FileNotFoundError, PermissionError) as e:
-                logger.error("The trace file %s hasn't been open. Exception: %s", ua.TimeStampFile, e)
-                raise TimeDiffMeterExp("ParseError")
+                ua.ShortTrParser.parse(ua.TimeStampFile)
             except TraceParseExp as error:
                 logger.error("Parse failed. Reason: %s", error)
                 raise TimeDiffMeterExp("ParseError")
-
         if ua.UserObject:
             self.UserWithTraces[ua.UserId] = ua
         elif ua.TrunkObject:
@@ -429,4 +423,5 @@ class TimeDiffMeter:
             logger.error("Unknown mode: %s", d_obj.CompareMode)
             raise TimeDiffMeterExp("CompareError")
         return result
+
 

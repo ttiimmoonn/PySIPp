@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 import sys
 import datetime
+from modules.diff_meter import TimeDiffMeter, TimeDiffMeterExp
+from modules.show_call_flow import ShowSipFlow
 import modules.test_parser as parser
 import modules.test_processor as processor
 import modules.fs_worker as fs
 import modules.ssh_interface as ssh
-import modules.show_call_flow as sip_call_flow
-import modules.diff_meter as diff_calc
 from modules.cmd_builder import CmdBuild, CmdBuildExp
 import logging
 import re
@@ -306,11 +306,8 @@ test_processor.start()
 stop_test(test_processor, test_desc, sshInt)
 
 if show_sip_flow:
-    for test in tests:
-        logger.info("Call flows for TEST %d:",test.TestId)
-        test_diff = diff_calc.DifferCalc(test)
-        call_flow = sip_call_flow.sip_flow(test_diff)
-        call_flow.print_flow()
+    sip_flow = ShowSipFlow()
+    _ = list(map(lambda x: sip_flow.show_sip_flow_for_test(x), tests))
 
 
 # Производим расчёт результатов теста

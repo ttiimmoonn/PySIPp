@@ -144,12 +144,11 @@ class SipMessage:
 
 
 class ShortTraceParser:
-    def __init__(self, trace_fd):
+    def __init__(self):
         self.Calls = []
-        self.trace_fd = trace_fd
 
     def find_call(self, call_id):
-        for call in self.calls:
+        for call in self.Calls:
             if call.call_id == call_id:
                 return call
         return False
@@ -163,12 +162,21 @@ class ShortTraceParser:
             if call.CallID == msg.CallID:
                 return call
 
-    def parse(self):
-        for line in self.trace_fd:
-            line = line.rstrip()
-            sip_msg = SipMessage(**self._get_msg_dict(line.split('\t')))
-            sip_call = self._get_call_for_msg(sip_msg)
-            if not sip_call and sip_msg.MsgType == MSG_TYPES.REQUEST:
-                self.Calls.append(SipCall(sip_msg))
-            elif sip_call:
-                sip_call.append_message(sip_msg)
+    def _parse_trace_line(self, line):
+        line = line.rstrip()
+        sip_msg = SipMessage(**self._get_msg_dict(line.split('\t')))
+        sip_call = self._get_call_for_msg(sip_msg)
+        if not sip_call and sip_msg.MsgType == MSG_TYPES.REQUEST:
+            self.Calls.append(SipCall(sip_msg))
+        elif sip_call:
+            sip_call.append_message(sip_msg)
+
+    def parse(self, file):
+        try:
+            with open(file, 'r', encoding='utf-8') as f:
+                logger.debug("Try to parse short_trace file %s", file)
+                _ = list(map(self._parse_trace_line, f))
+        except(FileNotFoundError, PermissionError) as e:
+            logger.error("The trace file %s hasn't been open. Exception: %s", file, e)
+            raise TraceParseExp("ParseError")
+
