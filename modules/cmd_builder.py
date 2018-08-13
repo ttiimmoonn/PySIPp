@@ -29,7 +29,8 @@ class CmdBuild:
             command.append(" -set NUMBER {}".format(reg_obj.TrunkName))
             log_prefix = "REG_TRUNK_" + reg_obj.TrunkName + "_"
         else:
-            raise CmdBuildExp("Unknown type of reg obj: %s" % str(type(reg_obj)))
+            logger.error("Unknown type of reg obj: %s", str(type(reg_obj)))
+            raise CmdBuildExp("CmdBuildError")
 
         command.append("-set USER_IP {}".format(reg_obj.RegContactIP if reg_obj.RegContactIP else "%%IP%%"))
         command.append("-set PORT {}".format(reg_obj.RegContactPort if reg_obj.RegContactPort else reg_obj.Port))
@@ -233,11 +234,12 @@ class CmdBuild:
                 try:
                     string = string.replace(str(var), str(var_list[var]))
                 except KeyError:
-                    raise CmdBuildExp("Command contain unexpected variable: %s" % str(var))
+                    logger.error("Command contain unexpected variable: %s", str(var))
+                    raise CmdBuildExp("CmdBuildError")
             if string.find("%%") != -1:
                 if counter == 9:
-                    raise CmdBuildExp("Command contain a special character '%%' after replacing variables. Cmd: %s",
-                                      string)
+                    logger.error("Command contain a special character '%%' after replacing variables. Cmd: %s", string)
+                    raise CmdBuildExp("CmdBuildError")
                 else:
                     continue
         string = self._replace_time_shift_function(string)
@@ -254,7 +256,8 @@ class CmdBuild:
         while match:
             raw_str, encoder = match.groups()
             if encoder not in SUPPORT_ENCODING:
-                raise CmdBuildExp("Encoding to %s not supported for encode function." % str(encoder))
+                logger.error("Encoding to %s not supported for encode function.", str(encoder))
+                raise CmdBuildExp("CmdBuildError")
             string = re.sub(pattern, "@BINARY:{}:{}".format(raw_str, encoder), string, count=1)
             match = re.search(pattern, string)
         return string
@@ -276,13 +279,15 @@ class CmdBuild:
             try:
                 shift = int(match.group(2))
             except IndexError:
-                raise CmdBuildExp("Can't get weekday shift from: %s" % str(string))
+                logger.error("Can't get weekday shift from: %s", str(string))
+                raise CmdBuildExp("CmdBuildError")
             except ValueError:
                 shift = 0
             try:
                 sign = str(match.group(1))
             except IndexError:
-                raise CmdBuildExp("Can't get sign of weekday shift from: %s" % str(string))
+                logger.error("Can't get sign of weekday shift from: %s", str(string))
+                raise CmdBuildExp("CmdBuildError")
             except ValueError:
                 sign = "+"
             now_day = int(datetime.today().isoweekday())
@@ -307,13 +312,15 @@ class CmdBuild:
             try:
                 shift = int(match.group(2))
             except IndexError:
-                raise CmdBuildExp("Can't get time shift from: %s" % str(string))
+                logger.error("Can't get time shift from: %s", str(string))
+                raise CmdBuildExp("CmdBuildError")
             except ValueError:
                 shift = 0
             try:
                 sign = str(match.group(1))
             except IndexError:
-                raise CmdBuildExp("Can't get sign of time shift from: %s" % str(string))
+                logger.error("Can't get sign of time shift from: %s", str(string))
+                raise CmdBuildExp("CmdBuildError")
             except ValueError:
                 sign = "+"
             # Если передали формат, то забираем его, иначе присваиваем дефолтный формат

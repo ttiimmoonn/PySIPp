@@ -47,12 +47,12 @@ def stop_test(test_processor, test_desc, sshInt):
         test_processor.stop()
     if sshInt:
         if test_desc and test_desc.get("PostConf", False):
-            if test_desc["PostConf"][0]:
+            if test_desc["PostConf"]:
                 logger.info("Start system reconfiguration...")
                 try:
                     cmd_builder.replace_var_for_list(test_desc["PostConf"], test_var)
                 except CmdBuildExp as error:
-                    logger.error(error)
+                    logger.error("System PostConf failed. Error: %s", error)
                     return
                 sshInt.push_cmd_list_to_ssh(list(test_desc["PostConf"]))
 
@@ -246,7 +246,7 @@ if show_test_info:
 # Если был передан test_numbers, то накладываем маску на массив тестов
 if test_numbers:
     try:
-        tests=list(tests[i] for i in test_numbers)
+        tests = list(tests[i] for i in test_numbers)
     except IndexError:
         logger.error("Test index out of range")
         sys.exit(1)
@@ -278,11 +278,11 @@ sshInt.eventForStop = threading.Event()
 if test_desc.get("PreConf", False):
     logger.info("Start system configuration...")
     # Переменные для настройки соединения
-    if test_desc["PreConf"][0]:
+    if test_desc["PreConf"]:
         try:
             cmd_builder.replace_var_for_list(test_desc["PreConf"], test_var)
         except CmdBuildExp as error:
-            logger.error(error)
+            logger.error("System PreConf failed. Error: %s", error)
             sys.exit(1)
         if not sshInt.push_cmd_list_to_ssh(list(test_desc["PreConf"])):
             sys.exit(1)
