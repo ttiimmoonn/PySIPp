@@ -231,6 +231,12 @@ class CmdBuild:
             # Ищем все переменные в исходной строке
             command_vars = re.findall(r'%%.*?%%', string)
             for var in command_vars:
+                if var.find("%%NowTime") != -1:
+                    string = self._replace_time_shift_function(string)
+                    continue
+                if var.find("%%NowWeekDay") != -1:
+                    string = self._replace_weekday_shift_function(string)
+                    continue
                 try:
                     string = string.replace(str(var), str(var_list[var]))
                 except KeyError:
@@ -242,8 +248,6 @@ class CmdBuild:
                     raise CmdBuildExp("CmdBuildError")
                 else:
                     continue
-        string = self._replace_time_shift_function(string)
-        string = self._replace_weekday_shift_function(string)
         string = self._replace_len_function(string)
         string = self._remove_range_duplicates(string)
         string = self._replace_encode_function(string)
