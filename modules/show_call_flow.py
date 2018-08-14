@@ -31,7 +31,7 @@ class ShowSipFlow:
                     print_string += "\n"
                     msg_diff = round(float(call.Messages[count + 1].Timestamp) - float(msg.Timestamp), 1)
 
-                    print_string += self.get_red_string("           Diff: %s" % str(msg_diff).ljust(39, " "))
+                    print_string += self.get_red_string("           Diff: %s" % str(msg_diff).ljust(10, " "))
                     print_string += "│"
                 except IndexError:
                     pass
